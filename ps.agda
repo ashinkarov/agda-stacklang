@@ -53,12 +53,18 @@ frame {m = m} f xs =
   in  ys ++ (f zs)
 
 
+framep : ∀ {X m n k}{P : Stack X m → Set} → ((s : Stack X m) → .(P s) → Stack X n) → (xs : Stack X (m + k)) → .(P (proj₂ $ split m xs)) → Stack X (n + k)
+framep {m = m} f xs p =
+  let (ys ,, zs) = split m xs
+  in ys ++ (f zs p)
+
 module FibNonTerm where
   {-# TERMINATING #-}
   fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
   fib (xs , 0)             = xs , 1
   fib (xs , 1)             = xs , 1
   fib xs@(_ , suc (suc x)) = add $ fib $ sub $ push 2 $ exch $ fib $ sub $ push 1 $ dup xs
+
 
 
 module FibWithSplit where
@@ -73,7 +79,7 @@ module FibWithSplit where
       l:r:fib[r-1]   = l:r ++ fib[r-1]
       -- XXX can we replace the three above lines with a `frame`-based call
       --     the problem is that when we do this we lose the information that
-      --     (hd l:r:r-1) is (suc x).  Is there an easy way out?
+      --     (hd l:r:r-1) is (suc x).
       l:fib[r-1]:r-2 = sub $ push 2 $ exch l:r:fib[r-1]
     in                 add $ fib′ l:fib[r-1]:r-2
                                   (fib-thm {ys = fib[r-1]} (<-trans ≤-refl (≤-pred x<y)))
@@ -87,6 +93,29 @@ module FibWithSplit where
 
   fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
   fib xs = fib′ xs ≤-refl
+
+module WithSplitExtractFriendly where
+  fib′ : ∀ {y n} → (s : Stack ℕ (1 + n)) → .(hd s < y) → Stack ℕ (1 + n)
+  fib′ (xs , 0) _ = xs , 1
+  fib′ (xs , 1) _ = xs , 1
+  fib′ {suc y} xs@(l , r@(suc (suc x))) x<y =
+    let
+      l:r:r-1        = sub $ push 1 $ dup xs
+                       -- Framep is a version of frame that takes extra proof.
+                       -- Now if we assume that framep is a fixed part of the interface and teach extractor
+                       -- how to deal with it.
+      l:r:fib[r-1]   = framep {m = 1} {P = λ s → hd s ≡ suc x} (λ s hd[s]≡suc[x] → fib′ s (subst (_< y) (sym hd[s]≡suc[x]) (≤-pred x<y) )) l:r:r-1 refl
+      l:fib[r-1]:r-2 = sub $ push 2 $ exch l:r:fib[r-1]
+    in                 add $ fib′ l:fib[r-1]:r-2
+                                  (fib-thm {ys =  fib′ ([] , suc x) _ } (<-trans ≤-refl (≤-pred x<y)))
+   where
+    exch-++ : ∀ {X n}{xs : Stack X n}{ys : Stack X 1}{x} → exch ((xs , x) ++ ys) ≡ (xs ++ ys) , x
+    exch-++ {ys = [] , y} = refl
+
+    fib-thm : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x}{l} → x < l → hd (sub $ (exch ((xs , suc (suc x)) ++ ys) , 2)) < l
+    fib-thm {ys = [] , y} x<l = x<l
+
+
 
 
 module FibNoSplit where
