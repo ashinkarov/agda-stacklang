@@ -1,0 +1,147 @@
+{-# OPTIONS --irrelevant-projections #-}
+open import Data.Nat
+open import Data.Nat.Properties
+open import Data.Bool using (Bool; true; false)
+open import Function --using (_$_) -- renaming (_$_ )
+open import Relation.Binary.PropositionalEquality
+open import Data.Product renaming (_,_ to _,,_)
+
+infixl 5 _,_
+data Stack (X : Set) : ℕ → Set where
+  []  : Stack X 0
+  _,_ : ∀ {n} → Stack X n → X → Stack X (suc n)
+
+dup : ∀ {X n} → Stack X (suc n) → Stack X (suc (suc n))
+dup (xs , x) = xs , x , x
+
+exch : ∀ {X n} → Stack X (2 + n) → Stack X (2 + n)
+exch (xs , x , y) = xs , y , x
+
+add : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
+add (xs , x , y) = xs , x + y
+
+sub : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sub (xs , x , y) = xs , x ∸ y
+
+push : ∀ {X n} → X → Stack X n → Stack X (1 + n)
+push x xs = xs , x
+
+eq : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
+eq (xs , x , y) with x ≡ᵇ y
+... | true  = xs , 1
+... | false = xs , 0
+
+hd : ∀ {X n} → Stack X (1 + n) → X
+hd (_ , x) = x
+
+tl : ∀ {X n} → Stack X (1 + n) → Stack X n
+tl (xs , _) = xs
+
+_++_ : ∀ {X m n} → Stack X m → Stack X n → Stack X (n + m)
+xs ++ [] = xs
+xs ++ (ys , y) = xs ++ ys , y
+
+split : ∀ {X n} → (m : ℕ) → Stack X (m + n) → Stack X n × Stack X m
+split zero xs = xs ,, []
+split (suc m) (xs , x) =
+  let ys ,, zs = split m xs
+  in  ys ,, zs , x
+
+frame : ∀ {X m n k} → (Stack X m → Stack X n) → Stack X (m + k) → Stack X (n + k)
+frame {m = m} f xs =
+  let (ys ,, zs) = split m xs
+  in  ys ++ (f zs)
+
+
+module FibNonTerm where
+  {-# TERMINATING #-}
+  fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+  fib (xs , 0)             = xs , 1
+  fib (xs , 1)             = xs , 1
+  fib xs@(_ , suc (suc x)) = add $ fib $ sub $ push 2 $ exch $ fib $ sub $ push 1 $ dup xs
+
+
+module FibWithSplit where
+  fib′ : ∀ {y n} → (s : Stack ℕ (1 + n)) → (@0 _ : hd s < y) → Stack ℕ (1 + n)
+  fib′ (xs , 0) _ = xs , 1
+  fib′ (xs , 1) _ = xs , 1
+  fib′ {suc y} xs@(l , r@(suc (suc x))) x<y =
+    let
+      l:r:r-1        = sub $ push 1 $ dup xs
+      l:r ,, r-1     = split 1 l:r:r-1
+      fib[r-1]       = fib′ r-1 (≤-pred x<y)
+      l:r:fib[r-1]   = l:r ++ fib[r-1]
+      -- XXX can we replace the three above lines with a `frame`-based call
+      --     the problem is that when we do this we lose the information that
+      --     (hd l:r:r-1) is (suc x).  Is there an easy way out?
+      l:fib[r-1]:r-2 = sub $ push 2 $ exch l:r:fib[r-1]
+    in                 add $ fib′ l:fib[r-1]:r-2
+                                  (fib-thm {ys = fib[r-1]} (<-trans ≤-refl (≤-pred x<y)))
+   where
+    exch-++ : ∀ {X n}{xs : Stack X n}{ys : Stack X 1}{x} → exch ((xs , x) ++ ys) ≡ (xs ++ ys) , x
+    exch-++ {ys = [] , y} = refl
+
+    fib-thm : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x}{l} → x < l → hd (sub $ (exch ((xs , suc (suc x)) ++ ys) , 2)) < l
+    fib-thm {ys = [] , y} x<l = x<l
+
+
+  fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+  fib xs = fib′ xs ≤-refl
+
+
+module FibNoSplit where
+  -- This is much more extraction-friendly version.
+  -- It became much more complex due to the extra (irrelevant) proofs we carry around.
+  -- XXX However, we still have the problem that we can't mark `y` as runtime-irrelevant.
+  --     The only purpose of `y` is to sastisfy the termination checker, so we don't need
+  --     it at runtime.  But I don't see how to mark it irrelevant or @0...
+
+  infixl 3 _#_
+  -- Stack with an irrelevant property
+  record SProp (X : Set) (n : ℕ) (P : Stack X n → Set) : Set where
+    constructor _#_
+    field
+      st : Stack X n
+      .p : P st
+
+  fib′ : ∀ {y n} → (s : Stack ℕ (1 + n)) → .(hd s < y) → SProp ℕ (1 + n) (λ s' → tl s' ≡ tl s)
+  fib′ (xs , 0) _ = (xs , 1) # refl
+  fib′ (xs , 1) _ = (xs , 1) # refl
+  fib′ {suc y} xs@(l , r@(suc (suc x))) x<y =
+     let
+       l:r:r-1             = sub $ push 1 $ dup xs
+       l:r:fib[r-1]        = fib′ l:r:r-1 (≤-pred x<y)
+       l:fib[r-1]:r        : SProp ℕ _ λ s' → hd s' ≡ suc (suc x) × tl (tl s') ≡ l
+       l:fib[r-1]:r        = (exch $ SProp.st l:r:fib[r-1])
+                             #  (exch-hd {xs = SProp.st l:r:fib[r-1]} $ SProp.p l:r:fib[r-1])
+                             ,, (exch-tl {xs = SProp.st l:r:fib[r-1]} $ SProp.p l:r:fib[r-1])
+       l:fib[r-1]:r-2      : SProp ℕ _ λ s' → hd s' ≡ x × tl (tl s') ≡ l
+       l:fib[r-1]:r-2      = (sub $ push 2 $ SProp.st l:fib[r-1]:r)
+                             #  sub2-hd {xs = SProp.st l:fib[r-1]:r} (proj₁ $ SProp.p l:fib[r-1]:r)
+                             ,, sub2-tl {xs = SProp.st l:fib[r-1]:r} (proj₂ $ SProp.p l:fib[r-1]:r)
+       l:fib[r-1]:fib[r-2] = fib′ (SProp.st l:fib[r-1]:r-2)
+                                  (subst (_< y) (sym $ proj₁ $ SProp.p l:fib[r-1]:r-2) (<-trans ≤-refl (≤-pred x<y)))
+     in (add $ SProp.st l:fib[r-1]:fib[r-2])
+        # (add-tl {xs = SProp.st l:fib[r-1]:fib[r-2]}
+                  {ys = SProp.st l:fib[r-1]:r-2}
+                  (SProp.p l:fib[r-1]:fib[r-2])
+                  (proj₂ $ SProp.p l:fib[r-1]:r-2))
+   where
+    exch-tl : ∀ {X : Set}{n}{xs : Stack X (2 + n)}{x}{ys} → tl xs ≡ (ys , x) → tl (tl (exch xs)) ≡ ys
+    exch-tl {xs = _ , _ , _} refl = refl
+
+    exch-hd : ∀ {X : Set}{n}{xs : Stack X (2 + n)}{x}{ys} → tl xs ≡ (ys , x) → hd (exch xs) ≡ x
+    exch-hd {xs = _ , _ , _} refl = refl
+
+    sub2-hd : ∀ {n}{xs : Stack ℕ (2 + n)}{x} → hd xs ≡ suc (suc x) → hd (sub $ push 2 $ xs) ≡ x
+    sub2-hd {xs = _ , _} refl = refl
+
+    sub2-tl : ∀ {n}{xs : Stack ℕ (2 + n)}{ys} → tl (tl xs) ≡ ys → tl (tl (sub $ push 2 $ xs)) ≡ ys
+    sub2-tl {xs = _ , _ , _} refl = refl
+
+    add-tl : ∀ {n}{xs : Stack ℕ (2 + n)}{ys}{zs} → tl xs ≡ tl ys → tl (tl ys) ≡ zs → tl (add xs) ≡ zs
+    add-tl {xs = _ , _ , _} {ys = _ , _ , _} refl refl = refl
+
+
+
+

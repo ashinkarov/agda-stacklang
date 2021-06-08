@@ -1,0 +1,66 @@
+%%
+%% Draw some Fibonacci 
+
+
+/fib % n
+{
+   dup dup   % n n   n
+   1 eq exch % n n=1 n
+   0 eq      % n n=1 n=0
+   or not    % n !(n=1 || n=0)
+   {
+      dup  1 sub fib
+      exch 2 sub fib
+      add
+   } if
+} def
+
+/fline % x n
+{
+   exch dup         % n x x
+   100 moveto       % n x
+   exch fib 100 add % x (100 + fib n)
+   lineto
+} def
+
+
+/rec % x n
+{
+  dup         % x n  n
+  1 eq not    % x n !(n=1)
+  {
+              % x n
+    2 copy    % x n x   n
+    10 mul    % x n x   10n
+    add exch  % x x+10n n
+    2 copy    % x x+10n n x+10n n
+    fline
+    exch pop
+    1 sub     % x n-1
+    rec
+  } if
+} def
+
+newpath
+
+100 14 rec
+
+% 100 5 fline
+% 110 6 fline
+% 120 7 fline
+
+% 100 100 moveto
+% 100 100 5 fib add lineto
+% 
+% 110 100 moveto
+% 110 100 6 fib add lineto
+% 
+% 120 100 moveto
+% 120 100 7 fib add lineto
+% 
+% 120 100 moveto
+% 120 100 7 fib add lineto
+
+2 setlinewidth
+stroke
+showpage
