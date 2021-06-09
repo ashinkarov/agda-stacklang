@@ -2,12 +2,13 @@
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.Bool using (Bool; true; false)
-open import Function --using (_$_) -- renaming (_$_ )
 open import Relation.Binary.PropositionalEquality
 open import Data.Product renaming (_,_ to _,,_)
+open import Function
+open import Data.Unit
 
 infixl 5 _,_
-data Stack (X : Set) : ℕ → Set where
+data Stack (X : Set) : @0 ℕ → Set where
   []  : Stack X 0
   _,_ : ∀ {n} → Stack X n → X → Stack X (suc n)
 
@@ -41,7 +42,9 @@ _++_ : ∀ {X m n} → Stack X m → Stack X n → Stack X (n + m)
 xs ++ [] = xs
 xs ++ (ys , y) = xs ++ ys , y
 
-split : ∀ {X n} → (m : ℕ) → Stack X (m + n) → Stack X n × Stack X m
+
+
+split : ∀ {X}{n} → (m : ℕ) → Stack X (m + n) → Stack X n × Stack X m
 split zero xs = xs ,, []
 split (suc m) (xs , x) =
   let ys ,, zs = split m xs
@@ -116,7 +119,78 @@ module WithSplitExtractFriendly where
     fib-thm {ys = [] , y} x<l = x<l
 
 
+module IrrelWithSplitExtractFriendly where
 
+  -- Framep is a version of frame that takes extra proof.
+  -- Now if we assume that framep is a fixed part of the 
+  -- interface and teach extractor how to deal with it.
+  iframep : ∀ {X m n k}{P : Stack X m → Set} 
+          → ((s : Stack X m) → @0 (P s) → Stack X n) 
+          → (xs : Stack X (m + k))
+          → @0 (P (proj₂ $ split m xs))
+          → Stack X (n + k)
+  iframep {m = m} f xs p =
+    let (ys ,, zs) = split m xs
+    in ys ++ (f zs p)
+
+  fib′ : ∀ {@0 y n} → (s : Stack ℕ (1 + n)) → @0 (hd s < y) → Stack ℕ (1 + n)
+  fib′ (xs , 0) _ = xs , 1
+  fib′ (xs , 1) _ = xs , 1
+  fib′ {.suc y} xs@(l , r@(suc (suc x))) (s≤s x<y) =
+    let
+      l:r:r-1        = sub $ push 1 $ dup xs
+      l:r:fib[r-1]   = iframep {m = 1} {P = λ s → suc x ≡ hd s}
+                              (λ s hd[s]≡suc[x] → fib′ s (subst (_< y) hd[s]≡suc[x] x<y))
+                              l:r:r-1 refl
+      l:fib[r-1]:r-2 = sub $ push 2 $ exch l:r:fib[r-1]
+    in                 add $ fib′ l:fib[r-1]:r-2
+                                  (fib-thm {ys =  fib′ ([] , suc x) _ } (<-trans ≤-refl x<y))
+   where
+    fib-thm : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x}{l} 
+            → x < l → hd (sub $ (exch ((xs , suc (suc x)) ++ ys) , 2)) < l
+    fib-thm {ys = [] , y} x<l = x<l
+
+
+module XIrrelWithSplitExtractFriendly where
+
+  -- Framep is a version of frame that takes extra proof.
+  -- Now if we assume that framep is a fixed part of the 
+  -- interface and teach extractor how to deal with it.
+  iframep : ∀ {X m n k}{P : Stack X m → Set} 
+          → ((s : Stack X m) → @0 (P s) → Stack X n) 
+          → (xs : Stack X (m + k))
+          → @0 (P (proj₂ $ split m xs))
+          → Stack X (n + k)
+  iframep {m = m} f xs p =
+    let (ys ,, zs) = split m xs
+    in ys ++ (f zs p)
+
+  --thm-iframep : ∀ {X m n k}{P}{f}{xs ys}{p} → iframep f (xs ++ ys) 
+
+  fib′ : ∀ {@0 y} → (s : Stack ℕ 1) → @0 (hd s < y) → Stack ℕ 1
+  fib′ (xs , 0) _ = xs , 1
+  fib′ (xs , 1) _ = xs , 1
+  fib′ {.suc y} xs@(l , r@(suc (suc x))) (s≤s x<y) =
+    let
+      l:r:r-1        = sub $ push 1 $ dup xs
+
+      l:r:fib[r-1]   = iframep {m = 1} {P = λ s → suc x ≡ hd s}
+                              (λ s hd[s]≡suc[x] → fib′ s (subst (_< y) hd[s]≡suc[x] x<y))
+                              l:r:r-1 refl
+      l:fib[r-1]:r-2 = sub $ push 2 $ exch l:r:fib[r-1]
+
+      l:fib[r-1]:fib[r-2] = iframep {m = 1} {P = λ s → x ≡ hd s}
+                              (λ s x≡hd[s] → fib′ s (subst (_< y) x≡hd[s] (<-trans ≤-refl x<y)))
+                              l:fib[r-1]:r-2 (exch-++ {ys = fib′ ([] , suc x) _})
+    in add $ l:fib[r-1]:fib[r-2]
+   where
+    exch-++ : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x} 
+            → x ≡ hd (proj₂ $ split 1 $ sub $ push 2 $ exch ((xs , suc (suc x)) ++ ys))
+    exch-++ {ys = [] , y} = refl
+
+  fib : ∀ {@0 n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+  --fib (xs , x) = xs ++ fib′ ([] , x) ≤-refl
+  fib xs@(_ , _) = iframep {P = const ⊤ } (λ s _ → fib′ s ≤-refl) xs tt
 
 module FibNoSplit where
   -- This is much more extraction-friendly version.
