@@ -1,4 +1,5 @@
-{-# OPTIONS --irrelevant-projections #-}
+--{-# OPTIONS --irrelevant-projections #-}
+{-# OPTIONS --safe #-}
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.Bool using (Bool; true; false)
@@ -32,6 +33,21 @@ eq (xs , x , y) with x ≡ᵇ y
 ... | true  = xs , 1
 ... | false = xs , 0
 
+pop : ∀ {X}{n} → Stack X (1 + n) → Stack X n
+pop (xs , x) = xs
+
+
+get-index : ∀ {X}{m n} → (k : ℕ) → (@0 _ : k < m) → Stack X (m + n) → X
+get-index {m = zero} k () xs
+get-index {m = suc m} zero (s≤s k<m) (xs , x) = x
+get-index {m = suc m} (suc k) (s≤s k<m) (xs , x) = get-index k k<m xs
+
+index : ∀ {X}{m n} → (k : ℕ) → (@0 _ : k < m) → Stack X (m + n)  → Stack X (1 + m + n)
+index k k<m xs = xs , get-index k k<m xs
+
+subst-stack : ∀ {X}{@0 n m} → m ≡ n → Stack X m → Stack X n
+subst-stack refl xs = xs
+
 hd : ∀ {X n} → Stack X (1 + n) → X
 hd (_ , x) = x
 
@@ -41,7 +57,6 @@ tl (xs , _) = xs
 _++_ : ∀ {X m n} → Stack X m → Stack X n → Stack X (n + m)
 xs ++ [] = xs
 xs ++ (ys , y) = xs ++ ys , y
-
 
 
 split : ∀ {X}{n} → (m : ℕ) → Stack X (m + n) → Stack X n × Stack X m
@@ -60,6 +75,21 @@ framep : ∀ {X m n k}{P : Stack X m → Set} → ((s : Stack X m) → .(P s) �
 framep {m = m} f xs p =
   let (ys ,, zs) = split m xs
   in ys ++ (f zs p)
+
+
+-- Framep is a version of frame that takes extra proof.
+-- Now if we assume that framep is a fixed part of the 
+-- interface and teach extractor how to deal with it.
+iframep : ∀ {X m n k}{P : Stack X m → Set} 
+        → ((s : Stack X m) → @0 (P s) → Stack X n) 
+        → (xs : Stack X (m + k))
+        → @0 (P (proj₂ $ split m xs))
+        → Stack X (n + k)
+iframep {m = m} f xs p =
+  let (ys ,, zs) = split m xs
+  in ys ++ (f zs p)
+
+{-
 
 module FibNonTerm where
   {-# TERMINATING #-}
@@ -120,19 +150,6 @@ module WithSplitExtractFriendly where
 
 
 module IrrelWithSplitExtractFriendly where
-
-  -- Framep is a version of frame that takes extra proof.
-  -- Now if we assume that framep is a fixed part of the 
-  -- interface and teach extractor how to deal with it.
-  iframep : ∀ {X m n k}{P : Stack X m → Set} 
-          → ((s : Stack X m) → @0 (P s) → Stack X n) 
-          → (xs : Stack X (m + k))
-          → @0 (P (proj₂ $ split m xs))
-          → Stack X (n + k)
-  iframep {m = m} f xs p =
-    let (ys ,, zs) = split m xs
-    in ys ++ (f zs p)
-
   fib′ : ∀ {@0 y n} → (s : Stack ℕ (1 + n)) → @0 (hd s < y) → Stack ℕ (1 + n)
   fib′ (xs , 0) _ = xs , 1
   fib′ (xs , 1) _ = xs , 1
@@ -152,21 +169,6 @@ module IrrelWithSplitExtractFriendly where
 
 
 module XIrrelWithSplitExtractFriendly where
-
-  -- Framep is a version of frame that takes extra proof.
-  -- Now if we assume that framep is a fixed part of the 
-  -- interface and teach extractor how to deal with it.
-  iframep : ∀ {X m n k}{P : Stack X m → Set} 
-          → ((s : Stack X m) → @0 (P s) → Stack X n) 
-          → (xs : Stack X (m + k))
-          → @0 (P (proj₂ $ split m xs))
-          → Stack X (n + k)
-  iframep {m = m} f xs p =
-    let (ys ,, zs) = split m xs
-    in ys ++ (f zs p)
-
-  --thm-iframep : ∀ {X m n k}{P}{f}{xs ys}{p} → iframep f (xs ++ ys) 
-
   fib′ : ∀ {@0 y} → (s : Stack ℕ 1) → @0 (hd s < y) → Stack ℕ 1
   fib′ (xs , 0) _ = xs , 1
   fib′ (xs , 1) _ = xs , 1
@@ -246,5 +248,5 @@ module FibNoSplit where
     add-tl {xs = _ , _ , _} {ys = _ , _ , _} refl refl = refl
 
 
-
+-}
 

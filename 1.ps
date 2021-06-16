@@ -1,5 +1,22 @@
 %%
 %% Draw some Fibonacci 
+/PsExample.FibNonTerm.fib {
+  0 index 0 eq 
+  {
+    pop 1
+  }
+  {
+    0 index 1 eq 
+    {
+      pop 1
+    }
+    {
+      dup 1 sub PsExample.FibNonTerm.fib exch 2 sub PsExample.FibNonTerm.fib add
+    } ifelse
+
+  } ifelse
+
+} def
 
 
 /fib % n
@@ -19,7 +36,8 @@
 {
    exch dup         % n x x
    100 moveto       % n x
-   exch fib 100 add % x (100 + fib n)
+   %exch fib 100 add % x (100 + fib n)
+   exch PsExample.FibNonTerm.fib 100 add % x (100 + fib n)
    lineto
 } def
 
