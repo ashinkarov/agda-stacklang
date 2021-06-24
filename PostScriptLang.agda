@@ -198,6 +198,17 @@ pat-to-expr (var x) _ = ok $ [] , 0
 pat-to-expr _ _ = error "pat-to-expr: invalid stack pattern _,_ expected"
 
 
+patnat-to-nat : Pattern → Err ℕ
+patnat-to-nat (con (quote ℕ.zero) []) = ok 0
+patnat-to-nat (con (quote ℕ.suc) (vArg x ∷ [])) = suc <$> patnat-to-nat x
+patnat-to-nat _ = error "not a suc/zero pattern"
+
+
+term-to-nat : Term → Err ℕ
+term-to-nat (con (quote ℕ.zero) []) = ok 0
+term-to-nat (con (quote ℕ.suc) (vArg x ∷ [])) = suc <$> term-to-nat x
+term-to-nat _ = error "not a suc/zero term"
+
 pat-match-term : Pattern → Term → TCS $ Err ⊤
 pat-match-term p@(con (quote Stack._,_) (hArg _          ∷ vArg p₁ ∷ vArg p₂ ∷ []))
                t@(con (quote Stack._,_) (hArg _ ∷ hArg _ ∷ vArg t₁ ∷ vArg t₂ ∷ [])) = do
@@ -214,9 +225,26 @@ pat-match-term (lit (nat x)) (lit (nat y)) with x ℕ.≟ y
 ... | no  _ = return $ error "pat-match-term: literal vaues do not match"
 
 pat-match-term (con (quote ℕ.zero) []) (con (quote ℕ.zero) []) = return $ ok _
+--pat-match-term (lit (nat 0)) (con (quote ℕ.zero) []) = return $ ok _
+--pat-match-term (con (quote ℕ.zero) []) (lit (nat 0)) = return $ ok _
 
 pat-match-term (con (quote ℕ.suc) (vArg x ∷ [])) (con (quote ℕ.suc) (vArg y ∷ [])) =
     pat-match-term x y
+
+pat-match-term (lit (nat x)) y {- @(con (quote ℕ.suc) (vArg _ ∷ [])) -} = do
+  (ok y′) ← return $ term-to-nat y
+    where (error x) → return $ error x
+  return $ case x ℕ.≟ y′ of λ where
+    (yes _) → ok _
+    (no  _) → error "pat-match-term: invalid literal/number match"
+
+pat-match-term x {- @(con (quote ℕ.suc) (vArg _ ∷ [])) -} (lit (nat y)) = do
+  (ok x′) ← return $ patnat-to-nat x
+    where (error x) → return $ error x
+  return $ case x′ ℕ.≟ y of λ where
+    (yes _) → ok _
+    (no  _) → error "pat-match-term: invalid literal/number match"
+
 
 pat-match-term p t = return $ error 
                    $ "pat-match-term: invalid stack variable pattern: "

@@ -48,6 +48,11 @@ tel-norm base-funs (p@(v , arg (arg-info _ (modality r _)) x) ∷ tel) ctx = do
   tel ← tel-norm base-funs tel (ctx L.++ [ p ])
   return $! p ∷ tel
 
+arg-type-kill-qty : List (Arg Type) → List (Arg Type)
+arg-type-kill-qty [] = []
+arg-type-kill-qty (arg (arg-info v (modality r q)) x ∷ xs) = 
+    (arg (arg-info v (modality r quantity-ω)) x) ∷ arg-type-kill-qty xs
+
 pat-lam-norm : Term → Names → TC Term
 pat-lam-norm (pat-lam cs args) base-funs = do
   cs ← hlpr cs
@@ -60,10 +65,11 @@ pat-lam-norm (pat-lam cs args) base-funs = do
       -- Try normalising telescope
       tel ← tel-norm base-funs tel []
       let ctx = reverse $ L.map proj₂ tel
-      --t ← dontReduceDefs base-funs
-      --    $ inContext ctx
-      --    $ withReconstructed
-      --    $ normalise t
+      let ctx = arg-type-kill-qty ctx
+      t ← dontReduceDefs base-funs
+          $ inContext ctx
+          $ withReconstructed
+          $ normalise t
       l ← hlpr l
       return $! clause tel ps t ∷ l
     hlpr (absurd-clause tel ps ∷ l) = do

@@ -25,7 +25,7 @@ open import ps as PostScript
 -- This function does nothing to the stack but it introduces
 -- a bunch of runtime irrelevant argumetns.
 stack-id : ∀ {@0 m : ℕ} → (s : Stack ℕ 1) → {@0 b : m > 0} → Stack ℕ 1
-stack-id xs@(t , h) = xs
+stack-id xs@(t , h) = (t , 0 + h)
 
 
 -- These two functions demonstrate a trivial case when one function
@@ -107,6 +107,7 @@ ktest₂ = kompile dblsuc base base
 test₂ : ok _ ≡ ktest₂
 test₂ = refl
 
+ktest₃ : Prog
 ktest₃ = kompile RepSimple.rep base base
 test₃ : ok _ ≡ ktest₃
 test₃ = refl
