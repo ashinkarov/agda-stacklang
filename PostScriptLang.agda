@@ -253,20 +253,20 @@ pat-match-term p t = return $ error
 
 
 kompile-cls [] num-arg = kc "zero clauses found"
-kompile-cls (clause tel ps t ∷ []) num-arg = do
+kompile-cls (clause _ ps t ∷ []) num-arg = do
   t ← index-pat ps num-arg >>=e kompile-term t
   return $ L.reverse <$> t
 
-kompile-cls (absurd-clause tel ps ∷ []) num-arg =
+kompile-cls (absurd-clause _ ps ∷ []) num-arg =
   return $ ok []
 
-kompile-cls (absurd-clause tel ps ∷ ts@(_ ∷ _)) num-arg = do
+kompile-cls (absurd-clause _ ps ∷ ts@(_ ∷ _)) num-arg = do
   let argp = index-pat ps num-arg
   let l = join $ (flip pat-to-expr 0) <$> argp
   ts ← kompile-cls ts num-arg
   return $ (λ l ts → l ++ [ IfElse [] ts ]) <$> (proj₁ <$> l) ⊛ ts
 
-kompile-cls (clause tel ps t ∷ ts@(_ ∷ _)) num-arg = do
+kompile-cls (clause _ ps t ∷ ts@(_ ∷ _)) num-arg = do
   let argp = index-pat ps num-arg
   let l = join $ (flip pat-to-expr 0) <$> argp
   t ← argp >>=e kompile-term t
@@ -326,6 +326,20 @@ kompile-term (def (quote PostScript.dup) args@(_ ∷ _ ∷ arg _ x ∷ [])) p = 
 
 kompile-term (def (quote PostScript.subst-stack) args@(_ ∷ _ ∷ _ ∷ _ ∷ vArg x ∷ [])) p = do
   kompile-term x p
+
+
+kompile-term (def (quote PostScript.iframep) 
+              args@(_₁ ∷ _₂ ∷ _₃ ∷ _₄ ∷ _₅ ∷ 
+                    (vArg (vLam _ (vLam _ b))) ∷ arg _ x ∷ _)) p = do
+  a ← kompile-term x p
+  -- We assume that the application to iframep has been normalised to
+  -- `λ s pf → body`, in which case, we should be able to kompile the
+  -- term `body` with the pattern `var 1` (the first argument of the lambda).
+  -- After that we can simply "apply" the extracted body to the argument `x`
+  -- of iframep.
+  f ← kompile-term b (var 1)
+  return $ _++_ <$> f ⊛ a
+
 
 kompile-term (def fname args@(_ ∷ _)) p = do
   ty ← lift-state {RM = monadTC} (getType fname)

@@ -19,6 +19,33 @@
 } def
 
 
+% Terminating fib using iframep
+
+
+/PsExample.FibTerm.fibh {
+  0 index 0 eq 
+  {
+    pop 1
+  }
+  {
+    0 index 1 eq 
+    {
+      pop 1
+    }
+    {
+      dup 1 sub PsExample.FibTerm.fibh exch 2 sub PsExample.FibTerm.fibh add
+    } ifelse
+
+  } ifelse
+
+} def
+
+
+/PsExample.FibTerm.fib {
+  PsExample.FibTerm.fibh
+} def
+
+
 % Extracted from Fib3
 /PsExample.Fib3.fib3 {
   2 index 0 eq 
@@ -57,7 +84,8 @@
    100 moveto       % n x
    %exch fib 100 add % x (100 + fib n)
    %exch PsExample.FibNonTerm.fib 100 add % x (100 + fib n)
-   exch PsExample.Fib3.fib 100 add % x (100 + fib n)
+   %exch PsExample.Fib3.fib 100 add % x (100 + fib n)
+   exch PsExample.FibTerm.fib 100 add % x (100 + fib n)
    lineto
 } def
 

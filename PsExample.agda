@@ -12,7 +12,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
 
 open import Reflection -- hiding (_≟_; _>>=_; return)
-open import Agda.Builtin.Reflection
+--open import Agda.Builtin.Reflection
 
 open import Structures
 open import Function
@@ -111,9 +111,61 @@ module Fib3 where
       s:fibm = pop $ exch $ pop $ fib3 s:m:0:1 {≤-refl}
       in s:fibm
 
+module FibNoSplit where
+
+  -- XXX This is another way of proving termination, but it is rather ugly.
+  --     If we want to extract it, we need to teach extractor about SProp and
+  --     its constructors.
+  infixl 3 _#_
+  -- Stack with an irrelevant property
+  record SProp (X : Set) (n : ℕ) (P : Stack X n → Set) : Set where
+    constructor _#_
+    field
+      st : Stack X n
+      @0 p : P st
+
+  fib′ : ∀ {@0 y} {n} → (s : Stack ℕ (1 + n)) → @0 (hd s < y) → SProp ℕ (1 + n) (λ s' → tl s' ≡ tl s)
+  fib′ (xs , 0) _ = (xs , 1) # refl
+  fib′ (xs , 1) _ = (xs , 1) # refl
+  fib′ {.suc y} {n} xs@(l , r@(suc (suc x))) (s≤s x<y) =
+     let
+       l:r:r-1             = sub $ push 1 $ dup xs
+       l:r:fib[r-1]        = fib′ l:r:r-1 x<y
+       l:fib[r-1]:r        : SProp ℕ _ λ s' → hd s' ≡ suc (suc x) × tl (tl s') ≡ l
+       l:fib[r-1]:r        = (exch $ SProp.st l:r:fib[r-1])
+                             #  (exch-hd {xs = SProp.st l:r:fib[r-1]} $ SProp.p l:r:fib[r-1])
+                             ,, (exch-tl {xs = SProp.st l:r:fib[r-1]} $ SProp.p l:r:fib[r-1])
+       l:fib[r-1]:r-2      : SProp ℕ _ λ s' → hd s' ≡ x × tl (tl s') ≡ l
+       l:fib[r-1]:r-2      = (sub $ push 2 $ SProp.st l:fib[r-1]:r)
+                             #  sub2-hd {xs = SProp.st l:fib[r-1]:r} (proj₁ $ SProp.p l:fib[r-1]:r)
+                             ,, sub2-tl {xs = SProp.st l:fib[r-1]:r} (proj₂ $ SProp.p l:fib[r-1]:r)
+       l:fib[r-1]:fib[r-2] = fib′ (SProp.st l:fib[r-1]:r-2)
+                                  (subst (_< y) (sym $ proj₁ $ SProp.p l:fib[r-1]:r-2) (<-trans ≤-refl x<y))
+     in (add $ SProp.st l:fib[r-1]:fib[r-2])
+        # (add-tl {xs = SProp.st l:fib[r-1]:fib[r-2]}
+                  {ys = SProp.st l:fib[r-1]:r-2}
+                  (SProp.p l:fib[r-1]:fib[r-2])
+                  (proj₂ $ SProp.p l:fib[r-1]:r-2))
+   where
+    exch-tl : ∀ {X : Set}{n}{xs : Stack X (2 + n)}{x}{ys} → tl xs ≡ (ys , x) → tl (tl (exch xs)) ≡ ys
+    exch-tl {xs = _ , _ , _} refl = refl
+
+    exch-hd : ∀ {X : Set}{n}{xs : Stack X (2 + n)}{x}{ys} → tl xs ≡ (ys , x) → hd (exch xs) ≡ x
+    exch-hd {xs = _ , _ , _} refl = refl
+
+    sub2-hd : ∀ {n}{xs : Stack ℕ (2 + n)}{x} → hd xs ≡ suc (suc x) → hd (sub $ push 2 $ xs) ≡ x
+    sub2-hd {xs = _ , _} refl = refl
+
+    sub2-tl : ∀ {n}{xs : Stack ℕ (2 + n)}{ys} → tl (tl xs) ≡ ys → tl (tl (sub $ push 2 $ xs)) ≡ ys
+    sub2-tl {xs = _ , _ , _} refl = refl
+
+    add-tl : ∀ {n}{xs : Stack ℕ (2 + n)}{ys}{zs} → tl xs ≡ tl ys → tl (tl ys) ≡ zs → tl (add xs) ≡ zs
+    add-tl {xs = _ , _ , _} {ys = _ , _ , _} refl refl = refl
+
+
 base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop 
      ∷ quote index ∷ quote subst-stack ∷ quote exch ∷ quote rot3 
-     ∷ []
+     ∷ quote iframep ∷ []
 
 
 ktest₁ = kompile stack-id base base
@@ -137,13 +189,12 @@ ktest₅ = kompile FibNonTerm.fib base base
 test₅ : ok _ ≡ ktest₅
 test₅ = refl
 
--- XXX this doesn't work yet because of iframep.
 ktest₆ : Prog
 ktest₆ = kompile FibTerm.fib base base
+test₆ : ok _ ≡ ktest₆
+test₆ = refl
 
 ktest₇ : Prog
 ktest₇ = kompile Fib3.fib base base
 test₇ : ok _ ≡ ktest₇
 test₇ = refl
-
-
