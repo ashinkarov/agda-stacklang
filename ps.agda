@@ -36,6 +36,8 @@ eq (xs , x , y) with x ≡ᵇ y
 pop : ∀ {X}{n} → Stack X (1 + n) → Stack X n
 pop (xs , x) = xs
 
+rot3 : ∀ {X n} → Stack X (3 + n) → Stack X (3 + n)
+rot3 (s , a , b , c) =  s , c , b , a
 
 get-index : ∀ {X}{m n} → (k : ℕ) → (@0 _ : k < m) → Stack X (m + n) → X
 get-index {m = zero} k () xs

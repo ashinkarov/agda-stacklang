@@ -37,7 +37,7 @@ open RawMonad ⦃ ... ⦄
 
 data PsCmd : Set where
   Push : ℕ → PsCmd
-  Dup Add Eq Ge And Pop Sub Exch : PsCmd
+  Dup Add Eq Ge And Pop Sub Exch Rot3 : PsCmd
   If : List PsCmd → PsCmd  
   IfElse : List PsCmd → List PsCmd → PsCmd
   FunDef : String → List PsCmd → PsCmd
@@ -61,6 +61,7 @@ expr-to-string ind And = "and"
 expr-to-string ind Pop = "pop"
 expr-to-string ind Sub = "sub"
 expr-to-string ind Exch = "exch"
+expr-to-string ind Rot3 = "3 1 roll exch"
 expr-to-string ind (If xs) = "\n" 
                            ++ indent ind ++ "{\n"
                            ++ indent ind ++ " " ++/ lexpr-to-string (1 + ind) xs ++ "\n"
@@ -305,6 +306,10 @@ kompile-term (def (quote PostScript.sub) args@(_ ∷ vArg x ∷ [])) p = do
 kompile-term (def (quote PostScript.exch) args@(_ ∷ _ ∷ vArg x ∷ [])) p = do
   b ← kompile-term x p
   return $ Exch ∷_ <$> b
+
+kompile-term (def (quote PostScript.rot3) args@(_ ∷ _ ∷ vArg x ∷ [])) p = do
+  b ← kompile-term x p
+  return $ Rot3 ∷_ <$> b
 
 kompile-term (def (quote PostScript.index) args@(_ ∷ _ ∷ _ ∷ vArg (lit (nat n)) ∷ _ ∷ vArg x ∷ [])) p = do
   b ← kompile-term x p

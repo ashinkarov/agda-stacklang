@@ -19,6 +19,25 @@
 } def
 
 
+% Extracted from Fib3
+/PsExample.Fib3.fib3 {
+  2 index 0 eq 
+  {
+    
+  }
+  {
+    exch 1 index add 3 1 roll exch 1 sub 3 1 roll exch PsExample.Fib3.fib3
+  } ifelse
+
+} def
+
+
+/PsExample.Fib3.fib {
+  0 1 PsExample.Fib3.fib3 pop exch pop
+} def
+
+
+
 /fib % n
 {
    dup dup   % n n   n
@@ -37,7 +56,8 @@
    exch dup         % n x x
    100 moveto       % n x
    %exch fib 100 add % x (100 + fib n)
-   exch PsExample.FibNonTerm.fib 100 add % x (100 + fib n)
+   %exch PsExample.FibNonTerm.fib 100 add % x (100 + fib n)
+   exch PsExample.Fib3.fib 100 add % x (100 + fib n)
    lineto
 } def
 

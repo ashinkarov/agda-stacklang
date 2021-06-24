@@ -12,7 +12,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
 
 open import Reflection -- hiding (_≟_; _>>=_; return)
---open import Agda.Builtin.Reflection
+open import Agda.Builtin.Reflection
 
 open import Structures
 open import Function
@@ -93,10 +93,27 @@ module FibTerm where
   fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
   fib xs = fib′ xs {≤-refl}
 
+module Fib3 where
+    fib3 : ∀ {n}{@0 y : ℕ} → (s : Stack ℕ (3 + n)) 
+         → {@0 _ : get-index {n = n} 2 (s≤s (s≤s (s≤s z≤n))) s < y} 
+         → Stack ℕ (3 + n)
+    fib3 s@(_ , 0 , a , b ) = s
+    fib3 {y = .suc y} s@(_ , (suc m) , a , b) {s≤s m<y} = let
+      s:sm:a:b = s
+      s:sm:b:a+b = add $ index {m = 2} 1 (s≤s (s≤s z≤n)) $ exch s:sm:a:b
+      s:a+b:b:m = sub $ push 1 $ rot3 s:sm:b:a+b
+      s:m:b:a+b = rot3 s:a+b:b:m
+      in fib3 s:m:b:a+b {m<y}
+
+    fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+    fib s@(_ , m) = let
+      s:m:0:1 = push 1 $ push 0 $ s
+      s:fibm = pop $ exch $ pop $ fib3 s:m:0:1 {≤-refl}
+      in s:fibm
 
 base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop 
-     ∷ quote index ∷ quote subst-stack ∷ quote exch ∷  []
-
+     ∷ quote index ∷ quote subst-stack ∷ quote exch ∷ quote rot3 
+     ∷ []
 
 
 ktest₁ = kompile stack-id base base
@@ -123,3 +140,10 @@ test₅ = refl
 -- XXX this doesn't work yet because of iframep.
 ktest₆ : Prog
 ktest₆ = kompile FibTerm.fib base base
+
+ktest₇ : Prog
+ktest₇ = kompile Fib3.fib base base
+test₇ : ok _ ≡ ktest₇
+test₇ = refl
+
+
