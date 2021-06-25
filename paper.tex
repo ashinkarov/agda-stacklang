@@ -1,0 +1,31 @@
+\documentclass[sigplan,anonymous,review]{acmart}
+
+
+
+\begin{document}
+\section{Introduction}
+Right now we have the following plan about the structure of the GPCE paper.
+\begin{enumerate}
+    \item Goal: implementing DSL with dependent type system 
+    \item Problem: current two approaches are either doing a deep embedding or
+        implementing a typechecker from scratch
+    \item Reflection to the rescue: we can use reflection for implementing
+        custom compilers 
+    \item Our approach by example: demonstrate that this actually works in Agda
+        (ps example)
+    \item Extracting definitions by pattern matching: matching on the stack
+    \item Using normalization to get rid of meta-functions (by using this
+        technique, you get macros for free! / or use rewrite rules example:
+        exchange o exchange = id)
+    \item General technology for writing extractors
+    \item This actually scales to realistic and useful examples!
+\end{enumerate}
+
+Optional parts:
+\begin{enumerate}
+    \item Generating assertions
+    \item Ensuring termination of recursive functions
+\end{enumerate}
+
+
+\end{document}
