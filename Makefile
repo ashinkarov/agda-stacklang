@@ -1,4 +1,5 @@
-SRC := paper.tex
+SRC := paper.tex \
+	   paper.bib
 
 # Artem uses custom version of Agda, so this Makefile is
 # conditionalised bases on the name of the machine.
@@ -12,7 +13,7 @@ all: paper.pdf
 
 
 .PHONY: paper.tex
-#paper.tex : latex/background.tex latex/kaleidoskope.tex latex/arraylang.tex \
+paper.tex : latex/background.tex # latex/kaleidoskope.tex latex/arraylang.tex \
 #	    latex/aplcnn.tex latex/related.tex
 
 latex/%.tex : %.lagda

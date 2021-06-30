@@ -1,8 +1,164 @@
 \documentclass[sigplan,anonymous,review]{acmart}
 
+%% Bibliography style
+\bibliographystyle{ACM-Reference-Format}
+
+\citestyle{acmauthoryear}   %% For author/year citations
+
+
+
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+
+% Add definitions for abbreviations like e.g.; i.e; etc. with
+% correct spacing depending on the parameters.  In this case
+% `all' exposes all the definitions of the package, and `british'
+% makes sure that there is no comma after e.g. or i.e.
+\usepackage[all,british]{foreign}
+
+
+\usepackage{mathpartir}
+
+\usepackage{todonotes}
+
+\usepackage{varwidth}
+
+\usepackage{agda}
+\usepackage{newunicodechar}
+\usepackage[final]{listings}
+
+
+\newunicodechar{∷}{::}
+\newunicodechar{→}{\ensuremath{\to}}
+\newunicodechar{ω}{\ensuremath{\omega}}
+\newunicodechar{⊎}{\ensuremath{\uplus}}
+\newunicodechar{≔}{\ensuremath{\coloneqq}}
+\newunicodechar{∎}{\ensuremath{\blacksquare}}
+\newunicodechar{≟}{\ensuremath{\stackrel{?}{=}}}
+\newunicodechar{ᵣ}{\ensuremath{_r}}
+\newunicodechar{ₗ}{\ensuremath{_l}}
+\newunicodechar{▴}{\ensuremath{\blacktriangle}}
+\newunicodechar{▾}{\ensuremath{\blacktriangledown}}
+\newunicodechar{▹}{\ensuremath{\triangleright}}
+\newunicodechar{∸}{\ensuremath{\dot{-}}}
+\newunicodechar{⊛}{\ensuremath{\circledast}}
+\newunicodechar{ᵀ}{\ensuremath{{}^{\text{T}}}}
+\newunicodechar{⌿}{\ensuremath{\not-}}
+
+% Some shortcut commands for agda symbols
+\newcommand{\AD}[1]{\AgdaDatatype{#1}}
+\newcommand{\AC}[1]{\AgdaInductiveConstructor{#1}}
+\newcommand{\AF}[1]{\AgdaFunction{#1}}
+\newcommand{\AB}[1]{\AgdaBound{#1}}
+\newcommand{\AK}[1]{\AgdaKeyword{#1}}
+\newcommand{\AR}[1]{\AgdaField{#1}}
+\newcommand{\AM}[1]{\AgdaModule{#1}}
+\newcommand{\AN}[1]{\AgdaNumber{#1}}
+\newcommand{\AS}[1]{\AgdaString{#1}}
+
+\newcommand\codeblock[1]{%
+  %{\fbox{\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}}
+  {\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}
+}
 
 
 \begin{document}
+
+%% Title information
+\title[]{Extraction once again}         
+
+
+%% Author with single affiliation.
+\author[A. {\v{S}}inkarovs]{Artjoms {\v{S}}inkarovs}
+\orcid{0000-0003-3292-2985}
+%\authornote{with author1 note}          %% \authornote is optional;
+                                         %% can be repeated if necessary
+%\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{%
+  \institution{Heriot-Watt University}   %% \institution is required
+  \city{Edinburgh}
+  \state{Scotland}
+  \postcode{EH14 4AS}
+  \country{UK}}
+\email{a.sinkarovs@hw.ac.uk}             %% \email is recommended
+
+
+%% Author with single affiliation.
+\author[J. Cockx]{Jesper Cockx}
+%\authornote{with author1 note}          %% \authornote is optional;
+                                         %% can be repeated if necessary
+%\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{%
+  \institution{TU Delft}
+  \city{Delft}
+  \postcode{2628 XE}
+  \country{Netherlands}}
+\email{j.g.h.cockx@tudelft.nl}           %% \email is recommended
+
+
+%% Abstract
+%% Note: \begin{abstract}...\end{abstract} environment must come
+%% before \maketitle command
+\begin{abstract}
+  Dependently-typed host languages empower users to verify a wide
+  range of properties of embedded languages and
+  programs written in them.  Designers of such embedded languages
+  are faced with a difficult choice between using a shallow or a deep
+  embedding.  The former is easier to use because the entire
+  infrastructure of the host langauge is immediately
+  available. Meanwhile, the latter gives full access to the
+  structure of embedded programs, but is difficult to use in practice,
+  especially when the embedded language is itself dependently typed.
+
+  The main insight presented in this paper is that the choice between
+  shallow and deep embedding can be eliminated by working in a host
+  language with reflection capabilities: we start from a shallow
+  embedding that can use all libraries and tools of the host language,
+  and later use reflection to expose the deep structure of the
+  embedded programs.
+  %
+  Concretely, we apply this technique to embed three
+  programming languages --- Kaleidoscope, SaC, and (a subset of) APL ---
+  into the dependently typed theorem prover Agda, using dependent
+  types to statically enforce several properties of interest.  We then
+  use Agda's reflection capabilities to extract the embedded programs
+  back into the original language, so that the existing toolchain can
+  be leveraged.
+  %
+  In this process, statically verified properties of the host language
+  are mapped onto runtime checks in the target language, allowing
+  extracted programs to interact safely with existing code.
+  %
+  Finally, we demonstrate the feasibility of our approach with the
+  implementation and extraction of a convolutional neural network in
+  our embedding of APL.\@
+
+%  Most practical programming languages of today prioriterise
+%  performance and usability over safety.  As a result, many
+%  useful correctness invariants cannot be expressed in the given
+%  language, typically due to weakness of the chosen type system.
+%  We are looking for non-invasive verification: how to
+%  guarantee a property about the given program without any modifications
+%  to the language toolchain.
+%
+%  We study an approach when a programming language is shallowly
+%  embedded into a theorem prover, and dependent types are used
+%  to encode the properties of interest.   Bringing the embedded
+%  langauge and the properties back into the original language
+%  is the main focus of this work.  We propose a generic extraction
+%  mechanism that we implement in Agda that is based on the concept
+%  of reflection.  Making it possible to translate any shallowly
+%  embedded language in the target backend without the necessity
+%  to modify the theorem prover.
+%  We demonstrate our framework in action by encoding three languages:
+%  Kaleidoskope, SaC and a subset of APL, culminating in the implementation
+%  and extraction of a convolutional neural network.
+\end{abstract}
+\maketitle
+
 \section{Introduction}
 Right now we have the following plan about the structure of the GPCE paper.
 \begin{enumerate}
@@ -26,6 +182,75 @@ Optional parts:
     \item Generating assertions
     \item Ensuring termination of recursive functions
 \end{enumerate}
+
+% Agda Basics and Extraction
+\input{background}
+
+% PostScript Language and its embedding
+\section{PostScript and its embedding in Agda}
+Demonstrate a few examples.
+
+\section{Extraction}
+\subsection{Framework Overview}
+Explain very briefly that there is a common extraction part that we can (and do)
+abstract away; and there is a language part that we are focusing on.  This can be
+moved towards the end.
+
+\subsection{PostScript Programs Repesentation}
+Explain the AST and show encoding of an example.
+
+\subsection{Normalisation} \label{sec:normalisation}
+It is useful for inlining functions, and creating macros that can use arbitrary expressions
+as long as their applications evaluate to postscript operators.
+This is not essential and can be moved towards the end.
+
+%\subsubsection{Telescopes}
+\subsection{Controlling Reduction} \label{sec:controlling-reduction}
+This is essential, as we need to avoid inlining of the base operators, otherwsie
+we won't be able to extact our pograms one-to-one.  Explain the mechanism.  Say that we have
+added this to Agda?
+
+
+\subsection{\label{sec:maptypes}Analysing Types}
+Explain that all we need to do is to find the position of the stack argument, as well as
+verify that the return type is also a stack argument.  In between we can have arbitrary
+number of computationally irrelevant arguments.
+
+
+\subsection{Pattern Matching}
+The natural way to express functions in Agda is by means of pattern-matching, so it makes sense
+to support it.  All we allow in patternmatching is to ``look'' at the stack argument and the
+individual elements.  But we are not allowed to reshuffle the elements, we have to pass the
+pattern exactly as it was matched (in some sense it is read-only pattern matching).
+
+\subsection{Translating terms} \label{sec:translating-terms}
+The core of the extraction is how do we translate terms.  Also this is the simplest part in
+case of the PostScript example.
+
+\subsection{Example}
+Explain the entire extaction process for the given example?
+
+Shall we talk about termination and how do we deal with that?
+
+
+\subsection{\label{sec:rewriting}Rewriting}
+We can mention that rewriting is super useful feature that can be used as an optimisation
+prior to extraction.
+
+
+
+\section{Scaling to Bigger Langauges}
+Not sure whether this deserves a separate section, but we need to explain
+that the proposed technology perfectly scales to the level of bigger (more complex)
+languages.
+
+
+\section{Related Work}
+
+\section{Conclusios and Future Work}
+
+%% Bibliography
+\bibliography{paper}
 
 
 \end{document}
