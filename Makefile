@@ -4,7 +4,8 @@ SRC := paper.tex \
 # Artem uses custom version of Agda, so this Makefile is
 # conditionalised bases on the name of the machine.
 ifeq ($(shell uname -n),temanbk)
-  AGDA := /home/tema/.cabal/bin/agda
+  #AGDA := /home/tema/.cabal/bin/agda
+  AGDA := /home/tema/.local/bin/agda
 else
   AGDA := agda
 endif

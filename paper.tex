@@ -68,7 +68,7 @@
 \begin{document}
 
 %% Title information
-\title[]{Extraction once again}         
+\title[]{The Power of Dependent Reflection}
 
 
 %% Author with single affiliation.
@@ -103,38 +103,61 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-  Dependently-typed host languages empower users to verify a wide
-  range of properties of embedded languages and
-  programs written in them.  Designers of such embedded languages
-  are faced with a difficult choice between using a shallow or a deep
-  embedding.  The former is easier to use because the entire
-  infrastructure of the host langauge is immediately
-  available. Meanwhile, the latter gives full access to the
-  structure of embedded programs, but is difficult to use in practice,
-  especially when the embedded language is itself dependently typed.
 
-  The main insight presented in this paper is that the choice between
-  shallow and deep embedding can be eliminated by working in a host
-  language with reflection capabilities: we start from a shallow
-  embedding that can use all libraries and tools of the host language,
-  and later use reflection to expose the deep structure of the
-  embedded programs.
-  %
-  Concretely, we apply this technique to embed three
-  programming languages --- Kaleidoscope, SaC, and (a subset of) APL ---
-  into the dependently typed theorem prover Agda, using dependent
-  types to statically enforce several properties of interest.  We then
-  use Agda's reflection capabilities to extract the embedded programs
-  back into the original language, so that the existing toolchain can
-  be leveraged.
-  %
-  In this process, statically verified properties of the host language
-  are mapped onto runtime checks in the target language, allowing
-  extracted programs to interact safely with existing code.
-  %
-  Finally, we demonstrate the feasibility of our approach with the
-  implementation and extraction of a convolutional neural network in
-  our embedding of APL.\@
+
+  In this paper we explore a way to write correct by construction
+  programs in languages that do not have built-in verification
+  capabilities.  This is achieved in three steps.  Firstly, we
+  shallowly embed the language (or its subset) inside of a
+  dependently-typed system.  Secondly, we write a program
+  within that embedding using dependent types to guarantee
+  any property of interest.  Thirdly, we provide a way to
+  translate the embedded program back into the original language,
+  \eg{} so that it can be used by the existing compilers.
+
+  The main focus of the paper is the third step, which we
+  call \emph{extraction}.  The main insight of the paper is
+  the use of reflection mechanism of a dependently-typed language
+  to achieve extraction.  As a result, the embedding, the
+  program and the extractor are written in a single language.
+
+  To demonstrate these ideas precisely we embed a subset of
+  the PostScript language in Agda and explain all the three
+  steps.
+
+
+%  Dependently-typed host languages empower users to verify a wide
+%  range of properties of embedded languages and
+%  programs written in them.  Designers of such embedded languages
+%  are faced with a difficult choice between using a shallow or a deep
+%  embedding.  The former is easier to use because the entire
+%  infrastructure of the host langauge is immediately
+%  available. Meanwhile, the latter gives full access to the
+%  structure of embedded programs, but is difficult to use in practice,
+%  especially when the embedded language is itself dependently typed.
+%
+%  The main insight presented in this paper is that the choice between
+%  shallow and deep embedding can be eliminated by working in a host
+%  language with reflection capabilities: we start from a shallow
+%  embedding that can use all libraries and tools of the host language,
+%  and later use reflection to expose the deep structure of the
+%  embedded programs.
+%  %
+%  Concretely, we apply this technique to embed three
+%  programming languages --- Kaleidoscope, SaC, and (a subset of) APL ---
+%  into the dependently typed theorem prover Agda, using dependent
+%  types to statically enforce several properties of interest.  We then
+%  use Agda's reflection capabilities to extract the embedded programs
+%  back into the original language, so that the existing toolchain can
+%  be leveraged.
+%  %
+%  In this process, statically verified properties of the host language
+%  are mapped onto runtime checks in the target language, allowing
+%  extracted programs to interact safely with existing code.
+%  %
+%  Finally, we demonstrate the feasibility of our approach with the
+%  implementation and extraction of a convolutional neural network in
+%  our embedding of APL.\@
 
 %  Most practical programming languages of today prioriterise
 %  performance and usability over safety.  As a result, many
@@ -162,11 +185,11 @@
 \section{Introduction}
 Right now we have the following plan about the structure of the GPCE paper.
 \begin{enumerate}
-    \item Goal: implementing DSL with dependent type system 
+    \item Goal: implementing DSL with dependent type system
     \item Problem: current two approaches are either doing a deep embedding or
         implementing a typechecker from scratch
     \item Reflection to the rescue: we can use reflection for implementing
-        custom compilers 
+        custom compilers
     \item Our approach by example: demonstrate that this actually works in Agda
         (ps example)
     \item Extracting definitions by pattern matching: matching on the stack
