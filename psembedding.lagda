@@ -1,4 +1,4 @@
-\begin{code}
+\begin{code}[hide]
 
 open import Data.Nat
 open import Data.Nat.Properties
