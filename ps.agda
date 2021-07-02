@@ -22,6 +22,9 @@ exch (xs , x , y) = xs , y , x
 add : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
 add (xs , x , y) = xs , x + y
 
+mul : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
+mul (xs , x , y) = xs , x * y
+
 sub : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
 sub (xs , x , y) = xs , x ∸ y
 

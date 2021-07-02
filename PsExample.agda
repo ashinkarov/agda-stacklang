@@ -36,6 +36,18 @@ add1 xs = sub $ push 1 $ xs
 dblsuc : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (2 + n)
 dblsuc xs = add1 $ dup xs
 
+
+sqsum : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sqsum s@(_ , a , b) =  add $ mul $ dup $ exch $ mul $ dup $ s
+
+fac : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+fac s@(_ , 0)     = push 1 $ pop $ s
+fac s@(_ , suc n) = let
+     sn:sn = dup s
+     sn:n = sub $ push 1 $ sn:sn
+     sn:fac[n] = fac $ sn:n
+   in mul sn:fac[n]
+
 -- The `rep` function is the simplest example of
 -- using dependent types in a stack function.  `rep` [ x n ]
 -- replicates `x` `n` times, so we obtain [ x x x ... ]
@@ -175,6 +187,14 @@ test₁ = refl
 ktest₂ = kompile dblsuc base base
 test₂ : ok _ ≡ ktest₂
 test₂ = refl
+
+ktest₂₁ = kompile sqsum base base
+test₂₁ : ok _ ≡ ktest₂₁
+test₂₁ = refl
+
+ktest₂₂ = kompile fac base base
+test₂₂ : ok _ ≡ ktest₂₂
+test₂₂ = refl
 
 ktest₃ : Prog
 ktest₃ = kompile RepSimple.rep base base
