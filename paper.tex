@@ -111,7 +111,7 @@
   shallowly embed the language (or its subset) inside of a
   dependently-typed system.  Secondly, we write a program
   within that embedding using dependent types to guarantee
-  any property of interest.  Thirdly, we provide a way to
+  a property of interest.  Thirdly, we provide a way to
   translate the embedded program back into the original language,
   \eg{} so that it can be used by the existing compilers.
 
@@ -183,31 +183,96 @@
 \maketitle
 
 \section{Introduction}
-Right now we have the following plan about the structure of the GPCE paper.
-\begin{enumerate}
-    \item Goal: implementing DSL with dependent type system
-    \item Problem: current two approaches are either doing a deep embedding or
-        implementing a typechecker from scratch
-    \item Reflection to the rescue: we can use reflection for implementing
-        custom compilers
-    \item Our approach by example: demonstrate that this actually works in Agda
-        (ps example)
-    \item Extracting definitions by pattern matching: matching on the stack
-    \item Using normalization to get rid of meta-functions (by using this
-        technique, you get macros for free! / or use rewrite rules example:
-        exchange o exchange = id)
-    \item General technology for writing extractors
-    \item This actually scales to realistic and useful examples!
-\end{enumerate}
 
-Optional parts:
-\begin{enumerate}
-    \item Generating assertions
-    \item Ensuring termination of recursive functions
-\end{enumerate}
+
+
+It is often desirable to guarantee that a certain class of errors does
+not occur in the given program.  For example, the program can never dereference
+a null pointer; or division by zero never occurs; or indexing is always
+within bounds.  In practical programming languages, the kind of guarantees
+that we can provide formally is typically very limited.  At the same time,
+there could be many arguments in favour of keeping using these languages.
+For example they may come with great tooling, compilers and libraries.
+Therefore, the problem we are investigating in this paper is how to
+provide formal guarantees for the program in some language, yet being
+able to use the original compilers and tools.
+
+One way to tackle this problem is via rephrasing it in terms
+of dependent types.  If the language of interest were to support dependent
+types, we could encode any property about the given program in
+types.  Then, if the program typechecks, the property holds automatically.
+So, the question now becomes how can we add dependent types to a language
+(for verification part), and then eliminate them (for using the original
+compiler).
+
+While implementing a custom typechecker from scratch for a
+dependently-typed language is possible, it is time-consuming and error-prone.
+Alternatively, one can reuse existing implementations of dependently-type
+systems by means of embedding.  In this case, we can share the type system
+of the host language to typecheck the embedded language.
+
+There are two common approaches to language embedding: deep and shallow.
+Shallow embedding defines a language in terms of functions and operators
+of the host language.  Programs in a shallowly-embedded language are programs
+in the host language, so they are immediately runnable; types of the embedded
+language are types of the host language, so the host typechecker is used for
+checking embedded programs.  The downside of this approach is that we cannot
+easily get the representation of the embedded program.
+
+Deep embedding defines a data type to represent the AST of the embedded language.
+Then we need to define a type system and evaluator for the language separately.
+With a dependently-typed host language the AST and the type system can be
+defined within a single data structure, which is typically referred as
+tagless interpreters~\cite{}.  The benefit of deep embedding is that we
+get immediate access to the structure of the embedded program.
+The approach works beautifully for
+embedded languages with simple type systems.  If the language we want to
+embed is dependently-typed, it is shown~\cite{} to be possible, but the
+resulting embedding is very difficult to use in practice.
+
+Our solution to this problem is to rely on a reflection mechanism that
+can be found in dependently-typed systems such as Idris, Agda, Lean.
+Reflection makes it possible to obtain a representation of the
+given term of the host language.  Essentially, shallow embedding in
+a host language with reflections suddenly becomes deep.
+
+In this paper we demonstrate that the proposed approach is actually possible
+by example.  We embed a subset of PostScript~\cite{}, which is a stack-based
+language used in the corresponding document format.  Simplicity of the language
+allows us to focus on the essence of the proposed approach and avoid unrelated
+technical details.  We use Agda as our host language, and we demonstrate the
+embedding, how to specify a program, and most importantly, program extraction.
+
+\todo[inline]{Should we talk about using rewrites as an optimisation?
+        Should we talk here about scaling to realistic examples?
+        Should we mention our work on extending Agda?}
+\todo[inline]{Technical contributions}
+
+% Right now we have the following plan about the structure of the GPCE paper.
+% \begin{enumerate}
+%     \item Goal: implementing DSL with dependent type system
+%     \item Problem: current two approaches are either doing a deep embedding or
+%         implementing a typechecker from scratch
+%     \item Reflection to the rescue: we can use reflection for implementing
+%         custom compilers
+%     \item Our approach by example: demonstrate that this actually works in Agda
+%         (ps example)
+%     \item Extracting definitions by pattern matching: matching on the stack
+%     \item Using normalization to get rid of meta-functions (by using this
+%         technique, you get macros for free! / or use rewrite rules example:
+%         exchange o exchange = id)
+%     \item General technology for writing extractors
+%     \item This actually scales to realistic and useful examples!
+% \end{enumerate}
+%
+% Optional parts:
+% \begin{enumerate}
+%     \item Generating assertions
+%     \item Ensuring termination of recursive functions
+% \end{enumerate}
 
 % Agda Basics and Extraction
-\input{background}
+\input{latex/background}
 
 % PostScript Language and its embedding
 \section{PostScript and its embedding in Agda}
@@ -222,13 +287,13 @@ moved towards the end.
 \subsection{PostScript Programs Repesentation}
 Explain the AST and show encoding of an example.
 
-\subsection{Normalisation} \label{sec:normalisation}
+\subsection{\label{sec:normalisation}Normalisation}
 It is useful for inlining functions, and creating macros that can use arbitrary expressions
 as long as their applications evaluate to postscript operators.
 This is not essential and can be moved towards the end.
 
 %\subsubsection{Telescopes}
-\subsection{Controlling Reduction} \label{sec:controlling-reduction}
+\subsection{\label{sec:controlling-reduction}Controlling Reduction}
 This is essential, as we need to avoid inlining of the base operators, otherwsie
 we won't be able to extact our pograms one-to-one.  Explain the mechanism.  Say that we have
 added this to Agda?
@@ -246,7 +311,7 @@ to support it.  All we allow in patternmatching is to ``look'' at the stack argu
 individual elements.  But we are not allowed to reshuffle the elements, we have to pass the
 pattern exactly as it was matched (in some sense it is read-only pattern matching).
 
-\subsection{Translating terms} \label{sec:translating-terms}
+\subsection{\label{sec:translating-terms}Translating terms}
 The core of the extraction is how do we translate terms.  Also this is the simplest part in
 case of the PostScript example.
 
