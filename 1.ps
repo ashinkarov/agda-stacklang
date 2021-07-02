@@ -70,22 +70,23 @@
    dup dup   % n n   n
    1 eq exch % n n=1 n
    0 eq      % n n=1 n=0
-   or not    % n !(n=1 || n=0)
+   or        % n (n=1 || n=0)
+   { 1 } 
    {
       dup  1 sub fib
       exch 2 sub fib
       add
-   } if
+   } ifelse
 } def
 
 /fline % x n
 {
    exch dup         % n x x
-   100 moveto       % n x
+   10 moveto       % n x
    %exch fib 100 add % x (100 + fib n)
    %exch PsExample.FibNonTerm.fib 100 add % x (100 + fib n)
    %exch PsExample.Fib3.fib 100 add % x (100 + fib n)
-   exch PsExample.FibTerm.fib 100 add % x (100 + fib n)
+   exch PsExample.FibTerm.fib 10 add % x (100 + fib n)
    lineto
 } def
 
@@ -109,7 +110,7 @@
 
 newpath
 
-100 14 rec
+50 9 rec
 
 % 100 5 fline
 % 110 6 fline
