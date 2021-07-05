@@ -26,11 +26,13 @@
 \usepackage{todonotes}
 
 \usepackage{varwidth}
+\usepackage{microtype}
 
 \usepackage{agda}
 \usepackage{newunicodechar}
 \usepackage[final]{listings}
 
+\usepackage[T1]{fontenc}
 
 \newunicodechar{∷}{::}
 \newunicodechar{→}{\ensuremath{\to}}
@@ -48,6 +50,41 @@
 \newunicodechar{⊛}{\ensuremath{\circledast}}
 \newunicodechar{ᵀ}{\ensuremath{{}^{\text{T}}}}
 \newunicodechar{⌿}{\ensuremath{\not-}}
+
+\newunicodechar{←}{\ensuremath{\leftarrow}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{λ}{\ensuremath{\lambda}}
+\newunicodechar{∀}{\ensuremath{\forall}}
+\newunicodechar{Π}{\ensuremath{\Pi}}
+\newunicodechar{≡}{\ensuremath{\equiv}}
+\newunicodechar{≅}{\ensuremath{\cong}}
+\newunicodechar{≐}{\ensuremath{\doteq}}
+\newunicodechar{∈}{\ensuremath{\in}}
+\newunicodechar{∧}{\ensuremath{\land}}
+\newunicodechar{∨}{\ensuremath{\lor}}
+\newunicodechar{⊤}{\ensuremath{\top}}
+\newunicodechar{⊥}{\ensuremath{\bot}}
+\newunicodechar{⊔}{\ensuremath{\sqcup}}
+\newunicodechar{∷}{\ensuremath{{::}}}
+\newunicodechar{ℓ}{\ensuremath{\ell}}
+\newunicodechar{₀}{\ensuremath{{_0}}}
+\newunicodechar{₁}{\ensuremath{{_1}}}
+\newunicodechar{₂}{\ensuremath{{_2}}}
+\newunicodechar{₃}{\ensuremath{{_3}}}
+\newunicodechar{₄}{\ensuremath{{_4}}}
+\newunicodechar{₅}{\ensuremath{{_5}}}
+\newunicodechar{₆}{\ensuremath{{_6}}}
+\newunicodechar{₇}{\ensuremath{{_7}}}
+\newunicodechar{₈}{\ensuremath{{_8}}}
+\newunicodechar{₉}{\ensuremath{{_9}}}
+\newunicodechar{⟨}{\ensuremath{{\langle}}}
+\newunicodechar{⟩}{\ensuremath{{\rangle}}}
+\newunicodechar{̧}{\c}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{ℕ}{\ensuremath{\mathbb{N}}}
+\newunicodechar{∸}{̣\ensuremath{-}}
+\newunicodechar{ᵇ}{\ensuremath{{}^{b}}}
+
 
 % Some shortcut commands for agda symbols
 \newcommand{\AD}[1]{\AgdaDatatype{#1}}
@@ -278,54 +315,7 @@ embedding, how to specify a program, and most importantly, program extraction.
 % Agda Basics and Extraction
 \input{latex/background}
 \input{latex/psembedding}
-
-
-\section{Extraction}
-\subsection{Framework Overview}
-Explain very briefly that there is a common extraction part that we can (and do)
-abstract away; and there is a language part that we are focusing on.  This can be
-moved towards the end.
-
-\subsection{PostScript Programs Repesentation}
-Explain the AST and show encoding of an example.
-
-\subsection{\label{sec:normalisation}Normalisation}
-It is useful for inlining functions, and creating macros that can use arbitrary expressions
-as long as their applications evaluate to postscript operators.
-This is not essential and can be moved towards the end.
-
-%\subsubsection{Telescopes}
-\subsection{\label{sec:controlling-reduction}Controlling Reduction}
-This is essential, as we need to avoid inlining of the base operators, otherwsie
-we won't be able to extact our pograms one-to-one.  Explain the mechanism.  Say that we have
-added this to Agda?
-
-
-\subsection{\label{sec:maptypes}Analysing Types}
-Explain that all we need to do is to find the position of the stack argument, as well as
-verify that the return type is also a stack argument.  In between we can have arbitrary
-number of computationally irrelevant arguments.
-
-
-\subsection{Pattern Matching}
-The natural way to express functions in Agda is by means of pattern-matching, so it makes sense
-to support it.  All we allow in patternmatching is to ``look'' at the stack argument and the
-individual elements.  But we are not allowed to reshuffle the elements, we have to pass the
-pattern exactly as it was matched (in some sense it is read-only pattern matching).
-
-\subsection{\label{sec:translating-terms}Translating terms}
-The core of the extraction is how do we translate terms.  Also this is the simplest part in
-case of the PostScript example.
-
-\subsection{Example}
-Explain the entire extaction process for the given example?
-
-Shall we talk about termination and how do we deal with that?
-
-
-\subsection{\label{sec:rewriting}Rewriting}
-We can mention that rewriting is super useful feature that can be used as an optimisation
-prior to extraction.
+\input{latex/extraction}
 
 
 

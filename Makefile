@@ -14,7 +14,7 @@ all: paper.pdf
 
 
 .PHONY: paper.tex
-paper.tex : latex/background.tex latex/psembedding.tex # latex/arraylang.tex \
+paper.tex : latex/background.tex latex/psembedding.tex latex/extraction.tex # latex/arraylang.tex \
 #	    latex/aplcnn.tex latex/related.tex
 
 latex/%.tex : %.lagda
