@@ -419,7 +419,7 @@ lookup-pattern _ _ = fail "extract-clauses: invalid stack variable index in patt
 
 The function \AgdaFunction{extract-pattern} extracts a boolean
 condition from a given Agda pattern consisting of the constructors
-\AgdaCon{zero}, \AgdaCon{suc}, and pattern variables. It returns the
+\AgdaInductiveConstructor{zero}, \AgdaInductiveConstructor{suc}, and pattern variables. It returns the
 condition as a list of PostScript commands together with the
 
 \begin{code}
