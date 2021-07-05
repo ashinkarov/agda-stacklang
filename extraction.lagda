@@ -2,8 +2,6 @@
 \begin{code}[hide]
 open import Category.Monad
 
-open import Function using (case_of_; flip)
-
 open import Data.Bool using (Bool; true; false; if_then_else_; not)
 open import Data.Fin as F using (Fin; zero; suc; fromℕ<)
 open import Data.List as L using (List; []; _∷_; _++_; [_]; reverse)
@@ -16,6 +14,8 @@ open import Data.String as S using (String; _≈?_)
 open import Data.Unit
 open import Data.Vec as V using (Vec; []; _∷_)
 
+open import Function using (case_of_; flip)
+
 open import Level using (Level) renaming (zero to lzero; suc to lsuc)
 
 open import Reflection as R hiding (return; _>>=_; _>>_)
@@ -27,19 +27,7 @@ open import Relation.Nullary
 open import Relation.Unary
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; subst)
 
-infixl 5 _#_
-
-variable
-  X Y Z : Set
-  S : Set
-  M : Set → Set
-  @0 k l m n : ℕ
-
-infixl 5 _&_
-
-_&_ : X → (X → Y) → Y
-x & f = f x
-{-# INLINE _&_ #-}
+open import psembedding
 
 -- Check if there exists an element in the list that satisfies the predicate P.
 elem : {P : X → Set} → Decidable P → List X → Bool
@@ -57,142 +45,9 @@ intercalate d (x ∷ xs) = x S.++ d S.++ intercalate d xs
 
 \section{Extraction}
 
-
-\subsection{Shallow embedding of PostScript in Agda}
-
-We start by providing a \emph{shallow} embedding of PostScript in
-Agda. Since PostScript is a stack-based language, the first step is to
-represent the stack in Agda.
-
-\begin{code}
-data Stack (X : Set) : @0 ℕ → Set where
-  []  : Stack X 0
-  _#_ : Stack X n → X → Stack X (suc n)
-
-hd : ∀ {X n} → Stack X (1 + n) → X
-hd (_ # x) = x
-
-tl : ∀ {X n} → Stack X (1 + n) → Stack X n
-tl (xs # _) = xs
-\end{code}
-
-\begin{code}
-push : X → Stack X n → Stack X (1 + n)
-push x xs = xs # x
-
-pop : Stack X (1 + n) → Stack X n
-pop (xs # x) = xs
-
-dup : Stack X (suc n) → Stack X (suc (suc n))
-dup (xs # x) = xs # x # x
-
-exch : Stack X (2 + n) → Stack X (2 + n)
-exch (xs # x # y) = xs # y # x
-
-clear : Stack X n → Stack X 0
-clear _ = []
-
-count : Stack ℕ n → Stack ℕ (1 + n)
-count xs = xs # go xs
-  where
-    go : Stack X n → ℕ
-    go [] = 0
-    go (xs # _) = suc (go xs)
-\end{code}
-
-\begin{code}
-binop : (X → X → X) → Stack X (2 + n) → Stack X (1 + n)
-binop f (xs # x # y) = xs # f x y
-
-add sub mul eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
-add  = binop _+_
-sub  = binop _-_
-mul  = binop _*_
-eq   = binop (λ x y → if x ℕ.≡ᵇ y then 1 else 0)
-gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
-\end{code}
-
-Note that nothing in this shallow embedding prevents us from doing
-operations that are illegal in PostScript, such as duplicating the
-whole stack or discarding it altogether. Such properties could be
-enforced by using an (indexed) monad for stack operations, or by
-working in a quantitative type theory such as Idris 2~\cite{TODO}.
-Here we take a more straightforward approach by simply rejecting these
-illegal programs in our extractor.
-
-This function does nothing to the stack but it introduces
-a bunch of runtime irrelevant argumetns.
-
-\begin{code}
-stack-id : (s : Stack ℕ 1) → {@0 b : m ℕ.> 0} → Stack ℕ 1
-stack-id xs@(t # h) = (t # h)
-\end{code}
-
-These two functions demonstrate a trivial case when one function
-calls another function.
-
-\begin{code}
-add1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-add1 xs = add (push 1 xs)
-
-dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
-dblsuc xs = add1 (dup xs)
-\end{code}
-
-\begin{code}
-sqsum : Stack ℕ (2 + n) → Stack ℕ (1 + n)
-sqsum s@(_ # a # b) = s & dup & mul & exch & dup & mul & add
-\end{code}
-
-\begin{code}
-subst-stack : @0 m ≡ n → Stack X m → Stack X n
-subst-stack refl xs = xs
-\end{code}
-
-\begin{code}
-index : (k : ℕ) → @0 k ℕ.< m → Stack X m → Stack X (1 + m)
-index k k<m xs = xs # get-index k k<m xs
-  where
-    get-index : (k : ℕ) (@0 _ : k ℕ.< m) → Stack X m → X
-    get-index zero    (ℕ.s≤s k<m) (xs # x) = x
-    get-index (suc k) (ℕ.s≤s k<m) (xs # x) = get-index k k<m xs
-\end{code}
-
-
-
-The \AgdaFunction{rep} function is the simplest example of
-using dependent types in a stack function.  Calling \AgdaFunction{rep} on a stack with values $x$ and $n$
-replicates $x$ $n$ times, so we obtain a stack with $n$ copies of $x$.
-
-\begin{code}
-module RepSimple where
-    {-# TERMINATING #-}
-    rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
-    rep {n} xs@(_ # _ # zero)      = pop (pop xs)
-    rep {n} xs:x:m+1@(_ # _ # suc m) =
-           let
-             xs:x:m   : Stack ℕ (2 + n)
-             xs:x:m   = sub (push 1 xs:x:m+1)
-             xs:x:m:x : Stack ℕ (3 + n)
-             xs:x:m:x = index 1 (ℕ.s≤s (ℕ.s≤s ℕ.z≤n)) xs:x:m
-             xs:x:x:m : Stack ℕ (3 + n)
-             xs:x:x:m = exch xs:x:m:x
-           in subst-stack (+-suc _ _) (rep xs:x:x:m)
-\end{code}
-
-\begin{code}
-
-module RepTerm where
-    rep′ : (s : Stack ℕ (2 + n)) → {@0 _ : hd s ≡ k} → Stack ℕ (hd s + n)
-    rep′ {n} xs@(_ # _ # zero)      = pop (pop xs)
-    rep′ {n} {suc k} xs:x:m+1@(_ # _ # suc m) { refl } = let
-             xs:x:m   = sub (push 1 xs:x:m+1)
-             xs:x:m:x = index 1 (ℕ.s≤s (ℕ.s≤s ℕ.z≤n)) xs:x:m
-             xs:x:x:m = exch xs:x:m:x
-           in subst-stack (+-suc _ _) (rep′ {k = k} xs:x:x:m {refl})
-
-    rep : ∀ {n} → (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
-    rep s = rep′ s {refl}
+% This is repeated from section 3
+% TODO: copy this code to there and import it here
+\begin{code}[hide]
 
 \end{code}
 
@@ -680,24 +535,24 @@ base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop
 
 extract-stack-id = extract stack-id base base
 
-_ : extract-stack-id ≡ "\n\n/extraction.stack-id {\n  \n} def\n"
+_ : extract-stack-id ≡ "\n\n/psembedding.stack-id {\n  \n} def\n"
 _ = refl
 
 extract-dblsuc = extract dblsuc base base
 
-_ : extract-dblsuc ≡ "\n\n/extraction.add1 {\n  1 add\n} def\n\n\n/extraction.dblsuc {\n  dup extraction.add1\n} def\n"
+_ : extract-dblsuc ≡ "\n\n/psembedding.add1 {\n  1 add\n} def\n\n\n/psembedding.dblsuc {\n  dup psembedding.add1\n} def\n"
 _ = refl
 
 
 extract-sqsum = extract sqsum base base
 
-_ : extract-sqsum ≡ "\n\n/extraction.sqsum {\n  dup mul exch dup mul add\n} def\n"
+_ : extract-sqsum ≡ "\n\n/psembedding.sqsum {\n  dup mul exch dup mul add\n} def\n"
 _ = refl
 
 extract-rep-simple =  extract RepSimple.rep base base
 
 _ : extract-rep-simple ≡
-  "\n\n/extraction.RepSimple.rep {\n  0 index 0 eq \n  {\n    pop pop\n  }\n  {\n    1 sub 1 index exch extraction.RepSimple.rep\n  } ifelse\n\n} def\n"
+  "\n\n/psembedding.RepSimple.rep {\n  0 index 0 eq \n  {\n    pop pop\n  }\n  {\n    1 sub 1 index exch psembedding.RepSimple.rep\n  } ifelse\n\n} def\n"
 _ = refl
 
 \end{code}

@@ -1,14 +1,31 @@
 \begin{code}[hide]
 
-open import Data.Nat
+module psembedding where
+
+open import Data.Bool using (Bool; true; false; if_then_else_; not)
+open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_) renaming (_∸_ to _-_)
 open import Data.Nat.Properties
-open import Data.Bool using (Bool; true; false)
-open import Relation.Binary.PropositionalEquality
-open import Data.Product renaming (_,_ to _,,_)
-open import Function
+open import Data.Product
 open import Data.Unit
 
-infixl 5 _,_
+open import Function using (case_of_; flip)
+
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; subst)
+
+infixl 5 _#_
+
+variable
+  X Y Z : Set
+  S : Set
+  M : Set → Set
+  @0 k l m n : ℕ
+
+infixl 5 _&_
+
+_&_ : X → (X → Y) → Y
+x & f = f x
+{-# INLINE _&_ #-}
+
 \end{code}
 
 % PostScript Language and its embedding
@@ -38,15 +55,15 @@ function definitions are written as follows:
 /fact {
   % n -- n!
   dup      % n n
-  0 eq     % n 0==n 
+  0 eq     % n 0==n
   {        % if 0==n
     pop    % empty stack
     1      % 1 [result]
   }
   {        % if !0==n
-    dup    % n n 
+    dup    % n n
     1 sub  % n n-1
-    fact   % n fac(n-1) 
+    fact   % n fac(n-1)
     mul    % n*fac(n-1) [result]
   } ifelse
 } def
@@ -71,7 +88,7 @@ Finally, consider the fibonacci function:
   1 eq         % n n==0 n==1
   or           % n (n==0 || n==1)
   { 1 }        % [return] 1 if (n==0||n==1)
-  {          
+  {
     dup        % n n
     1 sub fib  % n fib(n-1)
     exch       % fib(n-1) n
@@ -105,20 +122,133 @@ operating on it.
 \begin{code}
 data Stack (X : Set) : @0 ℕ → Set where
   []  : Stack X 0
-  _,_ : ∀ {n} → Stack X n → X → Stack X (suc n)
+  _#_ : Stack X n → X → Stack X (suc n)
+\end{code}
+
+\begin{code}[hide]
+hd : ∀ {X n} → Stack X (1 + n) → X
+hd (_ # x) = x
+
+tl : ∀ {X n} → Stack X (1 + n) → Stack X n
+tl (xs # _) = xs
 \end{code}
 
 The base operators look as follows:
 \begin{code}
-dup : ∀ {X n} → Stack X (suc n) → Stack X (suc (suc n))
-dup (xs , x) = xs , x , x
+push : X → Stack X n → Stack X (1 + n)
+push x xs = xs # x
 
-exch : ∀ {X n} → Stack X (2 + n) → Stack X (2 + n)
-exch (xs , x , y) = xs , y , x
+pop : Stack X (1 + n) → Stack X n
+pop (xs # x) = xs
 
-add : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
-add (xs , x , y) = xs , x + y
+dup : Stack X (suc n) → Stack X (suc (suc n))
+dup (xs # x) = xs # x # x
 
-mul : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
-mul (xs , x , y) = xs , x * y
+exch : Stack X (2 + n) → Stack X (2 + n)
+exch (xs # x # y) = xs # y # x
+
+clear : Stack X n → Stack X 0
+clear _ = []
+
+count : Stack ℕ n → Stack ℕ (1 + n)
+count xs = xs # go xs
+  where
+    go : Stack X n → ℕ
+    go [] = 0
+    go (xs # _) = suc (go xs)
+
+binop : (X → X → X) → Stack X (2 + n) → Stack X (1 + n)
+binop f (xs # x # y) = xs # f x y
+
+add sub mul eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+add  = binop _+_
+sub  = binop _-_
+mul  = binop _*_
+eq   = binop (λ x y → if x ℕ.≡ᵇ y then 1 else 0)
+gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
+\end{code}
+
+
+Note that nothing in this shallow embedding prevents us from doing
+operations that are illegal in PostScript, such as duplicating the
+whole stack or discarding it altogether. Such properties could be
+enforced by using an (indexed) monad for stack operations, or by
+working in a quantitative type theory such as Idris 2~\cite{TODO}.
+Here we take a more straightforward approach by simply rejecting these
+illegal programs in our extractor.
+
+This function does nothing to the stack but it introduces
+a bunch of runtime irrelevant argumetns.
+
+\begin{code}
+stack-id : (s : Stack ℕ 1) → {@0 b : m ℕ.> 0} → Stack ℕ 1
+stack-id xs@(t # h) = (t # h)
+\end{code}
+
+These two functions demonstrate a trivial case when one function
+calls another function.
+
+\begin{code}
+add1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+add1 xs = add (push 1 xs)
+
+dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
+dblsuc xs = add1 (dup xs)
+\end{code}
+
+\begin{code}
+sqsum : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sqsum s@(_ # a # b) = s & dup & mul & exch & dup & mul & add
+\end{code}
+
+\begin{code}
+subst-stack : @0 m ≡ n → Stack X m → Stack X n
+subst-stack refl xs = xs
+\end{code}
+
+\begin{code}
+index : (k : ℕ) → @0 k ℕ.< m → Stack X m → Stack X (1 + m)
+index k k<m xs = xs # get-index k k<m xs
+  where
+    get-index : (k : ℕ) (@0 _ : k ℕ.< m) → Stack X m → X
+    get-index zero    (ℕ.s≤s k<m) (xs # x) = x
+    get-index (suc k) (ℕ.s≤s k<m) (xs # x) = get-index k k<m xs
+\end{code}
+
+
+
+The \AgdaFunction{rep} function is the simplest example of
+using dependent types in a stack function.  Calling \AgdaFunction{rep} on a stack with values $x$ and $n$
+replicates $x$ $n$ times, so we obtain a stack with $n$ copies of $x$.
+
+\begin{code}
+module RepSimple where
+    {-# TERMINATING #-}
+    rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
+    rep {n} xs@(_ # _ # zero)      = pop (pop xs)
+    rep {n} xs:x:m+1@(_ # _ # suc m) =
+           let
+             xs:x:m   : Stack ℕ (2 + n)
+             xs:x:m   = sub (push 1 xs:x:m+1)
+             xs:x:m:x : Stack ℕ (3 + n)
+             xs:x:m:x = index 1 (ℕ.s≤s (ℕ.s≤s ℕ.z≤n)) xs:x:m
+             xs:x:x:m : Stack ℕ (3 + n)
+             xs:x:x:m = exch xs:x:m:x
+           in subst-stack (+-suc _ _) (rep xs:x:x:m)
+\end{code}
+
+\begin{code}
+
+module RepTerm where
+    rep′ : (s : Stack ℕ (2 + n)) → {@0 _ : hd s ≡ k} → Stack ℕ (hd s + n)
+    rep′ {n} xs@(_ # _ # zero)      = pop (pop xs)
+    rep′ {n} {suc k} xs:x:m+1@(_ # _ # suc m) { refl } = let
+             xs:x:m   = sub (push 1 xs:x:m+1)
+             xs:x:m:x = index 1 (ℕ.s≤s (ℕ.s≤s ℕ.z≤n)) xs:x:m
+             xs:x:x:m = exch xs:x:m:x
+           in subst-stack (+-suc _ _) (rep′ {k = k} xs:x:x:m {refl})
+
+    rep : ∀ {n} → (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
+    rep s = rep′ s {refl}
+
 \end{code}
