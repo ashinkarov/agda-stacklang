@@ -20,12 +20,6 @@ variable
   M : Set → Set
   @0 k l m n : ℕ
 
-infixl 5 _&_
-
-_&_ : X → (X → Y) → Y
-x & f = f x
-{-# INLINE _&_ #-}
-
 \end{code}
 
 % PostScript Language and its embedding
@@ -112,28 +106,51 @@ as possible, yet exposing enough operators to demonstrate the
 verification.  Also, such a minimalist subset makes the example immediately
 transfrerable to other stack-based languages such as Forth.
 
-\todo[inline]{More work is needed here}
-
-\paragraph{Embedding}
+\subsection{Embedding in Agda}
 
 Our Agda embedding defines a stack type and a number of baic operators
-operating on it.
+operating on it.  A typical error that hapenes when programming
+in stack languages directly is underflowing or overflowing the stack.  The
+former is when we expect more elements on the stack thatn we actually have,
+therefore indexing beyound the first element will cause a runtime error.
+The latter is when we put more elements on the stack than it is capable to
+store.  In the emebedding one of our main goals would be avoiding underflows,
+which occur extremely often.
 
+\paragraph{Stack type}
+We define the type of our stack inductively, and we force the type to carry
+the length of the corresponding stack. The stack can store elements of type
+\AD{X}, which is a type parameter.
 \begin{code}
 data Stack (X : Set) : @0 ℕ → Set where
   []  : Stack X 0
   _#_ : Stack X n → X → Stack X (suc n)
 \end{code}
+Simialrly to lists, stacks can be constructed in two ways.  Stacks of length
+zero can are constructed using \AC{[]}.  Stacks of length $1 + n$ are constructed
+with the append constructor \AC{\_\#\_}, where the first argument is a stack of
+length $n$ and the second argument is the element of type \AD{X}.  For example,
+a stack of three natural numbers can be built as follows:
+\begin{code}
+ex₁ : Stack ℕ 3
+ex₁ = [] # 1 # 2 # 3
+\end{code}
+We defined \AC{\_\#\_} to be left-associative, therefore we do not put parenthesis.
+Also, notice ``\@ 0'' annotation in the type which tells Agda that the length
+that we carry in the type is runtime-irrelevant.  This means that we cannot
+evaluate the length of the stack by simply referring to the type parameter.
+We will come back to that point in the next susbections.
+
+\paragraph{Basic Operations}
 
 \begin{code}[hide]
-hd : ∀ {X n} → Stack X (1 + n) → X
-hd (_ # x) = x
-
 tl : ∀ {X n} → Stack X (1 + n) → Stack X n
 tl (xs # _) = xs
 \end{code}
 
-The base operators look as follows:
+The basic stack operations are defiend as functions from \AD{Stack} to \AD{Stack}
+and the type index makes it possible to capture precisely the effect of each
+operation.  For example:
 \begin{code}
 push : X → Stack X n → Stack X (1 + n)
 push x xs = xs # x
@@ -141,7 +158,7 @@ push x xs = xs # x
 pop : Stack X (1 + n) → Stack X n
 pop (xs # x) = xs
 
-dup : Stack X (suc n) → Stack X (suc (suc n))
+dup : Stack X (suc n) → Stack X (2 + n)
 dup (xs # x) = xs # x # x
 
 exch : Stack X (2 + n) → Stack X (2 + n)
@@ -149,14 +166,35 @@ exch (xs # x # y) = xs # y # x
 
 clear : Stack X n → Stack X 0
 clear _ = []
+\end{code}
+As it can be seen, the nature of these operations is straight-forward.  However,
+note, that the length index of \AD{Stack} ensures that the body of the function
+respects the specification.  If the body of the function returns the stack that
+does not have the length prescribed by the type, such a function would not typecheck.
 
+Consider the \AD{count} function that computes the length of the stack and stores
+it as the top element.  While it would be tempting to implement this function as
+\begin{code}
+--count : Stack ℕ n → Stack ℕ (1 + n)
+--count s = s # n
+\end{code}
+Such a code would not typecheck, because \AD{n} is bound to the irrelevant positon.
+We can use arbitrary expressions that depend on \AD{n} in irrelevant positions,
+but not when constructing the result.  This irrelevance annotation gives us a clear
+separation between the variables that we use for verification and that we use for
+computations.  One way to implement \AD{count} is:
+\begin{code}
 count : Stack ℕ n → Stack ℕ (1 + n)
 count xs = xs # go xs
   where
     go : Stack X n → ℕ
-    go [] = 0
+    go []       = 0
     go (xs # _) = suc (go xs)
+\end{code}
 
+Finally, we define arithmetic operations using a helper function \AD{binop}
+that always acts on the two topmost elements of the stack.
+\begin{code}
 binop : (X → X → X) → Stack X (2 + n) → Stack X (1 + n)
 binop f (xs # x # y) = xs # f x y
 
@@ -168,7 +206,24 @@ eq   = binop (λ x y → if x ℕ.≡ᵇ y then 1 else 0)
 gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
 
+\todo[inline]{Explain these guys below}
 
+\begin{code}
+subst-stack : @0 m ≡ n → Stack X m → Stack X n
+subst-stack refl xs = xs
+\end{code}
+
+\begin{code}
+
+get-index : (k : ℕ) (@0 _ : k ℕ.< m) → Stack X m → X
+get-index zero    (ℕ.s≤s k<m) (xs # x) = x
+get-index (suc k) (ℕ.s≤s k<m) (xs # x) = get-index k k<m xs
+
+index : (k : ℕ) → @0 k ℕ.< m → Stack X m → Stack X (1 + m)
+index k k<m xs = xs # get-index k k<m xs
+\end{code}
+
+\todo[inline]{Move this to section 4}
 Note that nothing in this shallow embedding prevents us from doing
 operations that are illegal in PostScript, such as duplicating the
 whole stack or discarding it altogether. Such properties could be
@@ -177,65 +232,179 @@ working in a quantitative type theory such as Idris 2~\cite{TODO}.
 Here we take a more straightforward approach by simply rejecting these
 illegal programs in our extractor.
 
-This function does nothing to the stack but it introduces
-a bunch of runtime irrelevant argumetns.
+\subsection{Examples}
+
+Let us demonstrate how a typical program would look like in the
+proposed embedding.  Per our assumption, we need to express all the
+operations in terms of the base functions defined above.  Let us
+start with a trivial operation that adds one to the top element of
+the stack.
 
 \begin{code}
-stack-id : (s : Stack ℕ 1) → {@0 b : m ℕ.> 0} → Stack ℕ 1
-stack-id xs@(t # h) = (t # h)
+add-1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+add-1 s = add (push 1 s)
 \end{code}
 
-These two functions demonstrate a trivial case when one function
-calls another function.
+We are required to define the type, which in turn forces us to
+specify how does the operation change the length of the stack.
+Stack operators are regular functions, so the chain of applications
+would be written in reverse, when comparing to the corresponding
+PostScript program.  While this does not effect functionality,
+it may be aesthetically pleasing to maintain the original order
+of operators.  This can be achieved by defining a trivial Agda
+operator that reverses arguments in function application.  We
+call such an operator \AD{\_▹\_}:
 
 \begin{code}
-add1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-add1 xs = add (push 1 xs)
-
-dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
-dblsuc xs = add1 (dup xs)
+infixl 5 _▹_
+_▹_ : X → (X → Y) → Y
+x ▹ f = f x
+\end{code}
+\begin{code}[hide]
+-- not sure if we need to expose this in the text
+{-# INLINE _▹_ #-}
 \end{code}
 
+Now we can rewrite the above example as:
+
+\begin{code}
+add-1′ : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+add-1′ s = s ▹ push 1 ▹ add
+\end{code}
+
+% This function does nothing to the stack but it introduces
+% a bunch of runtime irrelevant argumetns.
+% 
+% \begin{code}
+% stack-id : (s : Stack ℕ 1) → {@0 b : m ℕ.> 0} → Stack ℕ 1
+% stack-id xs@(t # h) = (t # h)
+% \end{code}
+% 
+% These two functions demonstrate a trivial case when one function
+% calls another function.
+% 
+% \begin{code}
+% add1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+% add1 xs = add (push 1 xs)
+% 
+% dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
+% dblsuc xs = add1 (dup xs)
+% \end{code}
+
+
+Consider now a slightly more complicated function that computes
+$a^2 + b^2$ where $a$ and $b$ are top two elements of the stack:
 \begin{code}
 sqsum : Stack ℕ (2 + n) → Stack ℕ (1 + n)
-sqsum s@(_ # a # b) = s & dup & mul & exch & dup & mul & add
+sqsum s = s ▹ dup ▹ mul ▹ exch ▹ dup ▹ mul ▹ exch ▹ add
+\end{code}
+It can be easier to understand the code if we introduce internal
+stack states as let bindings:
+\begin{code}
+sqsum′ : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sqsum′ s:a:b = let
+        s:a:b*b    = s:a:b      ▹ dup   ▹ mul
+        s:b*b:a*a  = s:a:b*b    ▹ exch  ▹ dup ▹ mul
+        s:a*a:b*b  = s:b*b:a*a  ▹ exch
+    in s:a*a:b*b ▹ add
+\end{code}
+Notice that in Agda, variable/function names are chains of almost
+arbitrary symbols with no spaces.
+
+\todo[inline]{Shall we talk about verification here or in a separate chapter?}
+The nature of dependently-typed systems makes it possible not only to
+specify functions with ``built-in'' constraints, such as length of the stack,
+but also prove some properties about existing functions as theorems.  For
+example, we can prove that the above function actually implements the squared
+sum:
+\begin{code}
+sqsum-thm : ∀ {s : Stack ℕ n}{a b} 
+          → sqsum (s # a # b) ≡ s # a * a + b * b
+sqsum-thm = refl
+\end{code}
+The theorem says that for any $s$, $a$ and $b$, application of \AD{sqsum} to
+$s$ appended with $a$ and $b$ equals to $s$ appended with $a^2 + b^2$.  Luckily,
+from the way we constructed basic operations, this fact is obvious to Agda,
+therefore, the proof is simply the \AC{refl}exivity constructor.
+
+\paragraph{Pattern Matching}
+Let us now consider a function that
+computes $n$-th fibonacci number, where we use recursion
+and need to conditionalise on a stack element.
+
+\begin{code}[hide]
+module FibNonTerm where
+\end{code}
+\begin{code}
+  {-# TERMINATING #-}
+  fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+  fib s@(_ # 0)             = s ▹ pop   ▹ push 1
+  fib s@(_ # 1)             = s ▹ pop   ▹ push 1
+  fib s@(_ # suc (suc x))   = s ▹ dup   ▹ push 1 ▹ sub ▹ fib 
+                                ▹ exch  ▹ push 2 ▹ sub ▹ fib 
+                                ▹ add
+\end{code}
+A standard way to conditionalise on the argument in Agda is by using
+pattern-matching.  Here we have to match the structure of the stack
+as well as the structure of the element, but the rest is a straight-forward
+code.
+
+We leave it as an excercise to the reader to verify that the above code
+is actually computing fibonacci numbers.  We only provide a formal
+proof that the \AD{fib} always computes the same element as \AD{fib-spec}
+function.
+\begin{code}
+  fib-spec : ℕ → ℕ
+  fib-spec 0 = 1 ; fib-spec 1 = 1
+  fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x 
+
+  fib-thm : (s : Stack ℕ n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
+  fib-thm _ 0 = refl ; fib-thm _ 1 = refl
+  fib-thm s (suc (suc x))
+          rewrite  (fib-thm (s # suc (suc x)) (suc x)) |
+                   (fib-thm (s # fib-spec (suc x)) x) = refl
 \end{code}
 
+Notice, that while we can prove that the function computes the expected
+result, Agda does not see that the \AD{fib} function terminates.
+For now, we add an explicit annotation of this fact, but in the next
+subsection we will demonstrate how to deal with this formally.
+
+
+\paragraph{Dependent Stack Length}
+So far all the specifications within the embedded langauge did not
+require dependent types, and could be encoded in languages with weker
+type system such as Haskell or Ocaml.  However, it becomes very clear
+that even simplest programs in stack languages may expose a dependency
+between the stack argument and the stack length.  Those cases cannot
+be expressed in non-dependently-typed host langauges.  A simples example
+of such a program is the one that replicates the $x$ value $n$ times,
+where $x$ and $n$ are top two stack elements.
+Here is a possible implementation of that function:
+
 \begin{code}
-subst-stack : @0 m ≡ n → Stack X m → Stack X n
-subst-stack refl xs = xs
+hd : ∀ {X n} → Stack X (1 + n) → X
+hd (_ # x) = x
 \end{code}
 
-\begin{code}
-index : (k : ℕ) → @0 k ℕ.< m → Stack X m → Stack X (1 + m)
-index k k<m xs = xs # get-index k k<m xs
-  where
-    get-index : (k : ℕ) (@0 _ : k ℕ.< m) → Stack X m → X
-    get-index zero    (ℕ.s≤s k<m) (xs # x) = x
-    get-index (suc k) (ℕ.s≤s k<m) (xs # x) = get-index k k<m xs
-\end{code}
-
-
-
-The \AgdaFunction{rep} function is the simplest example of
-using dependent types in a stack function.  Calling \AgdaFunction{rep} on a stack with values $x$ and $n$
-replicates $x$ $n$ times, so we obtain a stack with $n$ copies of $x$.
-
-\begin{code}
+\begin{code}[hide]
 module RepSimple where
+    open import Data.Nat using (s≤s; z≤n)
+\end{code}
+\begin{code}
     {-# TERMINATING #-}
     rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
-    rep {n} xs@(_ # _ # zero)      = pop (pop xs)
-    rep {n} xs:x:m+1@(_ # _ # suc m) =
-           let
-             xs:x:m   : Stack ℕ (2 + n)
-             xs:x:m   = sub (push 1 xs:x:m+1)
-             xs:x:m:x : Stack ℕ (3 + n)
-             xs:x:m:x = index 1 (ℕ.s≤s (ℕ.s≤s ℕ.z≤n)) xs:x:m
-             xs:x:x:m : Stack ℕ (3 + n)
-             xs:x:x:m = exch xs:x:m:x
-           in subst-stack (+-suc _ _) (rep xs:x:x:m)
+    rep       s@(_ # _ # zero)   = s ▹ pop ▹ pop
+    rep s:x:m+1@(_ # _ # suc m)  = let
+             s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
+             s:x:m:x  = s:x:m    ▹ index 1 (s≤s (s≤s z≤n))
+             s:x:x:m  = s:x:m:x  ▹ exch
+           in subst-stack (+-suc _ _) (rep s:x:x:m)
 \end{code}
+
+
+\subsubsection{Proving Termination}
+
 
 \begin{code}
 
@@ -252,3 +421,80 @@ module RepTerm where
     rep s = rep′ s {refl}
 
 \end{code}
+
+% New implicit variables fucked-up the code in FibTerm
+%
+% 
+% \begin{code}
+% _++_ : ∀ {X m n} → Stack X m → Stack X n → Stack X (n + m)
+% xs ++ [] = xs
+% xs ++ (ys # y) = xs ++ ys # y
+% 
+% split : ∀ {X}{n} → (m : ℕ) → Stack X (m + n) → Stack X n × Stack X m
+% split zero xs = xs , []
+% split (suc m) (xs # x) =
+%   let ys , zs = split m xs
+%   in  ys , zs # x
+% 
+% iframep : ∀ {X m n k} {P : Stack X m → Set} 
+%         → ((s : Stack X m) → @0 (P s) → Stack X n) 
+%         → (xs : Stack X (m + k))
+%         → @0 (P (proj₂ (split m xs)))
+%         → Stack X (n + k)
+% iframep {m = m} f xs p =
+%   let (ys , zs) = split m xs
+%   in ys ++ (f zs p)
+% 
+% 
+% module FibTerm where
+%   open import Data.Nat using (_<_; s≤s; z≤n)
+%   open import Function using (_$_)
+% 
+%   fib′ : ∀ {@0 y} → (s : Stack ℕ (1 + n)) → @0 {hd s < y} → Stack ℕ (1 + n)
+%   fib′ s@(_ # 0) = s ▹ pop ▹ push 1
+%   fib′ s@(_ # 1) = s ▹ pop ▹ push 1
+%   fib′ {n = n}{y = .suc y} xs@(l # r@(suc (suc x))) { s≤s x<y } =
+%     let
+%       l:r:r-1        = sub $ push 1 $ dup xs
+%       l:r:fib[r-1]   = iframep {m = 1} {P = λ s → suc x ≡ hd s}
+%                               (λ s hd[s]≡suc[x] → fib′ s { subst (_< y) hd[s]≡suc[x] x<y })
+%                               l:r:r-1 refl
+%       l:fib[r-1]:r-2 = sub $ push 2 $ exch l:r:fib[r-1]
+%     in                 add $ fib′ l:fib[r-1]:r-2
+%                                   { fib-thm {ys =  fib′ ([] # suc x)} (<-trans ≤-refl x<y) }
+%    where
+%     fib-thm : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x}{l} 
+%             → x < l → hd (sub (exch ((xs # suc (suc x)) ++ ys) # 2)) < l
+%     fib-thm {ys = [] # y} x<l = x<l
+% 
+%   fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+%   fib xs = fib′ xs {≤-refl}
+% \end{code}
+
+\begin{code}
+
+rot3 : ∀ {X}{@0 n} → Stack X (3 + n) → Stack X (3 + n)
+rot3 (s # a # b # c) =  s # c # b # a
+
+module Fib3 where
+    open import Data.Nat using (_<_; s≤s; z≤n)
+    open import Function using (_$_)
+
+    fib3 : ∀ {@0 y : ℕ} → (s : Stack ℕ (3 + n)) 
+         → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s < y} 
+         → Stack ℕ (3 + n)
+    fib3 s@(_ # 0 # a # b ) = s
+    fib3 {y = .suc y} s@(_ # (suc m) # a # b) {s≤s m<y} = let
+      s:sm:a:b = s
+      s:sm:b:a+b = add $ index 1 (s≤s (s≤s z≤n)) $ exch s:sm:a:b
+      s:a+b:b:m = sub $ push 1 $ rot3 s:sm:b:a+b
+      s:m:b:a+b = rot3 s:a+b:b:m
+      in fib3 s:m:b:a+b {m<y}
+
+    fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+    fib s@(_ # m) = let
+      s:m:0:1 = push 1 $ push 0 $ s
+      s:fibm = pop $ exch $ pop $ fib3 s:m:0:1 {≤-refl}
+      in s:fibm
+\end{code}
+
