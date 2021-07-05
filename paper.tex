@@ -104,27 +104,25 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-
-
-  In this paper we explore a way to write correct by construction
+  This paper proposes a novel tecnhique to write correct by construction
   programs in languages that do not have built-in verification
   capabilities.  This is achieved in three steps.  Firstly, we
-  shallowly embed the language (or its subset) inside of a
+  shallowly embed the language (or its subset) into a
   dependently-typed system.  Secondly, we write a program
-  within that embedding using dependent types to guarantee
-  a property of interest.  Thirdly, we provide a way to
+  in that embedding, and we use dependent types to guarantee
+  correctness properties of interest.  Thirdly, we
   translate the embedded program back into the original language,
-  \eg{} so that it can be used by the existing compilers.
+  so that it can be used by the existing compilers and tools.
 
-  The main focus of the paper is the third step, which we
-  call \emph{extraction}.  The main insight of the paper is
-  the use of reflection mechanism of a dependently-typed language
-  to achieve extraction.  As a result, the embedding, the
-  program and the extractor are written in a single language.
+  The main insight of the paper is the observation that de\-pen\-den\-tly-typed
+  languages that are equipped with reflection mecahnisms make it possible
+  to expres all the three steps in a single language.  Essentially,
+  this allows us to express programs, its formal properties and
+  compilers hand-in-hand, offering a lot of flexibility to programmers.
 
-  To demonstrate these ideas precisely we embed a subset of
-  the PostScript language in Agda and explain all the three
-  steps.
+  To demonstrate the approach precisely, we embed a subset of
+  the PostScript language in Agda.  We explain all the three
+  steps, illustrating them with several short examples.
 
 
 %  Dependently-typed host languages empower users to verify a wide
