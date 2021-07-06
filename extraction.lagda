@@ -588,7 +588,7 @@ base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop
 
 extract-add-1 = extract add-1 base
 
-_ : extract-add-1 ≡ ?
+_ : extract-add-1 ≡ "/psembedding.add-1 {\n  1 add\n} def\n"
 _ = refl
 
 dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
