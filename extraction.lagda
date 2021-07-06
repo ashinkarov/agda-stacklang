@@ -586,20 +586,23 @@ base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop
      ∷ quote index ∷ quote subst-stack ∷ quote exch {-∷ quote rot3-}
      {-∷ quote iframep-} ∷ []
 
-extract-stack-id = extract stack-id base
+extract-add-1 = extract add-1 base
 
-_ : extract-stack-id ≡ "/psembedding.stack-id {\n  \n} def\n"
+_ : extract-add-1 ≡ ?
 _ = refl
+
+dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
+dblsuc xs = add-1 (dup xs)
 
 extract-dblsuc = extract dblsuc base
 
-_ : extract-dblsuc ≡ "/psembedding.add1 {\n  1 add\n} def\n\n\n/psembedding.dblsuc {\n  dup psembedding.add1\n} def\n"
+_ : extract-dblsuc ≡ "/psembedding.add-1 {\n  1 add\n} def\n\n\n/extraction.dblsuc {\n  dup psembedding.add-1\n} def\n"
 _ = refl
 
 
 extract-sqsum = extract sqsum base
 
-_ : extract-sqsum ≡ "/psembedding.sqsum {\n  dup mul exch dup mul add\n} def\n"
+_ : extract-sqsum ≡ "/psembedding.sqsum {\n  dup mul exch dup mul exch add\n} def\n"
 _ = refl
 
 extract-rep-simple =  extract RepSimple.rep base
