@@ -386,7 +386,6 @@ Here is a possible implementation of that function:
 hd : ∀ {X n} → Stack X (1 + n) → X
 hd (_ # x) = x
 \end{code}
-
 \begin{code}[hide]
 module RepSimple where
     open import Data.Nat using (s≤s; z≤n)
@@ -402,24 +401,50 @@ module RepSimple where
            in subst-stack (+-suc _ _) (rep s:x:x:m)
 \end{code}
 
+First, we define the \AD{hd} helper function that returns the top element
+of the stack.  We use this function to specify the length of the stack
+returned by \AD{rep}.  This length is the value of the top element of the
+stack when entering the function the first time.  In case this argument
+is zero, we remove two elements from the stack: the argument we were
+replicating, and the count argument.  Otherwise, we decrease the count,
+copy the argument we are replicating, and put them in the expected position
+to make the next recrusive call.  The second argument to \AF{index} is a
+proff that $1 < 2 + n$.  At the end we apply
+\AF{subst-stack} to fit the type definition.  The length of \AF{rep} \AB{s:x:x:m}
+is $(m + (1 + n))$ whereas we need the length
+$(1 + (m + n))$.  Such an equality is not obvious to Agda, we
+apply the \AD{+-suc} function from the standard library that translates
+between these expressions.
+
 
 \subsubsection{Proving Termination}
+At this point, we have seen how to write programs in the embedding, express
+non-trivial properties related to the length of the stack, and verify that
+a function evaluates to the same results as some other funciton.  One remaining
+problem is that for some function Agda cannot automatically prove termination.
+However, as long as a programmer is happy to take responsibility by putting
+the annotation, we can immediately proceed to extraction.
+
+We demonstrate a way to prove termination of the functions from previous
+sections.
 
 
-\begin{code}
 
+\begin{code}[hide]
 module RepTerm where
+    open import Data.Nat using (s≤s; z≤n)
+\end{code}
+\begin{code}
     rep′ : (s : Stack ℕ (2 + n)) → {@0 _ : hd s ≡ k} → Stack ℕ (hd s + n)
-    rep′ {n} xs@(_ # _ # zero)      = pop (pop xs)
-    rep′ {n} {suc k} xs:x:m+1@(_ # _ # suc m) { refl } = let
-             xs:x:m   = sub (push 1 xs:x:m+1)
-             xs:x:m:x = index 1 (ℕ.s≤s (ℕ.s≤s ℕ.z≤n)) xs:x:m
-             xs:x:x:m = exch xs:x:m:x
-           in subst-stack (+-suc _ _) (rep′ {k = k} xs:x:x:m {refl})
+    rep′ {k = .0}            s @ (_ # _ # zero)  {refl}  = s ▹ pop ▹ pop
+    rep′ {k = .suc k}  s:x:m+1 @ (_ # _ # suc m) {refl}  = let
+             s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
+             s:x:m:x  = s:x:m    ▹ index 1 (s≤s (s≤s z≤n))
+             s:x:x:m  = s:x:m:x  ▹ exch
+           in subst-stack (+-suc _ _) (rep′ {k = k} s:x:x:m {refl})
 
-    rep : ∀ {n} → (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
+    rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
     rep s = rep′ s {refl}
-
 \end{code}
 
 % New implicit variables fucked-up the code in FibTerm
@@ -472,29 +497,30 @@ module RepTerm where
 % \end{code}
 
 \begin{code}
-
 rot3 : ∀ {X}{@0 n} → Stack X (3 + n) → Stack X (3 + n)
 rot3 (s # a # b # c) =  s # c # b # a
-
+\end{code}
+\begin{code}[hide]
 module Fib3 where
     open import Data.Nat using (_<_; s≤s; z≤n)
     open import Function using (_$_)
-
-    fib3 : ∀ {@0 y : ℕ} → (s : Stack ℕ (3 + n)) 
+\end{code}
+\begin{code}
+    fib3 : {@0 y : ℕ} (s : Stack ℕ (3 + n)) 
          → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s < y} 
          → Stack ℕ (3 + n)
-    fib3 s@(_ # 0 # a # b ) = s
-    fib3 {y = .suc y} s@(_ # (suc m) # a # b) {s≤s m<y} = let
-      s:sm:a:b = s
-      s:sm:b:a+b = add $ index 1 (s≤s (s≤s z≤n)) $ exch s:sm:a:b
-      s:a+b:b:m = sub $ push 1 $ rot3 s:sm:b:a+b
-      s:m:b:a+b = rot3 s:a+b:b:m
+    fib3 s@(_ # 0        # a # b)           = s
+    fib3 s@(_ # (suc m)  # a # b) {s≤s m<y} = let
+      s:1+m:a:b    = s
+      s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 (s≤s (s≤s z≤n)) ▹ add
+      s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub 
+      s:m:b:a+b    = s:a+b:b:m   ▹ rot3
       in fib3 s:m:b:a+b {m<y}
 
-    fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
-    fib s@(_ # m) = let
-      s:m:0:1 = push 1 $ push 0 $ s
-      s:fibm = pop $ exch $ pop $ fib3 s:m:0:1 {≤-refl}
-      in s:fibm
+    fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+    fib s = let
+      s:m:1:1              = s ▹ push 1 ▹ push 1
+      s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {≤-refl}
+      in s:0:fib[m]:fib[1+m] ▹ pop ▹ exch ▹ pop
 \end{code}
 
