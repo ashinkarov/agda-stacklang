@@ -3,18 +3,19 @@
 open import Category.Monad
 
 open import Data.Bool using (Bool; true; false; if_then_else_; not)
+open import Data.Char as C using (Char)
 open import Data.Fin as F using (Fin; zero; suc; fromℕ<)
 open import Data.List as L using (List; []; _∷_; _++_; [_]; reverse)
-open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Maybe using (Maybe; just; nothing; maybe)
 open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_) renaming (_∸_ to _-_)
 open import Data.Nat.Properties
 open import Data.Nat.Show using () renaming (show to showNat)
 open import Data.Product
-open import Data.String as S using (String; _≈?_)
+open import Data.String as S using (String; _≈?_; lines)
 open import Data.Unit
 open import Data.Vec as V using (Vec; []; _∷_)
 
-open import Function using (case_of_; flip)
+open import Function using (id; case_of_; flip)
 
 open import Level using (Level) renaming (zero to lzero; suc to lsuc)
 
@@ -58,8 +59,10 @@ intercalate d (x ∷ []) = x
 intercalate d (x ∷ xs) = x <> d <> intercalate d xs
 
 unlines : List String → String
-unlines = intercalate "\n\n"
+unlines = intercalate "\n"
 
+prettyName : Name → String
+prettyName f = maybe id "" (L.last (S.wordsBy ('.' C.≟_) (showName f)))
 \end{code}
 
 
@@ -68,7 +71,7 @@ unlines = intercalate "\n\n"
 In this section, we show a concrete example of an extractor
 implemented using reflection in Agda. On a basic level, the extractor
 is a simple traversal of the syntax that maps basic stack operations
-such as \AgdaFunction{dup} and \AgdaFunction{add} to their
+such as \AF{dup} and \AF{add} to their
 corresponding syntax in PostScript, erases any arguments that are only
 present to satisfy the Agda typechecker, and rejects any Agda code
 that does not fall within the shallow embedding. However, there are a
@@ -81,22 +84,22 @@ on which all operations act. However, our shallow embedding in Agda
 does not enforce that the stack is not duplicated, discarded, or
 otherwise modified in arbitrary ways. The extractor thus needs to
 ensure that for each definition, the stack that is used in its body is
-the same as the input stack. See the description of
-\AgdaFunction{extract-term} below for more details.
+the same as the input stack. This is done in the implementation of
+\AF{extract-term} and \AF{stack-ok}.
+for more details.
 
 \item Operations on stacks can take arguments besides the `main' stack
 argument, as long as these other arguments are computationally
 irrelevant. The extractor thus needs to determine which argument of a
 given function corresponds to the input stack, and that the other
-arguments can indeed be erased. See the description of
-\AgdaFunction{extract-type} for more details.
+arguments can indeed be erased. This is done by the implementation
+\AF{extract-type}.
 
 \item We allow functions on stacks to to make limited use of pattern
 matching on values on the stack, as for example in the definition of
-\AgdaFunction{rep}. The extractor needs to translate these patterns to
-conditional statements. See the description of
-\AgdaFunction{extract-pattern} and \AgdaFunction{extract-clauses}
-below for more details.
+\AF{rep}. The extractor needs to translate these patterns to
+conditional statements. This is done in the implementation of
+\AF{extract-pattern} and \AF{extract-clauses}.
 
 \end{itemize}
 
@@ -109,7 +112,7 @@ representation as an intermediate stage:
 
 \begin{code}
 data PsCmd : Set where
-  Pop Dup Exch Add Sub Mul Eq Ge And : PsCmd
+  Pop Dup Exch Add Sub Mul Eq Ge And Rot3 : PsCmd
   Push     : ℕ → PsCmd
   If       : List PsCmd → PsCmd
   IfElse   : List PsCmd → List PsCmd → PsCmd
@@ -142,6 +145,7 @@ expr-to-string ind And = "and"
 expr-to-string ind Pop = "pop"
 expr-to-string ind Sub = "sub"
 expr-to-string ind Exch = "exch"
+expr-to-string ind Rot3 = "3 1 roll exch"
 expr-to-string ind (If xs) = "\n"
                            <> indent ind <> "{\n"
                            <> indent ind <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
@@ -162,11 +166,17 @@ expr-to-string ind (IfElse xs ys) = "\n"
 lexpr-to-string ind [] = []
 lexpr-to-string ind (x ∷ xs) = expr-to-string ind x ∷ lexpr-to-string ind xs
 
-print-ps es = intercalate "\n\n" (reverse (L.map (expr-to-string 0) es))
+print-ps es = intercalate "\n" (reverse (L.map (expr-to-string 0) es))
 \end{code}
 
 
-\subsection{The extractor}
+\subsection{The extraction monad}
+
+We make use of a monad for extraction to keep track of the current
+state of functions that still need to be extracted, and for
+propagating errors. By opening the \AD{RawMonad} instance, we bring
+the monadic operations \AR{>>=} and \AR{return} into scope, which
+also enables \AK{do}-notation.
 
 \begin{code}[hide]
 -- This is a `Maybe`-like data type except that nothing
@@ -193,25 +203,43 @@ open ExtractM
 
 monadExtractM : RawMonad ExtractM
 open RawMonad monadExtractM
-
-fail         : String → ExtractM X
-_updateErr_  : ExtractM X → String → ExtractM X
-getNextTodo  : ExtractM (Maybe Name)
-isDone       : Name → ExtractM Bool
-markAsTodo   : Name → ExtractM ⊤
-markAsDone   : Name → ExtractM ⊤
 \end{code}
 
-The monad also provides two operations for getting normalized types
+The monad provides two operations for throwing errors: \AF{fail}
+throws an error, aborting the extraction, while \AF{\_update-err\_}
+appends more information to the error message, or does nothing if
+there is no error.
+
+\begin{code}
+fail          : String → ExtractM X
+_update-err_  : ExtractM X → String → ExtractM X
+\end{code}
+
+The monad also provides two operations for managing the queue of
+functions to be extracted: \AF{mark-todo} adds a function name to the
+queue, while \AF{get-next-todo} returns the next function that has been
+marked for extraction and has not been processed already, as long as
+there are any left.  Since each individual function is only returned
+at most once by \AF{get-next-todo}, we avoid extracting the same
+function twice.
+
+\begin{code}
+mark-todo      : Name → ExtractM ⊤
+get-next-todo  : ExtractM (Maybe Name)
+\end{code}
+
+Finally, the monad provides two operations for getting normalized types
 and definitions of a given symbol. This can be used for example for
 inlining Agda functions that cannot be translated to PostScript, or
 for applying domain-specific optimizations through the use of rewrite
-rules.
+rules (see Section \ref{TODO}).
 
 \begin{code}
 get-normalised-type : Name → ExtractM Type
 get-normalised-def  : Name → ExtractM Definition
 \end{code}
+
+The implementation of these operations is standard so we omit it here.
 
 \begin{code}[hide]
 monadExtractM .RawMonad.return x .runExtractM s = R.return (s , ok x)
@@ -222,55 +250,134 @@ monadExtractM .RawMonad._>>=_ m f .runExtractM s =
 
 fail err .runExtractM s = R.return (s , error err)
 
-infix 0 _updateErr_
+infix 0 _update-err_
 
-(m updateErr err1) .runExtractM s = m .runExtractM s R.>>= λ where
+(m update-err err1) .runExtractM s = m .runExtractM s R.>>= λ where
   (s' , ok x)      → R.return (s' , ok x)
   (s' , error err2) → R.return (s' , error (err1 <> "\n" <> err2))
 
-getExtractState : ExtractM ExtractState
-getExtractState .runExtractM s = R.return (s , ok s)
+lookup-arg : List (Arg X) → ℕ → ExtractM X
+lookup-arg []       _        = fail "lookup-arg: index out of range"
+lookup-arg (a ∷ as) 0        = return (unArg a)
+lookup-arg (a ∷ as) (suc i)  = lookup-arg as i
 
-modifyExtractState : (ExtractState → ExtractState) → ExtractM ⊤
-modifyExtractState f .runExtractM s = R.return (f s , ok _)
+unless : Bool → ExtractM ⊤ → ExtractM ⊤
+unless true  m = return _
+unless false m = m
 
-setExtractState : ExtractState → ExtractM ⊤
-setExtractState s = modifyExtractState (λ _ → s)
+get-state : ExtractM ExtractState
+get-state .runExtractM s = R.return (s , ok s)
 
-isDone f = do
-  done ← ExtractState.done <$> getExtractState
+modify-state : (ExtractState → ExtractState) → ExtractM ⊤
+modify-state f .runExtractM s = R.return (f s , ok _)
+
+set-state : ExtractState → ExtractM ⊤
+set-state s = modify-state (λ _ → s)
+
+is-done       : Name → ExtractM Bool
+is-done f = do
+  done ← ExtractState.done <$> get-state
   return (elem (f RN.≟_) done)
 
-markAsTodo f = modifyExtractState λ st → record st { todo = ExtractState.todo st ++ [ f ] }
+mark-done   : Name → ExtractM ⊤
+mark-todo f = modify-state λ st → record st { todo = ins f (ExtractState.todo st) }
+  where
+    ins : Name → List Name → List Name
+    ins f [] = [ f ]
+    ins f (g ∷ gs) = if does (f RN.≟ g) then g ∷ gs else g ∷ ins f gs
 
-markAsDone f = modifyExtractState λ st → record st { done = f ∷ ExtractState.done st }
+mark-done f = modify-state λ st → record st { done = f ∷ ExtractState.done st }
 
-getNextTodo = do
-  todo ← ExtractState.todo <$> getExtractState
+get-next-todo = do
+  todo ← ExtractState.todo <$> get-state
   go todo
   where
-    go : List Name → ExtractM (Maybe Name)
-    go [] = return nothing
-    go (f ∷ fs) = do
-      modifyExtractState λ st → record st { todo = fs }
-      done ← isDone f
-      if done then
-          go fs
-        else do
-          markAsDone f
-          return (just f)
+  go : List Name → ExtractM (Maybe Name)
+  go [] = return nothing
+  go (f ∷ fs) = do
+    modify-state λ st → record st { todo = fs }
+    done ← is-done f
+    if done
+      then go fs
+      else do
+        mark-done f
+        return (just f)
 
 liftTC       : TC X → ExtractM X
 liftTC m .runExtractM s = m R.>>= λ x → R.return (s , ok x)
 
 get-normalised-type f = do
   ty   ← liftTC (R.getType f)
-  base ← ExtractState.base <$> getExtractState
+  base ← ExtractState.base <$> get-state
   liftTC (withReconstructed (dontReduceDefs base (R.normalise ty)))
 
 get-normalised-def f =
   liftTC (withReconstructed (R.getDefinition f)) -- TODO: reintroduce normalisation of clauses
 \end{code}
+
+
+\subsection{The extractor}
+
+The extractor itself consists of four functions that traverse the
+different parts of the reflected Agda syntax and translate it to
+PostScript commands:
+
+\begin{code}
+{-# TERMINATING #-}
+extract-term     : Term → Pattern → ExtractM (List PsCmd)
+extract-type     : Type → ExtractM ℕ
+extract-clauses  : Clauses → ℕ → ExtractM (List PsCmd)
+extract-def      : Name → ExtractM PsCmd
+\end{code}
+
+\begin{itemize}
+
+\item \AF{extract-term} traverses an Agda term and translates it to a
+list of PostScript commands. For example, it translates the expression
+$\AF{add}\ (\AF{push}\ \AN{1}\ \AB{s})$ to $\AC{Push}\ \AN{1}\ \AC{∷}\
+\AF{Add}\ \AC{∷}\ \AC{[]}$. It takes an additional argument of type
+\AD{Pattern} in order to check that the stack used in the expression
+(in this case \AB{s}) is identical to the input stack. Note that this
+function has to be marked as termination due to the current
+limitations of Agda's termination checker.
+
+\item \AF{extract-type} traverses an Agda type and checks that it
+takes one principal argument of type \AD{Stack} and returns a value of
+type \AD{Stack}. In addition, it checks that all non-principal
+arguments to the function are marked as runtime-irrelevant and can
+thus safely be erased during extraction. If these checks succeed, it
+returns the position of the principal argument.
+
+\item \AF{extract-clauses} takes as input the clauses of a function
+definition and the position of the principal argument (as computed by
+\AF{extract-type}) and translates the clauses to a list of PostScript
+commands. For example, consider the function \AF{non-zero}:
+\begin{code}
+non-zero : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+non-zero s@(_ # 0) = s
+non-zero s@(_ # _) = s ▹ pop ▹ push 1
+\end{code}
+The clauses of \AF{non-zero} are translated to a conditional
+expression in PostScript that checks whether the top element is zero:
+\begin{lstlisting}[language=PostScript]
+  0 index 0 eq { } { pop 1 } ifelse
+\end{lstlisting}
+
+\item Finally, \AF{extract-def} takes as input a (reflected) name of
+an Agda function, gets its type and definition, and calls
+\AF{extract-type} and \AF{extract-clauses} to translate it to a list
+of PostScript commands.
+\end{itemize}
+
+In the remainder of this section, we explain the implementation of
+these functions in more detail.
+
+Working with reflected syntax in Agda can quickly become very verbose.
+To reduce the syntactic noise, we make use of pattern synonyms for
+commonly used pieces of syntax. As a convention, the names of these
+pattern synonyms start with a backtick \` followed by the name of the
+represented Agda construct. We give two representative examples, other
+pattern synonyms are defined analogously.
 
 \begin{code}
 pattern `zero   = con (quote ℕ.zero) []
@@ -289,6 +396,7 @@ pattern `push n s  = def (quote push) (_ ∷ _ ∷ vArg n ∷ vArg s ∷ [])
 pattern `pop s     = def (quote pop) (_ ∷ _ ∷ vArg s ∷ [])
 pattern `dup s     = def (quote dup) (_ ∷ _ ∷ vArg s ∷ [])
 pattern `exch s    = def (quote exch) (_ ∷ _ ∷ vArg s ∷ [])
+pattern `rot3 s    = def (quote rot3) (_ ∷ _ ∷ vArg s ∷ [])
 
 pattern `add s  = def (quote add) (_ ∷ vArg s ∷ [])
 pattern `sub s  = def (quote sub) (_ ∷ vArg s ∷ [])
@@ -300,227 +408,213 @@ pattern `index k s = def (quote index) (_ ∷ _ ∷ vArg k ∷ _ ∷ vArg s ∷ 
 pattern `subst-stack s = def (quote subst-stack) (_ ∷ _ ∷ _ ∷ _ ∷ vArg s ∷ [])
 \end{code}
 
-
-\begin{code}
-extract-def      : Name → ExtractM PsCmd
-extract-type     : Type → ExtractM ℕ
-extract-clauses  : Clauses → ℕ → ExtractM (List PsCmd)
-
-{-# TERMINATING #-}
-extract-term     : Term → Pattern → ExtractM (List PsCmd)
-\end{code}
-
-This function ensure that when we use the stack, it corresponds to
-the stack that we got as the input to the function.
-So it ensures that we do not manipulate the stack in arbitrary ways,
-but only through the primitive stack operations of postscript.
-
-\begin{code}
-pattern-match-ok : Pattern → Term → ExtractM ⊤
-\end{code}
 \begin{code}[hide]
-pattern-match-ok p@(p₁ `#p p₂) t@(t₁ `#  t₂) = do
-  pattern-match-ok p₁ t₁
-  pattern-match-ok p₂ t₂
+stack-ok : Pattern → Term → ExtractM ⊤
+\end{code}
 
-pattern-match-ok (var x) (var y []) with x ℕ.≟ y
-... | yes _ = return _
-... | no  _ = fail "pattern-match-ok: variables do not match"
-
-pattern-match-ok (lit (nat x)) (lit (nat y)) with x ℕ.≟ y
-... | yes _ = return _
-... | no  _ = fail "pattern-match-ok: literal vaues do not match"
-
-pattern-match-ok `zero `zero = return _
-
-pattern-match-ok (`suc x) (`suc y) = pattern-match-ok x y
-
-pattern-match-ok (lit (nat x)) y = do
-  y′ ← extract-nat y
-  case x ℕ.≟ y′ of λ where
-    (yes _) → return _
-    (no  _) → fail "pattern-match-ok: invalid literal/number match"
+\begin{AgdaAlign}
+\begin{code}
+extract-term v stackp = go v []
   where
-    extract-nat : Term → ExtractM ℕ
-    extract-nat `zero = return 0
-    extract-nat (`suc x) = suc <$> extract-nat x
-    extract-nat _ = fail "not a suc/zero term"
+  go : Term → List PsCmd → ExtractM (List PsCmd)
+  go (`pop x)   acc = go x (Pop   ∷ acc)
+  go (`dup x)   acc = go x (Dup   ∷ acc)
+  go (`exch x)  acc = go x (Exch  ∷ acc)
+  go (`rot3 x)  acc = go x (Rot3  ∷ acc)
+  go (`add x)   acc = go x (Add   ∷ acc)
+  go (`sub x)   acc = go x (Sub   ∷ acc)
+  go (`mul x)   acc = go x (Mul   ∷ acc)
+  go (`eq x)    acc = go x (Eq    ∷ acc)
+  go (`gt x)    acc = go x (Ge    ∷ acc)
+\end{code}
 
-pattern-match-ok x (lit (nat y)) = do
-  x′ ← extract-pattern-nat x
-  case x′ ℕ.≟ y of λ where
-    (yes _) → return _
-    (no  _) → fail "pattern-match-ok: invalid literal/number match"
+\begin{code}
+  go (`push (lit (nat n)) x) acc =
+    go x (Push n ∷ acc)
+  go (`push k x) acc =
+    fail ("extract-term: push with non-literal "
+          <> showTerm k)
+  go (`index (lit (nat n)) x) acc =
+    go x (Index n ∷ acc)
+  go (`index k x) acc =
+    fail ("extract-term: index with non-literal "
+          <> showTerm k)
+\end{code}
+
+\begin{code}
+  go (`subst-stack x) acc = go x acc
+\end{code}
+
+\begin{code}
+  go (def f args@(_ ∷ _)) acc = do
+    mark-todo f
+    ty  ← get-normalised-type f
+    n   ← extract-type ty
+      update-err ("trying to obtain type of `"
+                 <> prettyName f <> "`: ")
+    a   ← lookup-arg args n
+    go a (FunCall (prettyName f) ∷ acc)
+\end{code}
+
+\begin{code}
+  go v@(var x []) acc = do
+    stack-ok stackp v
+      update-err "extract-term var mismatch: "
+    return acc
+  go v@(_ `# _) acc = do
+    stack-ok stackp v
+      update-err "extract-term cons mismatch: "
+    return acc
+\end{code}
+
+
+\begin{code}
+  go t acc =
+    fail ("failed with term `" <> showTerm t <> "`")
+\end{code}
+
+
+The function \AF{stack-ok} ensures that when we use
+the stack, it corresponds to the stack that we got as the input to the
+function.  So it ensures that we do not manipulate the stack in
+arbitrary ways, but only through the primitive stack operations of
+PostScript.
+
+
+\begin{code}
+stack-ok p@(p₁ `#p p₂) t@(t₁ `#  t₂) = do
+  stack-ok p₁ t₁
+  stack-ok p₂ t₂
+
+stack-ok (var x) (var y []) =
+  unless (does (x ℕ.≟ y))
+    (fail "stack-ok: var/var mismatch")
+
+stack-ok `zero `zero = return _
+
+stack-ok (`suc x) (`suc y) = stack-ok x y
+\end{code}
+
+
+\begin{code}[hide]
+stack-ok (lit (nat x)) (lit (nat y)) =
+  unless (does (x ℕ.≟ y))
+    (fail "stack-ok: lit/lit mismatch")
+
+stack-ok x (lit (nat y)) = do
+  x′ ← pattern-to-nat x
+  unless (does (x′ ℕ.≟ y))
+    (fail "stack-ok: nat/lit mismatch")
   where
-    extract-pattern-nat : Pattern → ExtractM ℕ
-    extract-pattern-nat `zero = return 0
-    extract-pattern-nat (`suc x) = suc <$> extract-pattern-nat x
-    extract-pattern-nat _ = fail "not a suc/zero pattern"
+    pattern-to-nat : Pattern → ExtractM ℕ
+    pattern-to-nat `zero     = return 0
+    pattern-to-nat (`suc x)  = suc <$> pattern-to-nat x
+    pattern-to-nat _         = fail "not a suc/zero pattern"
 
-pattern-match-ok p t = fail
-  ("pattern-match-ok: invalid stack variable pattern: "
+stack-ok (lit (nat x)) y = do
+  y′ ← term-to-nat y
+  unless (does (x ℕ.≟ y′))
+    (fail "stack-ok: lit/nat mismatch")
+  where
+    term-to-nat : Term → ExtractM ℕ
+    term-to-nat `zero     = return 0
+    term-to-nat (`suc x)  = suc <$> term-to-nat x
+    term-to-nat _         = fail "stack-ok: not a suc/zero term"
+\end{code}
+
+
+\begin{code}
+stack-ok p t = fail
+  ("stack-ok: mismatch "
    <> showPattern p <> " and " <> showTerm t)
 \end{code}
 
 
-\begin{code}
-extract-term v@(var x []) p = do
-  pattern-match-ok p v
-    updateErr "extract-term var mismatch: "
-  return []
-extract-term v@(_ `# _) p = do
-  pattern-match-ok p v
-    updateErr "extract-term cons mismatch: "
-  return []
-\end{code}
 
-\begin{code}
-extract-term (`push (lit (nat n)) x) p =
-  Push n ∷_ <$> extract-term x p
-extract-term (`push k x) p =
-  fail ("extract-term: push with non-literal "
-        <> showTerm k)
-\end{code}
-
-\begin{code}
-extract-term (`pop x)   p = Pop   ∷_ <$> extract-term x p
-extract-term (`dup x)   p = Dup   ∷_ <$> extract-term x p
-extract-term (`exch x)  p = Exch  ∷_ <$> extract-term x p
-extract-term (`add x)   p = Add   ∷_ <$> extract-term x p
-extract-term (`sub x)   p = Sub   ∷_ <$> extract-term x p
-extract-term (`mul x)   p = Mul   ∷_ <$> extract-term x p
-extract-term (`eq x)    p = Eq    ∷_ <$> extract-term x p
-extract-term (`gt x)    p = Ge    ∷_ <$> extract-term x p
-\end{code}
-
-\begin{code}
-extract-term (`index (lit (nat n)) x) p =
-  Index n ∷_ <$> extract-term x p
-extract-term (`index k x) p =
-  fail ("extract-term: index with non-literal "
-        <> showTerm k)
-\end{code}
-
-\begin{code}
-extract-term (`subst-stack x) p = extract-term x p
-\end{code}
-
-\begin{code}
-extract-term (def f args@(_ ∷ _)) p = do
-  ty ← get-normalised-type f
-  markAsTodo f
-  n ← extract-type ty
-    updateErr ("trying to obtain type of `"
-               <> showName f <> "`: ")
-  arg i a ← index-args args n
-  b ← extract-term a p
-  return (FunCall (showName f) ∷ b)
-  where
-    index-args : List (Arg Term) → ℕ → ExtractM (Arg Term)
-    index-args []       _        = fail "index out of range"
-    index-args (a ∷ as) 0        = return a
-    index-args (a ∷ as) (suc i)  = index-args as i
-\end{code}
-
-\begin{code}
-extract-term t _ =
-  fail ("failed with term `" <> showTerm t <> "`")
-\end{code}
-
-
-
-
-The function \AgdaFunction{extract-type} defines what Agda types are valid
+The function \AF{extract-type} defines what Agda types are valid
 for functions in the embedding.  It also returns which argument
 corresponds to the stack.
 
 \begin{code}
 extract-type x = go x false 0
   where
-    go : Type → (st-arg : Bool) → (off : ℕ) → ExtractM ℕ
-    go (Π[ s ∶ arg _ (`Stack X n) ] y) false o =
-      go y true o
-    go (Π[ s ∶ hArg0 _ ] y) b o =
-      go y b (if b then o else 1 + o)
-    go (`Stack X n) true o = return o
-    go t _ _ =
-      fail ("failed with type `"
-            <> showTerm t <> "`")
-\end{code}
-
-\begin{code}[hide]
-lookup-pattern : List (Arg Pattern) → ℕ → ExtractM Pattern
-lookup-pattern ((arg _ x) ∷ xs) zero = return x
-lookup-pattern (_ ∷ xs) (suc n) = lookup-pattern xs n
-lookup-pattern _ _ = fail "extract-clauses: invalid stack variable index in patterns"
-\end{code}
-
-The function \AgdaFunction{extract-pattern} extracts a boolean
-condition from a given Agda pattern consisting of the constructors
-\AgdaInductiveConstructor{zero}, \AgdaInductiveConstructor{suc}, and
-pattern variables. It returns either \AgdaInductiveConstructor{just}
-the condition as a list of PostScript commands, or
-\AgdaInductiveConstructor{nothing} in case the pattern is guaranteed
-to match and hence no conditional is needed.
-
-\begin{code}
-extract-pattern : (hd-idx : ℕ) → Pattern
-                → ExtractM (Maybe (List PsCmd))
-extract-pattern _      (var x)     = return nothing
-extract-pattern hd-idx (p₁ `#p p₂) =
-  match-cond p₂ 0 >>= λ where
-    nothing   → extract-pattern (1 + hd-idx) p₁
-    (just (cmp , c)) → do
-      let l₁ = Index hd-idx ∷ Push c ∷ cmp ∷ []
-      ml₂ ← extract-pattern (2 + hd-idx) p₁
-      case ml₂ of λ where
-        nothing   → return (just l₁)
-        (just l₂) → return (just (l₁ ++ l₂ ++ [ And ]))
-  where
-    match-cond : Pattern → ℕ
-               → ExtractM (Maybe (PsCmd × ℕ))
-    match-cond (var _)        0 = return nothing
-    match-cond (var _)        c = return (just (Ge , c))
-    match-cond `zero          c = return (just (Eq , c))
-    match-cond (`suc p)       c = match-cond p (1 + c)
-    match-cond (lit (nat n))  c = return (just (Eq , c + n))
-    match-cond  _             _   =
-      fail "extract-pattern: invalid nat pattern"
-extract-pattern _ _ =
-  fail "extract-pattern: invalid stack pattern"
+  go : Type → (st-arg : Bool) → (off : ℕ) → ExtractM ℕ
+  go (Π[ s ∶ arg _ (`Stack X n) ] y) false o =
+    go y true o
+  go (Π[ s ∶ hArg0 _ ] y) b o =
+    go y b (if b then o else 1 + o)
+  go (`Stack X n) true o = return o
+  go t _ _ =
+    fail ("failed with type `" <> showTerm t <> "`")
 \end{code}
 
 
-Note: when compiling the final clause, we skip compilation of the
+When compiling the final clause, we skip compilation of the
 pattern. This is a correct optimization because Agda enforces
 completeness of definitions by pattern matching, so if the final case
 is reached it is guaranteed to match.
 
+
 \begin{code}
 extract-clauses [] i =
   fail "extract-clauses: zero clauses found"
+extract-clauses (absurd-clause _ _ ∷ ts) i =
+  extract-clauses ts i
 extract-clauses (clause _ ps t ∷ []) i = do
-  p ← lookup-pattern ps i
-  t ← extract-term t p
-  return (L.reverse t)
-
+  stackp ← lookup-arg ps i
+  extract-term t stackp
 extract-clauses (clause _ ps t ∷ ts) i = do
-  stackp  ← lookup-pattern ps i
-  ml      ← extract-pattern 0 stackp
+  stackp  ← lookup-arg ps i
+  ml      ← extract-stackp 0 stackp
   case ml of λ where
     nothing  → do
-      t ← extract-term t stackp
-      return (L.reverse t)
+      extract-term t stackp
     (just l) → do
       t  ← extract-term t stackp
       ts ← extract-clauses ts i
-      return (l ++ [ IfElse (L.reverse t) ts ])
-
-extract-clauses (absurd-clause _ _ ∷ ts) i =
-  extract-clauses ts i
+      return (l ++ [ IfElse t ts ])
 \end{code}
 
-Finally, the function \AgdaFunction{extract-def} extracts the function
+The implementation of \AF{extract-clauses} makes use of two
+helper functions \AF{extract-stackp} and
+\AF{extract-nap} to extract a boolean condition from a given
+Agda pattern of type \AD{Stack} and \AD{ℕ}
+respectively. They returns either \AC{just} the
+condition as a list of PostScript commands, or
+\AC{nothing} in case the pattern is guaranteed
+to match and hence no conditional is needed.
+
+\begin{code}
+  where
+  extract-stackp : (hd-idx : ℕ) → Pattern
+                 → ExtractM (Maybe (List PsCmd))
+  extract-natp : Pattern → ℕ
+               → ExtractM (Maybe (List PsCmd))
+
+  extract-stackp _      (var x)     = return nothing
+  extract-stackp hd-idx (p₁ `#p p₂) =
+    extract-natp p₂ 0 >>= λ where
+      nothing   → extract-stackp (1 + hd-idx) p₁
+      (just cmp) → do
+        let l₁ = Index hd-idx ∷ cmp
+        ml₂ ← extract-stackp (2 + hd-idx) p₁
+        case ml₂ of λ where
+          nothing   → return (just l₁)
+          (just l₂) → return (just (l₁ ++ l₂ ++ [ And ]))
+  extract-stackp _ _ =
+    fail "extract-stackp: invalid stack pattern"
+
+  extract-natp (var _)        0 = return nothing
+  extract-natp (var _)        c = return (just (Push c ∷ Ge ∷ []))
+  extract-natp `zero          c = return (just (Push c ∷ Eq ∷ []))
+  extract-natp (`suc p)       c = extract-natp p (1 + c)
+  extract-natp (lit (nat n))  c = return (just (Push (c + n) ∷ Eq ∷ []))
+  extract-natp  _             _ =
+    fail "extract-stackp: invalid nat pattern"
+\end{code}
+
+
+Finally, the function \AF{extract-def} extracts the function
 with a given name, or fails on any other kind of Agda definition.
 
 \begin{code}
@@ -529,11 +623,11 @@ extract-def f = do
   deff ← get-normalised-def f
   case deff of λ where
     (function cs) → do
-      t ← extract-type ty
-      b ← extract-clauses cs t
-      return (FunDef (showName f) b)
+      i ← extract-type ty
+      b ← extract-clauses cs i
+      return (FunDef (prettyName f) b)
     _ → fail ("extract: attempting to extract `" <>
-              showName f <> "` as function")
+              prettyName f <> "` as function")
 \end{code}
 
 
@@ -555,7 +649,7 @@ this, so we mark it as terminating manually using a pragma.
 \begin{code}
 {-# TERMINATING #-}
 extract-defs : ExtractM (List PsCmd)
-extract-defs = getNextTodo >>= λ where
+extract-defs = get-next-todo >>= λ where
   nothing  → return []
   (just f) → do
     x  ← extract-def f
@@ -566,8 +660,8 @@ extract-defs = getNextTodo >>= λ where
 Main entry point of the extractor.
 
 \begin{itemize}
-\item \AgdaBound{base} is the set of base functions that we never traverse into.
-\item \AgdaBound{n} is a starting function of the extraction
+\item \AB{base} is the set of base functions that we never traverse into.
+\item \AB{n} is a starting function of the extraction
 \end{itemize}
 
 \begin{code}
@@ -580,38 +674,132 @@ macro
       (_ , error err) → R.typeError [ R.strErr err ]
 \end{code}
 
-\begin{code}[hide]
+We provide a default list of base functions that are ignored by the
+extractor, but this list can be tailored to a specific program by
+adding external library functions.
+
+\begin{code}
 base : List Name
-base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop
-     ∷ quote index ∷ quote subst-stack ∷ quote exch {-∷ quote rot3-}
-     {-∷ quote iframep-} ∷ []
+base = quote add ∷ quote sub ∷ quote mul ∷ quote eq ∷ quote gt
+     ∷ quote push ∷ quote pop ∷ quote dup ∷ quote exch
+     ∷ quote rot3 ∷ quote index ∷ quote subst-stack ∷ []
+\end{code}
 
-extract-add-1 = extract add-1 base
+Thanks to the theorem-proving capabilities of Agda, we can embed test
+cases for the extractor as simple equality proofs. These test cases
+are run automatically during type checking, so if a change to the
+extractor causes one of them to fail it will not go unnoticed.
 
-_ : extract-add-1 ≡ "/psembedding.add-1 {\n  1 add\n} def\n"
+As a simple example, here is a test that \AF{add-1} is extracted
+correctly:
+
+\begin{code}
+
+_ : lines (extract add-1 base) ≡
+  ( "/add-1 {"
+  ∷ "  1 add"
+  ∷ "} def"
+  ∷ [] )
+_ = refl
+\end{code}
+
+\begin{code}[hide]
+_ : lines (extract non-zero base) ≡
+  ( "/non-zero {"
+  ∷ "  0 index 0 eq "
+  ∷ "  {"
+  ∷ "    "
+  ∷ "  }"
+  ∷ "  {"
+  ∷ "    pop 1"
+  ∷ "  } ifelse"
+  ∷ ""
+  ∷ "} def"
+  ∷ [] )
 _ = refl
 
 dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
 dblsuc xs = add-1 (dup xs)
 
-extract-dblsuc = extract dblsuc base
-
-_ : extract-dblsuc ≡ "/psembedding.add-1 {\n  1 add\n} def\n\n\n/extraction.dblsuc {\n  dup psembedding.add-1\n} def\n"
+_ : lines (extract dblsuc base) ≡
+  ( "/add-1 {"
+  ∷ "  1 add"
+  ∷ "} def"
+  ∷ ""
+  ∷ "/dblsuc {"
+  ∷ "  dup add-1"
+  ∷ "} def"
+  ∷ [] )
 _ = refl
 
 
-extract-sqsum = extract sqsum base
-
-_ : extract-sqsum ≡ "/psembedding.sqsum {\n  dup mul exch dup mul exch add\n} def\n"
+_ : lines (extract sqsum base) ≡
+  ( "/sqsum {"
+  ∷ "  dup mul exch dup mul exch add"
+  ∷ "} def"
+  ∷ [] )
 _ = refl
 
-extract-rep-simple =  extract RepSimple.rep base
-
-_ : extract-rep-simple ≡
-  "/psembedding.RepSimple.rep {\n  0 index 0 eq \n  {\n    pop pop\n  }\n  {\n    1 sub 1 index exch psembedding.RepSimple.rep\n  } ifelse\n\n} def\n"
+_ : lines (extract RepSimple.rep base) ≡
+  ( "/rep {"
+  ∷ "  0 index 0 eq "
+  ∷ "  {"
+  ∷ "    pop pop"
+  ∷ "  }"
+  ∷ "  {"
+  ∷ "    1 sub 1 index exch rep"
+  ∷ "  } ifelse"
+  ∷ ""
+  ∷ "} def"
+  ∷ [] )
 _ = refl
 
+_ : lines (extract FibNonTerm.fib base) ≡
+  ( "/fib {"
+  ∷ "  0 index 0 eq "
+  ∷ "  {"
+  ∷ "    pop 1"
+  ∷ "  }"
+  ∷ "  {"
+  ∷ "    0 index 1 eq "
+  ∷ "    {"
+  ∷ "      pop 1"
+  ∷ "    }"
+  ∷ "    {"
+  ∷ "      dup 1 sub fib exch 2 sub fib add"
+  ∷ "    } ifelse"
+  ∷ ""
+  ∷ "  } ifelse"
+  ∷ ""
+  ∷ "} def"
+  ∷ [] )
+_ = refl
 \end{code}
+
+As another example, we test that the implementation of \AF{fib} is
+extracted correctly:
+
+\begin{code}
+_ : lines (extract Fib3.fib base) ≡
+  ( "/fib3 {"
+  ∷ "  2 index 0 eq "
+  ∷ "  {"
+  ∷ "    "
+  ∷ "  }"
+  ∷ "  {"
+  ∷ "    exch 1 index add 3 1 roll exch"
+    <> " 1 sub 3 1 roll exch fib3"
+  ∷ "  } ifelse"
+  ∷ ""
+  ∷ "} def"
+  ∷ ""
+  ∷ "/fib {"
+  ∷ "  1 1 fib3 pop exch pop"
+  ∷ "} def"
+  ∷ [] )
+_ = refl
+\end{code}
+\end{AgdaAlign}
 
 \subsection{\label{sec:normalisation}Normalisation}
 It is useful for inlining functions, and creating macros that can use arbitrary expressions
