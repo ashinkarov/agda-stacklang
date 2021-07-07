@@ -53,6 +53,24 @@ index k k<m xs = xs , get-index k k<m xs
 subst-stack : ∀ {X}{@0 n m} → m ≡ n → Stack X m → Stack X n
 subst-stack refl xs = xs
 
+-- For loop
+data _≥₁_ (l : ℕ) : ℕ → Set where
+  done : l ≥₁ l
+  next : ∀ {m} → l ≥₁ (suc m) → l ≥₁ m
+
+count : ∀ {a b} → a ≥₁ b → (n : ℕ) → ℕ
+count done      n = n
+count (next qq) n = count qq n + n
+
+for : ∀ {n l} 
+    → (s : Stack ℕ (2 + n)) 
+    → {geq : get-index {n = n} 0 (s≤s z≤n) s ≥₁ get-index {n = n} 1 (s≤s (s≤s z≤n)) s }
+    → (∀ {m} → Stack ℕ (1 + m) → Stack ℕ (l + m)) 
+    → Stack ℕ (count geq l + n)
+for (s , i , .i) {done}    f = f (s , i)
+for {n} {ll} (s , i , l)  {next qq} f = subst-stack (sym $ +-assoc _ ll n) (for (f (s , i) , suc i , l) {qq} f)
+
+
 hd : ∀ {X n} → Stack X (1 + n) → X
 hd (_ , x) = x
 

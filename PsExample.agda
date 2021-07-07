@@ -17,7 +17,7 @@ open import Reflection -- hiding (_≟_; _>>=_; return)
 open import Structures
 open import Function
 
-open import Data.Unit
+open import Data.Unit using (⊤; tt)
 
 open import ps as PostScript
 
@@ -40,6 +40,7 @@ dblsuc xs = add1 $ dup xs
 sqsum : ∀ {n} → Stack ℕ (2 + n) → Stack ℕ (1 + n)
 sqsum s@(_ , a , b) =  add $ mul $ dup $ exch $ mul $ dup $ s
 
+{-# TERMINATING #-}
 fac : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
 fac s@(_ , 0)     = push 1 $ pop $ s
 fac s@(_ , suc n) = let
