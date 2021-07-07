@@ -426,18 +426,31 @@ However, as long as a programmer is happy to take responsibility by putting
 the annotation, we can immediately proceed to extraction.
 
 We demonstrate a way to prove termination of the functions from previous
-sections.
+sections.  While it is impossible to infer termination for an arbitrary
+function, Agda uses heuristics to handle common cases.  The main idea behind
+the check is that the argument to the recursive call has to be structurally
+smaller than the input argument.  This means that we have to remove at least
+one constructor from at least one argument.  For more details on the algorithm
+see~\cite{}.
 
-
+The problem with \AF{rep} is that the recursive call happens on the stack
+that is became one element bigger, yet the top element decreased by one.
+Therefore, this argument is not strictly smaller, and there are no other
+decreasing arguments, so the termination checker fails to accept this
+definition.  A standard way to fix this is to add an extra argument to
+the function, and define a relation that depends on that argument in a
+such a way that the argument decreases.  In \AF{rep} case we add the
+new argument \AB{k}, and we define a relation that the top of the stack
+is definitionally equal to \AB{k}:
 
 \begin{code}[hide]
 module RepTerm where
     open import Data.Nat using (s≤s; z≤n)
 \end{code}
 \begin{code}
-    rep′ : (s : Stack ℕ (2 + n)) → {@0 _ : hd s ≡ k} → Stack ℕ (hd s + n)
-    rep′ {k = .0}            s @ (_ # _ # zero)  {refl}  = s ▹ pop ▹ pop
-    rep′ {k = .suc k}  s:x:m+1 @ (_ # _ # suc m) {refl}  = let
+    rep′ : (s : Stack ℕ (2 + n)) → @0{hd s ≡ k} → Stack ℕ (hd s + n)
+    rep′ {k = .0}            s@(_ # _ # zero)  {refl}  = s ▹ pop ▹ pop
+    rep′ {k = .suc k}  s:x:m+1@(_ # _ # suc m) {refl}  = let
              s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
              s:x:m:x  = s:x:m    ▹ index 1 (s≤s (s≤s z≤n))
              s:x:x:m  = s:x:m:x  ▹ exch
@@ -446,6 +459,12 @@ module RepTerm where
     rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
     rep s = rep′ s {refl}
 \end{code}
+As the function is pattern-matchin on the top of the stack, and the
+only value of the \AD{\_≡\_} type is \AC{refl}, the argument \AB{k}
+has to be \AN{0} in the first case, and some successor in the second
+case.  This trick creates ensures that \AB{k} is structurally decreasing,
+and the function is accepted by the termination checker.
+
 
 % New implicit variables fucked-up the code in FibTerm
 %
@@ -496,6 +515,24 @@ module RepTerm where
 %   fib xs = fib′ xs {≤-refl}
 % \end{code}
 
+
+
+Showing termination of the \AF{fib} function fails for the same reason
+as in case of \AF{rep} --- it is unclear whether any argument decreases when
+calling \AF{fib} recursively.  Unfortunately, we cannot use the above trick
+with relation as is, because we make two recursive calls, but we keep results
+on the same stack.  The problem is that after the first recusive call \AF{fib}
+\AB{s:x:x-1} we obtain (conceptually) a new stack.  In order to call \AF{fib}
+on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
+(to bring \AB{x} at the top).  However, we cannot prove that \AF{fib} only
+modified the top element of the stack and did not touch other elements.
+There is a number of ways we can fix this, but for presentatoinal purposes
+we show the shortest one.  We adjust the structure of our recursion,
+so that we deal with three elements per iteration, implementing a simple
+scheme $\langle 1+x, a, b \rangle \leadsto \langle x, b, a+b \rangle$.
+Where $x$ is the number in the sequence that we want to find, and $a = b = 1$
+in the inital call:
+
 \begin{code}
 rot3 : ∀ {X}{@0 n} → Stack X (3 + n) → Stack X (3 + n)
 rot3 (s # a # b # c) =  s # c # b # a
@@ -506,21 +543,27 @@ module Fib3 where
     open import Function using (_$_)
 \end{code}
 \begin{code}
-    fib3 : {@0 y : ℕ} (s : Stack ℕ (3 + n)) 
-         → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s < y} 
+    fib3 : (s : Stack ℕ (3 + n)) 
+         → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s ≡ k} 
          → Stack ℕ (3 + n)
-    fib3 s@(_ # 0        # a # b)           = s
-    fib3 s@(_ # (suc m)  # a # b) {s≤s m<y} = let
+    fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
+    fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} = let
       s:1+m:a:b    = s
       s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 (s≤s (s≤s z≤n)) ▹ add
       s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub 
       s:m:b:a+b    = s:a+b:b:m   ▹ rot3
-      in fib3 s:m:b:a+b {m<y}
+      in fib3 {k = k} s:m:b:a+b {refl}
 
     fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
     fib s = let
       s:m:1:1              = s ▹ push 1 ▹ push 1
-      s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {≤-refl}
+      s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {refl}
       in s:0:fib[m]:fib[1+m] ▹ pop ▹ exch ▹ pop
 \end{code}
+Then \AF{fib3} is doing the iteration; \AF{fib} sets the inital seed
+and cleans-up the stack.  We defined a new stack operation
+called \AF{rot3} that reverses the top three elements of the stack.
+Note that this is not a built-in operation of PostScript, but it is
+trvial to implement it in terms of \AF{roll} and \AF{exch}.
+
 
