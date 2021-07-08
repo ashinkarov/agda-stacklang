@@ -324,10 +324,150 @@ Not sure whether this deserves a separate section, but we need to explain
 that the proposed technology perfectly scales to the level of bigger (more complex)
 languages.
 
+\section{\label{sec:related}Related Work}
 
-\section{Related Work}
+\paragraph{Metaprogramming} There is a large body of
+work on metaprogramming facilities in various programming
+languages.  \citet{refl-masses} track the origins
+of metaprogramming to Smith's work on reflection in Lisp~\cite{refl-lisp}.
+Some prominent metaprogramming systems include
+MetaOcaml~\cite{metaocaml}, MetaML~\cite{metaml},
+reFlect~\cite{DBLP:journals/jfp/GrundyMO06},
+Template Haskell~\cite{sheard2002template},
+Racket~\cite{plt-tr1}, and various other Lisp/Scheme dialects.
+%
+However, these systems typically do not support dependent
+types, so they are not well suited for our goal of statically
+enforcing correctness of embedded programs.
 
-\section{Conclusios and Future Work}
+\paragraph{Embedding}
+Defining deep embeddings with static guarantees are a common application
+of dependent types~\cite{10.5555/647849.737066,CHAPMAN200921,
+10.1007/978-3-540-74464-1_7,10.1145/3236785,10.1145/1863495.1863497}.
+%
+These embeddings usually also define semantics of the embedded
+language and therefore allow us to reason about the correctness
+of program transformations and optimisations.
+%
+While the fact that this is possible is impressive in theory, the resulting
+encodings are often difficult to use in practice. In this paper
+we instead aim for a more lightweight approach.
+
+\citet{deepshallow} propose to solve this problem with
+a combination of deep and shallow embeddings.  Their idea is to define
+a small deep embedding and leverage type classes in Haskell to define
+the rest of the language on top of that.  It would be interesting to see
+whether such an approach scales to dependently-typed embedded
+languages.
+
+
+\paragraph{Extraction}
+The Coq proof assistant is equipped with extraction
+capabilities~\cite{10.1007/978-3-540-69407-6_39,10.1007/3-540-39185-1_12},
+which extracts functional code from Coq proofs (or programs).  The
+default target language is Ocaml, but a few other options were added
+recently.
+%
+Likewise, Agda itself has a mechanism for defining custom backends, of
+which the GHC backend is the most prominent.
+%
+Other proof assistants provide similar extraction tools as well.
+%
+The main difference from our approach in this paper
+is that these extractors are written as plugins to the proof
+assistant, while we implement our extractors directly in the proof
+assistant itself.
+%
+While it would be possible to implement extractors presented in this
+paper as Coq plugins or Agda backends, conceptually they are more
+heavyweight.  Our extractors and programs can (in principle)
+communicate with each other. In addition, as they are just Agda programs, they can
+be reflected themselves and their structure can be leveraged.
+
+
+\paragraph{Dependently typed metaprogramming}
+Several dependently-typed languages are equipped with metaprogramming
+capabilities: Idris \cite{idris-refl}, Lean \cite{lean-refl},
+Coq \cite{metacoq}, and Agda \cite{agda-refl}.  All of these
+implement a similar API as described in this paper.  This is
+reassuring, as it means our proposed approach is immediately portable
+into many other contexts.
+\citet{10.1145/3371071} introduce the Turnstile+ framework for
+building dependently typed embedded DSLs and very much
+shares the ideas advocated in this paper, suggesting that
+our approach could work there as well.
+\citet{10.1145/3371076} use MetaCoq to formally verify
+the core type system of Coq. This combines nicely with
+our approach, as we could use the verified core language
+as a basis to verify our custom extractors.
+\citet{10.1145/3372885.3373829} use MetaCoq to implement
+a DSL combining deep and shallow approaches, in a way that
+is quite similar to our own. While they are able to formally
+reason about preservation of semantics (which we can't do yet), it is unclear
+whether their approach scales to dependently-typed embedded languages.
+
+\section{Conclusions and Future Work}
+
+
+In this paper we investigate the idea of developing
+embedded programs hand-in-hand with custom
+code generators for them. We solve the well-known
+conundrum of choosing between deep and shallow
+embedding by leveraging the power of
+reflection.
+This allows us to enjoying the benefits
+of shallow embedding, while keeping full access to the internal
+structure of the embedded programs.
+
+We apply this idea in the context of dependently-typed
+languages to create verified implementations that can
+be used in the context of an existing programming language.
+We embed the target language in a theorem-prover, using
+dependent types to encode the properties of interest.
+Using reflection we bring the verified implementation
+back into the original language.
+%
+Concretely, we have demonstrated the approach by implementing
+an extractor for a fragment of the PostScript language, using
+Agda as our host.
+
+The main advantages of our approach are twofold.  First,
+our solution is fine-grained --- we can chose what part
+of the application to embed, and what constructs of the
+host language to extract.  Secondly, our extractors
+can use the full power of dependent types to guarantee
+safety of our embedded programs.
+
+Right now we cannot yet guarantee that the
+extracted code preservers the semantics of the original
+implementation. While we rarely see
+fully-verified compiler backends in the real world,
+our approach is very close to enabling this.
+We would need a formal semantics of the reflected language
+and the proof that reflected programs respect it.
+While this is non-trivial, a system like Agda could do
+this in principle.
+
+There is a number of improvements that can be added to
+Agda and our extractors to make the resulting code more
+efficient.  Supporting \AK{let}s in the internal syntax
+would help to preserve sharing.  Recognising irrelevance
+annotations in the extractors would help to eliminate
+unused function arguments.  Introducing proper language
+primitives to specify what exactly is an embedding would
+be helpful. And finally, having access to more of
+Agda's internals such as case trees would help to
+generate more performant code.
+
+Overall, this work only scratches the surface of extraction-based
+compilation.  We never considered alternative theories supported
+by theorem provers, \eg{} cubical type theory in Agda; we did not
+consider recursive metaprogramming; we did not consider integrating
+optimisations of extracted programs other than what rewriting rules
+are capable to do.  All of these offer exciting research opportunities
+on the way to make verified software easily accessible.
+To paraphrase Jim Morrison: ``Safety and no surprise, The End''.
+
 
 %% Bibliography
 \bibliography{paper}
