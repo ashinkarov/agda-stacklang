@@ -359,6 +359,13 @@ kompile-term (def (quote PostScript.for)
   return $ _∷_ <$> (For <$> (L.reverse <$> proc)) ⊛ init
 
 
+kompile-term (def (quote PostScript.for)
+              args@(_₁ ∷ _₂ ∷ _₃ ∷ vArg x ∷ _ ∷ vArg (hLam _ (def fname (hArg (var 0 []) ∷ []))) ∷ [])) p = do
+  init ← kompile-term x p
+  RR.modify λ k → record k { funs = KS.funs k ++ [ fname ] }
+  let for-call = For (FunCall (showName fname) ∷ [])
+  return $ for-call ∷_ <$> init
+
 
 kompile-term (def fname args@(_ ∷ _)) p = do
   ty ← lift-state {RM = monadTC} (getType fname)
