@@ -38,7 +38,8 @@ open RawMonad ⦃ ... ⦄
 data PsCmd : Set where
   Push : ℕ → PsCmd
   Dup Add Mul Eq Ge And Pop Sub Exch Rot3 : PsCmd
-  If : List PsCmd → PsCmd  
+  If : List PsCmd → PsCmd
+  For : List PsCmd → PsCmd
   IfElse : List PsCmd → List PsCmd → PsCmd
   FunDef : String → List PsCmd → PsCmd
   Index : ℕ → PsCmd
@@ -63,6 +64,11 @@ expr-to-string ind Pop = "pop"
 expr-to-string ind Sub = "sub"
 expr-to-string ind Exch = "exch"
 expr-to-string ind Rot3 = "3 1 roll exch"
+expr-to-string ind (For xs) = "\n" 
+                            ++ indent ind ++ "1 exch\n" -- adding step
+                            ++ indent ind ++ "{\n"
+                            ++ indent ind ++ " " ++/ lexpr-to-string (1 + ind) xs ++ "\n"
+                            ++ indent ind ++ "\n} for\n"
 expr-to-string ind (If xs) = "\n" 
                            ++ indent ind ++ "{\n"
                            ++ indent ind ++ " " ++/ lexpr-to-string (1 + ind) xs ++ "\n"
@@ -344,6 +350,14 @@ kompile-term (def (quote PostScript.iframep)
   -- of iframep.
   f ← kompile-term b (var 1)
   return $ _++_ <$> f ⊛ a
+
+kompile-term (def (quote PostScript.for)
+              args@(_₁ ∷ _₂ ∷ _₃ ∷ vArg x ∷ _ ∷ vArg (hLam _ (vLam _ b)) ∷ [])) p = do
+  init ← kompile-term x p
+  proc ← kompile-term b (var 0)
+  --return $ _++_ <$> init ⊛ emap (_∷ []) (emap For proc)
+  return $ _∷_ <$> (For <$> (L.reverse <$> proc)) ⊛ init
+
 
 
 kompile-term (def fname args@(_ ∷ _)) p = do

@@ -62,14 +62,33 @@ count : ∀ {a b} → a ≥₁ b → (n : ℕ) → ℕ
 count done      n = n
 count (next qq) n = count qq n + n
 
-for : ∀ {n l} 
-    → (s : Stack ℕ (2 + n)) 
-    → {geq : get-index {n = n} 0 (s≤s z≤n) s ≥₁ get-index {n = n} 1 (s≤s (s≤s z≤n)) s }
-    → (∀ {m} → Stack ℕ (1 + m) → Stack ℕ (l + m)) 
-    → Stack ℕ (count geq l + n)
-for (s , i , .i) {done}    f = f (s , i)
-for {n} {ll} (s , i , l)  {next qq} f = subst-stack (sym $ +-assoc _ ll n) (for (f (s , i) , suc i , l) {qq} f)
+module ForSimple where
+    for : ∀ {n l} 
+        → (s : Stack ℕ (2 + n)) 
+        → {geq : get-index {n = n} 0 (s≤s z≤n) s ≥₁ get-index {n = n} 1 (s≤s (s≤s z≤n)) s }
+        → (∀ {m} → Stack ℕ (1 + m) → Stack ℕ (l + m)) 
+        → Stack ℕ (count geq l + n)
+    for (s , i , .i) {done}    f = f (s , i)
+    for {n} {ll} (s , i , l)  {next qq} f = subst-stack (sym $ +-assoc _ ll n) (for (f (s , i) , suc i , l) {qq} f)
 
+
+module _ where
+    thm : ∀ a b c d → a + b + (c + d) ≡ a + (b + c) + d
+    thm a b c d rewrite (+-assoc (a + b) c d)
+      | sym $ +-assoc a b c | sym $ +-assoc (a + b) c d =  refl
+
+    for : ∀ {n l k} 
+        → (s : Stack ℕ (2 + k + n)) 
+        → {e≥₁s : get-index {n = n} 0 (s≤s z≤n) s ≥₁ get-index {n = n} 1 (s≤s (s≤s z≤n)) s}
+        → (∀ {m} → Stack ℕ (1 + k + m) → Stack ℕ (k + l + m)) 
+        → Stack ℕ (k + count e≥₁s l + n)
+    for (st , s , .s) {done}    f = f (st , s)
+    for {n}{l}{k} (st , s , e)  {next e≥₁1+s} f = let
+      apply-f = subst-stack (+-assoc k l n) $ f $ st , s
+      rec = for (apply-f , 1 + s , e) {e≥₁1+s} f
+      in subst-stack (thm k _ l n) rec
+
+--open AnotherFor
 
 hd : ∀ {X n} → Stack X (1 + n) → X
 hd (_ , x) = x

@@ -64,6 +64,19 @@
 } def
 
 
+% Extracted from using for-loop
+
+/PsExample.fib-for {
+  1 exch 1 exch 0 exch 
+  1 exch
+  {
+  pop exch 1 index add
+  
+} for
+ pop
+} def
+
+
 
 /fib % n
 {
@@ -86,7 +99,8 @@
    %exch fib 100 add % x (100 + fib n)
    %exch PsExample.FibNonTerm.fib 100 add % x (100 + fib n)
    %exch PsExample.Fib3.fib 100 add % x (100 + fib n)
-   exch PsExample.FibTerm.fib 10 add % x (100 + fib n)
+   %exch PsExample.FibTerm.fib 10 add % x (100 + fib n)
+   exch PsExample.fib-for 10 add
    lineto
 } def
 

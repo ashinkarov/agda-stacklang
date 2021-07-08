@@ -12,12 +12,13 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
 
 open import Reflection -- hiding (_≟_; _>>=_; return)
---open import Agda.Builtin.Reflection
+open import Agda.Builtin.Reflection
 
 open import Structures
 open import Function
 
 open import Data.Unit using (⊤; tt)
+open import Data.Empty 
 
 open import ps as PostScript
 
@@ -48,6 +49,78 @@ fac s@(_ , suc n) = let
      sn:n = sub $ push 1 $ sn:sn
      sn:fac[n] = fac $ sn:n
    in mul sn:fac[n]
+
+
+sx≥₁x : ∀ {x} → suc x ≥₁ x
+sx≥₁x {x} = next done
+
+
+≥₁-prev : ∀ {x y} → suc x ≥₁ suc y → x ≥₁ y
+≥₁-prev {x} {.x} done = done
+≥₁-prev {x} {y} (next sx≥sy) = next (≥₁-prev sx≥sy)
+
+x≥₁sy→x≥₁y : ∀ {x y} → x ≥₁ suc y → x ≥₁ y
+x≥₁sy→x≥₁y done = next done
+x≥₁sy→x≥₁y (next x≥sy) = next (x≥₁sy→x≥₁y x≥sy)
+
+≥₁→≥ : ∀ {x y} → x ≥₁ y → x ≥ y
+≥₁→≥ {x} {.x} done = ≤-refl
+≥₁→≥ {x} {y} (next x≥y) = hlpr (≥₁→≥ x≥y)
+  where
+    hlpr : ∀ {x y} → x ≥ suc y → x ≥ y
+    hlpr {suc x} {zero} (s≤s x≥sy) = z≤n
+    hlpr {suc x} {suc y} (s≤s x≥sy) = s≤s (hlpr x≥sy)
+
+0≥₁suc : ∀ {x} → 0 ≥₁ suc x → ⊥
+0≥₁suc {x} (0≥sx) with (≥₁→≥ 0≥sx)
+... | ()
+
+cong-≥₁ : ∀ {x y} → x ≥₁ y → suc x ≥₁ suc y
+cong-≥₁ {x} {.x} done = done
+cong-≥₁ {x} {y} (next x≥y) = next (cong-≥₁ x≥y)
+
+x≥₁y→s[x]≥₁y : ∀ {x y} → x ≥₁ y → suc x ≥₁ y
+x≥₁y→s[x]≥₁y {x} {.x} done = next done
+x≥₁y→s[x]≥₁y {x} {y} (next x≥₁y) = next (x≥₁y→s[x]≥₁y x≥₁y)
+
+≥₁-trans : ∀ {x y z} → x ≥₁ y → y ≥₁ z → x ≥₁ z
+≥₁-trans {x} {y} {.y} x≥y done = x≥y
+≥₁-trans {x} {y} {z} x≥y (next y≥z) = x≥₁sy→x≥₁y (≥₁-trans x≥y y≥z)
+
+
+x≥₁0 : ∀ {x} → x ≥₁ 0
+x≥₁0 {zero} = done
+x≥₁0 {suc x} = ≥₁-trans sx≥₁x x≥₁0 
+
+count-0-thm : ∀ {x y} → (p : x ≥₁ y) → count p 0 ≡ 0
+count-0-thm done = refl
+count-0-thm (next p) rewrite +-identityʳ (count p 0) = count-0-thm p
+
+sum-for : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+sum-for {n} s@(_ , x) = let
+  xx = for {l = 0}{k = 1} (exch $ push 0 $ exch $ push 10 $ s) {x≥₁0} foo
+  in subst-stack cast-for xx
+  where
+    cast-for : suc (count {a = x} x≥₁0 0 + n) ≡ suc n
+    cast-for rewrite count-0-thm {x = x} x≥₁0 = refl
+
+    foo : ∀ {m} → Stack ℕ (2 + m) → Stack ℕ (1 + m)
+    foo {m} s = push 1 $ pop $ pop s -- add s
+
+fib-for : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
+fib-for {n} s@(_ , x) = let
+  init  = exch $ push 0 $ exch $ push 1 $ exch $ push 1 $ s
+  s:x:y = subst-stack cast-for $ for {l = 0}{k = 2} init {x≥₁0} foo
+  in pop s:x:y
+  where
+    cast-for : suc (suc (count {a = x} x≥₁0 0 + n)) ≡ suc (suc n)
+    cast-for rewrite count-0-thm {x = x} x≥₁0 = refl
+
+    foo : ∀ {m} → Stack ℕ (3 + m) → Stack ℕ (2 + m)
+    foo s = add $ index {m = 2} 1 (s≤s (s≤s z≤n)) $ exch $ pop s
+
+
+
 
 -- The `rep` function is the simplest example of
 -- using dependent types in a stack function.  `rep` [ x n ]
@@ -178,8 +251,13 @@ module FibNoSplit where
 
 base = quote add ∷ quote sub ∷ quote dup ∷ quote push ∷ quote pop 
      ∷ quote index ∷ quote subst-stack ∷ quote exch ∷ quote rot3 
-     ∷ quote iframep ∷ []
+     ∷ quote iframep ∷ quote for ∷ []
 
+ktest-for : Prog
+ktest-for = kompile sum-for base base
+
+ktest-fibfor : Prog
+ktest-fibfor = kompile fib-for base base
 
 ktest₁ = kompile stack-id base base
 test₁ : ok _ ≡ ktest₁
@@ -219,3 +297,5 @@ ktest₇ : Prog
 ktest₇ = kompile Fib3.fib base base
 test₇ : ok _ ≡ ktest₇
 test₇ = refl
+
+
