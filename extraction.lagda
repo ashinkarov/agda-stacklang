@@ -2,7 +2,7 @@
 \begin{code}[hide]
 open import Category.Monad
 
-open import Data.Bool using (Bool; true; false; if_then_else_; not)
+open import Data.Bool using (Bool; true; false; if_then_else_; not; _∧_)
 open import Data.Char as C using (Char)
 open import Data.Fin as F using (Fin; zero; suc; fromℕ<)
 open import Data.List as L using (List; []; _∷_; _++_; [_]; reverse)
@@ -32,8 +32,9 @@ open import Reflection.Argument.Quantity
 open import Reflection.Definition
 open import Reflection.Show
 import      Reflection.Name as RN
+import      Reflection.TypeChecking.Monad.Syntax as R
 open import Agda.Builtin.Reflection as R
-  using (withReconstructed; dontReduceDefs)
+  using (withReconstructed; dontReduceDefs; onlyReduceDefs)
 
 open import Relation.Nullary
 open import Relation.Unary
@@ -186,9 +187,9 @@ data Err {a} (A : Set a) : Set a where
 record ExtractState : Set where
   constructor mkExtractState
   field
-    base : Names   -- Atomic functions that we do not traverse into.
-    todo : Names   -- Functions to extract
-    done : Names   -- Functions that we have processed.
+    extern : Names   -- Externally defined functions that should not be inlined.
+    todo   : Names   -- Functions to extract.
+    done   : Names   -- Functions that we have processed.
 \end{code}
 
 \begin{code}
@@ -311,11 +312,28 @@ liftTC m .runExtractM s = m R.>>= λ x → R.return (s , ok x)
 
 get-normalised-type f = do
   ty   ← liftTC (R.getType f)
-  base ← ExtractState.base <$> get-state
-  liftTC (withReconstructed (dontReduceDefs base (R.normalise ty)))
+  extern ← ExtractState.extern <$> get-state
+  liftTC (withReconstructed (dontReduceDefs extern (R.normalise ty)))
 
-get-normalised-def f =
-  liftTC (withReconstructed (R.getDefinition f)) -- TODO: reintroduce normalisation of clauses
+normalise-clause : Names → Clause → TC Clause
+normalise-clause extern (clause tel ps t) =
+  let ctx = L.reverse (L.map proj₂ tel) in
+  clause tel ps R.<$> R.inContext ctx (R.dontReduceDefs extern (R.normalise t))
+normalise-clause extern c = R.return c
+
+normalise-clauses : Names → List Clause → TC (List Clause)
+normalise-clauses extern [] = R.return []
+normalise-clauses  extern (c ∷ cs) =
+  _∷_ R.<$> normalise-clause extern c R.<*> normalise-clauses extern cs
+
+normalise-def : Names → Definition → TC Definition
+normalise-def extern (function cs) = function R.<$> normalise-clauses extern cs
+normalise-def extern deff = R.return deff
+
+get-normalised-def f = do
+  deff ← liftTC (withReconstructed (R.getDefinition f))
+  extern ← ExtractState.extern <$> get-state
+  liftTC (withReconstructed (normalise-def extern deff))
 \end{code}
 
 
@@ -375,7 +393,7 @@ pattern `subst-stack s = def (quote subst-stack) (_ ∷ _ ∷ _ ∷ _ ∷ vArg s
 \end{code}
 
 \begin{code}[hide]
-stack-ok : Pattern → Term → ExtractM ⊤
+stack-ok : Pattern → Term → ExtractM Bool
 \end{code}
 
 
@@ -430,6 +448,12 @@ calling the \AF{fail} function.
     fail ("index non-literal " <> showTerm k)
 \end{code}
 
+\begin{code}[hide]
+  go v@(s `# (lit (nat n))) acc = do
+    b ← stack-ok stackp v
+    if b then return acc else go s (Push n ∷ acc)
+\end{code}
+
 The function \AF{subst-stack} is only needed to satisfy the Agda
 typechecker, but does not have any run-time behaviour. Hence it is
 erased during extraction.
@@ -463,8 +487,10 @@ If the check succeeds, we return the list of commands collected in
 
 \begin{code}
   go v acc = do
-    stack-ok stackp v
-    return acc
+    b ← stack-ok stackp v
+    if b then (return acc) else
+      (fail ("stack mismatch: "  <> showPattern stackp
+                     <> " and "  <> showTerm v))
 \end{code}
 
 The function \AF{stack-ok} ensures that when we use the stack (of type
@@ -478,23 +504,20 @@ there are a few other cases for dealing with natural number literals
 \begin{code}
 -- stack-ok : Pattern → Term → ExtractM ⊤
 stack-ok p@(p₁ `#p p₂) t@(t₁ `# t₂) = do
-  stack-ok p₁ t₁
-  stack-ok p₂ t₂
-stack-ok (var x) (var y []) = unless (does (x ℕ.≟ y))
-  (fail ("mismatch between "  <> showPattern (var x)
-                  <> " and "  <> showTerm (var y [])))
-stack-ok `zero     `zero     = return _
+  ok₁ ← stack-ok p₁ t₁
+  ok₂ ← stack-ok p₂ t₂
+  return (ok₁ ∧ ok₂)
+stack-ok (var x) (var y []) = return (x ℕ.≡ᵇ y)
+stack-ok `zero     `zero     = return true
 stack-ok (`suc x)  (`suc y)  = stack-ok x y
 \end{code}
 
 \begin{code}[hide]
-stack-ok (lit (nat x)) (lit (nat y)) = unless (does (x ℕ.≟ y))
-  (fail "stack-ok: lit/lit mismatch")
+stack-ok (lit (nat x)) (lit (nat y)) = return (x ℕ.≡ᵇ y)
 
 stack-ok x (lit (nat y)) = do
   x′ ← pattern-to-nat x
-  unless (does (x′ ℕ.≟ y))
-    (fail "stack-ok: nat/lit mismatch")
+  return (x′ ℕ.≡ᵇ y)
   where
     pattern-to-nat : Pattern → ExtractM ℕ
     pattern-to-nat `zero     = return 0
@@ -503,8 +526,7 @@ stack-ok x (lit (nat y)) = do
 
 stack-ok (lit (nat x)) y = do
   y′ ← term-to-nat y
-  unless (does (x ℕ.≟ y′))
-    (fail "stack-ok: lit/nat mismatch")
+  return (x ℕ.≡ᵇ y′)
   where
     term-to-nat : Term → ExtractM ℕ
     term-to-nat `zero     = return 0
@@ -513,9 +535,7 @@ stack-ok (lit (nat x)) y = do
 \end{code}
 
 \begin{code}
-stack-ok p t = fail
-  ("stack-ok: mismatch between "  <> showPattern p
-                      <> " and "  <> showTerm t)
+stack-ok p t = return false
 \end{code}
 
 \end{AgdaSuppressSpace}
@@ -665,7 +685,7 @@ extract-clauses (clause _ ps t ∷ ts) i = do
       return (l ++ [ IfElse t ts ])
 extract-clauses (absurd-clause _ _ ∷ ts) i =
   extract-clauses ts i
-extract-clauses [] i = fail "zero clauses found"
+extract-clauses [] i = return []
 \end{code}
 
 Agda also has the notion of \emph{absurd clauses} that are guaranteed
@@ -692,8 +712,7 @@ extract-def f = do
       i ← extract-type ty
       b ← extract-clauses cs i
       return (FunDef (prettyName f) b)
-    _ → fail ("extract: attempting to extract `" <>
-              prettyName f <> "` as function")
+    _ → fail ("not a function: " <> prettyName f)
 \end{code}
 
 \paragraph{Extracting whole programs}
@@ -719,20 +738,24 @@ extract-defs = get-next-todo >>= λ where
 \end{code}
 
 We define a macro \AF{extract} as the main entry point of the
-extractor.  This macro takes as inputs the name \AB{n} of the main
-function and a list \AB{base} of base functions that we never traverse
-into. When this macro is called, it runs \AF{extract-defs} on the
-initial state. If extraction succeeds, it replaces the call to the
-macro by the pretty-printed result, and otherwise it throws an error.
+extractor.  This macro takes as inputs the name \AB{main} of the main
+function, a list \AB{base} of base functions that should not be
+extracted and a list \AB{extern} of externally defined functions that
+should not be extracted or inlined (see the next section for more
+details on inlining). When this macro is called, it runs
+\AF{extract-defs} on the initial state. If extraction succeeds, it
+replaces the call to the macro by the pretty-printed result, and
+otherwise it throws an error.
 
 \begin{code}
 macro
-  extract : Name → Names → Term → TC ⊤
-  extract main base hole =
-    let initState = mkExtractState base [ main ] base in
+  extract : Name → Names → Names → Term → TC ⊤
+  extract main base extern hole =
+    let initState =
+          mkExtractState extern [ main ] base in
     runExtractM extract-defs initState R.>>= λ where
-      (_ , ok p)      → R.quoteTC (print-ps p) R.>>= R.unify hole
-      (_ , error err) → R.typeError [ R.strErr err ]
+      (_ , ok p)       → R.quoteTC (print-ps p) R.>>= R.unify hole
+      (_ , error err)  → R.typeError [ R.strErr err ]
 \end{code}
 
 We provide a default list of base functions that are ignored by the
@@ -758,7 +781,7 @@ As a simple example, here is a test that \AF{add-1} is extracted
 correctly:
 
 \begin{code}
-_ : lines (extract add-1 base) ≡
+_ : lines (extract add-1 base base) ≡
   ( "/add-1 {"
   ∷ "  1 add"
   ∷ "} def"
@@ -767,7 +790,7 @@ _ = refl
 \end{code}
 
 \begin{code}[hide]
-_ : lines (extract non-zero base) ≡
+_ : lines (extract non-zero base base) ≡
   ( "/non-zero {"
   ∷ "  0 index 0 eq "
   ∷ "  {"
@@ -784,7 +807,7 @@ _ = refl
 dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
 dblsuc xs = add-1 (dup xs)
 
-_ : lines (extract dblsuc base) ≡
+_ : lines (extract dblsuc base (quote add-1 ∷ base)) ≡
   ( "/add-1 {"
   ∷ "  1 add"
   ∷ "} def"
@@ -795,15 +818,14 @@ _ : lines (extract dblsuc base) ≡
   ∷ [] )
 _ = refl
 
-
-_ : lines (extract sqsum base) ≡
+_ : lines (extract sqsum base base) ≡
   ( "/sqsum {"
   ∷ "  dup mul exch dup mul exch add"
   ∷ "} def"
   ∷ [] )
 _ = refl
 
-_ : lines (extract RepSimple.rep base) ≡
+_ : lines (extract RepSimple.rep base base) ≡
   ( "/rep {"
   ∷ "  0 index 0 eq "
   ∷ "  {"
@@ -817,7 +839,7 @@ _ : lines (extract RepSimple.rep base) ≡
   ∷ [] )
 _ = refl
 
-_ : lines (extract FibNonTerm.fib base) ≡
+_ : lines (extract FibNonTerm.fib base base) ≡
   ( "/fib {"
   ∷ "  0 index 0 eq "
   ∷ "  {"
@@ -843,7 +865,7 @@ As another example, we test that the implementation of \AF{fib} is
 extracted correctly:
 
 \begin{code}
-_ : lines (extract Fib3.fib base) ≡
+_ : lines (extract Fib3.fib base base) ≡
   ( "/fib3 {"
   ∷ "  2 index 0 eq "
   ∷ "  {"
@@ -863,40 +885,3 @@ _ : lines (extract Fib3.fib base) ≡
 _ = refl
 \end{code}
 \end{AgdaAlign}
-
-\subsection{\label{sec:normalisation}Normalisation}
-It is useful for inlining functions, and creating macros that can use arbitrary expressions
-as long as their applications evaluate to postscript operators.
-This is not essential and can be moved towards the end.
-
-\subsection{\label{sec:controlling-reduction}Controlling Reduction}
-This is essential, as we need to avoid inlining of the base operators, otherwsie
-we won't be able to extact our pograms one-to-one.  Explain the mechanism.  Say that we have
-added this to Agda?
-
-
-\subsection{\label{sec:maptypes}Analysing Types}
-Explain that all we need to do is to find the position of the stack argument, as well as
-verify that the return type is also a stack argument.  In between we can have arbitrary
-number of computationally irrelevant arguments.
-
-
-\subsection{Pattern Matching}
-The natural way to express functions in Agda is by means of pattern-matching, so it makes sense
-to support it.  All we allow in patternmatching is to ``look'' at the stack argument and the
-individual elements.  But we are not allowed to reshuffle the elements, we have to pass the
-pattern exactly as it was matched (in some sense it is read-only pattern matching).
-
-\subsection{\label{sec:translating-terms}Translating terms}
-The core of the extraction is how do we translate terms.  Also this is the simplest part in
-case of the PostScript example.
-
-\subsection{Example}
-Explain the entire extaction process for the given example?
-
-Shall we talk about termination and how do we deal with that?
-
-
-\subsection{\label{sec:rewriting}Rewriting}
-We can mention that rewriting is super useful feature that can be used as an optimisation
-prior to extraction.

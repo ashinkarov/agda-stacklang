@@ -192,19 +192,29 @@ count xs = xs # go xs
     go (xs # _) = suc (go xs)
 \end{code}
 
-Finally, we define arithmetic operations using a helper function \AD{binop}
-that always acts on the two topmost elements of the stack.
+Finally, we define arithmetic operations:
 \begin{code}
-binop : (X → X → X) → Stack X (2 + n) → Stack X (1 + n)
-binop f (xs # x # y) = xs # f x y
-
 add sub mul eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
-add  = binop _+_
-sub  = binop _-_
-mul  = binop _*_
-eq   = binop (λ x y → if x ℕ.≡ᵇ y then 1 else 0)
-gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
+add (s # x # y) = s # x + y
+sub (s # x # y) = s # x - y
+mul (s # x # y) = s # x * y
+eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
+gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
+
+%Finally, we define arithmetic operations using a helper function \AD{binop}
+%that always acts on the two topmost elements of the stack.
+%\begin{code}
+%binop : (X → X → X) → Stack X (2 + n) → Stack X (1 + n)
+%binop f (xs # x # y) = xs # f x y
+%
+%add sub mul eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+%add  = binop _+_
+%sub  = binop _-_
+%mul  = binop _*_
+%eq   = binop (λ x y → if x ℕ.≡ᵇ y then 1 else 0)
+%gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
+%\end{code}
 
 \todo[inline]{Explain these guys below}
 
