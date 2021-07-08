@@ -64,13 +64,13 @@ function definitions are written as follows:
 \end{lstlisting}
 A function is defined with the slash name (fact in the above example),
 followed by a block of commands that are written within braces (the
-body of the function) and the `def' command.  The definition may be
+body of the function) and the \textbf{def} command.  The definition may be
 used as a regular command, including the case when it is called
 recursively.  In the body of the function we check whether the argument
 (the top most stack element) is zero, in which case we remove the argument
 from the stack and put value one.  Otherwise, we duplicate the argument,
 substract one, make a recursive call, and multiply the result with the
-original argument.  Conditinoal is expressed with ifelse command,
+original argument.  Conditional is expressed with an \textbf{ifelse} command,
 putting two code blocks on the stack as arguments.
 
 Finally, consider the fibonacci function:
@@ -104,42 +104,42 @@ in this paper we mostly consider it as a stack language that can define
 functions on natural numbers.  We do this to keep the complexity as low
 as possible, yet exposing enough operators to demonstrate the
 verification.  Also, such a minimalist subset makes the example immediately
-transfrerable to other stack-based languages such as Forth.
+transferrable to other stack-based languages such as Forth.
 
 \subsection{Embedding in Agda}
 
-Our Agda embedding defines a stack type and a number of baic operators
-operating on it.  A typical error that hapenes when programming
+Our Agda embedding defines a stack type and a number of basic operators
+operating on it.  A typical error that happens when programming
 in stack languages directly is underflowing or overflowing the stack.  The
-former is when we expect more elements on the stack thatn we actually have,
+former is when we expect more elements on the stack than we actually have,
 therefore indexing beyound the first element will cause a runtime error.
 The latter is when we put more elements on the stack than it is capable to
-store.  In the emebedding one of our main goals would be avoiding underflows,
+store.  In the embedding one of our main goals is avoiding underflows,
 which occur extremely often.
 
 \paragraph{Stack type}
 We define the type of our stack inductively, and we force the type to carry
 the length of the corresponding stack. The stack can store elements of type
-\AD{X}, which is a type parameter.
+\AB{X}, which is a type parameter.
 \begin{code}
 data Stack (X : Set) : @0 ℕ → Set where
   []  : Stack X 0
   _#_ : Stack X n → X → Stack X (suc n)
 \end{code}
-Simialrly to lists, stacks can be constructed in two ways.  Stacks of length
+Similarly to lists, stacks can be constructed in two ways.  Stacks of length
 zero can are constructed using \AC{[]}.  Stacks of length $1 + n$ are constructed
 with the append constructor \AC{\_\#\_}, where the first argument is a stack of
-length $n$ and the second argument is the element of type \AD{X}.  For example,
+length $n$ and the second argument is the element of type \AB{X}.  For example,
 a stack of three natural numbers can be built as follows:
 \begin{code}
 ex₁ : Stack ℕ 3
 ex₁ = [] # 1 # 2 # 3
 \end{code}
-We defined \AC{\_\#\_} to be left-associative, therefore we do not put parenthesis.
-Also, notice ``\@ 0'' annotation in the type which tells Agda that the length
+We defined \AC{\_\#\_} to be left-associative, therefore we do not put any parenthesis.
+The ``@0'' annotation in the type tells Agda that the length
 that we carry in the type is runtime-irrelevant.  This means that we cannot
 evaluate the length of the stack by simply referring to the type parameter.
-We will come back to that point in the next susbections.
+We will come back to this point in the next subsections.
 
 \paragraph{Basic Operations}
 
@@ -148,8 +148,8 @@ tl : ∀ {X n} → Stack X (1 + n) → Stack X n
 tl (xs # _) = xs
 \end{code}
 
-The basic stack operations are defiend as functions from \AD{Stack} to \AD{Stack}
-and the type index makes it possible to capture precisely the effect of each
+The basic stack operations are defined as functions from \AD{Stack} to \AD{Stack}.
+The type index makes it possible to capture precisely the effect of each
 operation.  For example:
 \begin{code}
 push : X → Stack X n → Stack X (1 + n)
@@ -168,7 +168,7 @@ clear : Stack X n → Stack X 0
 clear _ = []
 \end{code}
 As it can be seen, the nature of these operations is straight-forward.  However,
-note, that the length index of \AD{Stack} ensures that the body of the function
+note that the length index of \AD{Stack} ensures that the body of the function
 respects the specification.  If the body of the function returns the stack that
 does not have the length prescribed by the type, such a function would not typecheck.
 
@@ -178,7 +178,7 @@ it as the top element.  While it would be tempting to implement this function as
 --count : Stack ℕ n → Stack ℕ (1 + n)
 --count s = s # n
 \end{code}
-Such a code would not typecheck, because \AD{n} is bound to the irrelevant positon.
+Such a code would not typecheck, because \AB{n} is bound as a runtime-irrelevant argument.
 We can use arbitrary expressions that depend on \AD{n} in irrelevant positions,
 but not when constructing the result.  This irrelevance annotation gives us a clear
 separation between the variables that we use for verification and that we use for
@@ -263,7 +263,7 @@ PostScript program.  While this does not effect functionality,
 it may be aesthetically pleasing to maintain the original order
 of operators.  This can be achieved by defining a trivial Agda
 operator that reverses arguments in function application.  We
-call such an operator \AD{\_▹\_}:
+call this operator \AD{\_▹\_}:
 
 \begin{code}
 infixl 5 _▹_
@@ -325,8 +325,7 @@ arbitrary symbols with no spaces.
 The nature of dependently-typed systems makes it possible not only to
 specify functions with ``built-in'' constraints, such as length of the stack,
 but also prove some properties about existing functions as theorems.  For
-example, we can prove that the above function actually implements the squared
-sum:
+example, we can prove that the above function actually implements the sum of squares:
 \begin{code}
 sqsum-thm : ∀ {s : Stack ℕ n}{a b}
           → sqsum (s # a # b) ≡ s # a * a + b * b
@@ -375,7 +374,7 @@ function.
                    (fib-thm (s # fib-spec (suc x)) x) = refl
 \end{code}
 
-Notice, that while we can prove that the function computes the expected
+While we can prove that the function computes the expected
 result, Agda does not see that the \AD{fib} function terminates.
 For now, we add an explicit annotation of this fact, but in the next
 subsection we will demonstrate how to deal with this formally.
@@ -383,12 +382,12 @@ subsection we will demonstrate how to deal with this formally.
 
 \paragraph{Dependent Stack Length}
 So far all the specifications within the embedded langauge did not
-require dependent types, and could be encoded in languages with weker
-type system such as Haskell or Ocaml.  However, it becomes very clear
+require dependent types, and could be encoded in languages with a weaker
+type system such as Haskell or OCaml.  However, it becomes very clear
 that even simplest programs in stack languages may expose a dependency
 between the stack argument and the stack length.  Those cases cannot
-be expressed in non-dependently-typed host langauges.  A simples example
-of such a program is the one that replicates the $x$ value $n$ times,
+be expressed in non-dependently-typed host langauges.  A simple example
+of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
 
@@ -427,17 +426,17 @@ apply the \AD{+-suc} function from the standard library that translates
 between these expressions.
 
 
-\subsubsection{Proving Termination}
+\paragraph{Proving Termination}
 At this point, we have seen how to write programs in the embedding, express
 non-trivial properties related to the length of the stack, and verify that
-a function evaluates to the same results as some other funciton.  One remaining
-problem is that for some function Agda cannot automatically prove termination.
+a function evaluates to the same results as some other function.  One remaining
+problem is that for some functions, Agda cannot automatically prove termination.
 However, as long as a programmer is happy to take responsibility by putting
 the annotation, we can immediately proceed to extraction.
 
 We demonstrate a way to prove termination of the functions from previous
 sections.  While it is impossible to infer termination for an arbitrary
-function, Agda uses heuristics to handle common cases.  The main idea behind
+function due to the halting problem, Agda uses heuristics to handle common cases.  The main idea behind
 the check is that the argument to the recursive call has to be structurally
 smaller than the input argument.  This means that we have to remove at least
 one constructor from at least one argument.  For more details on the algorithm
