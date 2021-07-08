@@ -6,7 +6,9 @@ open import Data.Bool using (Bool; true; false)
 open import Relation.Binary.PropositionalEquality
 open import Data.Product renaming (_,_ to _,,_)
 open import Function
-open import Data.Unit
+open import Data.Unit using (⊤; tt)
+open import Relation.Nullary
+open import Relation.Nullary.Decidable
 
 infixl 5 _,_
 data Stack (X : Set) : @0 ℕ → Set where
@@ -53,6 +55,9 @@ index k k<m xs = xs , get-index k k<m xs
 subst-stack : ∀ {X}{@0 n m} → m ≡ n → Stack X m → Stack X n
 subst-stack refl xs = xs
 
+≤-ok : ∀ {x y} → {w : True (y ≥? x)} → x ≤ y
+≤-ok {w = w} = toWitness w
+
 -- For loop
 data _≥₁_ (l : ℕ) : ℕ → Set where
   done : l ≥₁ l
@@ -65,12 +70,20 @@ count (next qq) n = count qq n + n
 module ForSimple where
     for : ∀ {n l} 
         → (s : Stack ℕ (2 + n)) 
-        → {geq : get-index {n = n} 0 (s≤s z≤n) s ≥₁ get-index {n = n} 1 (s≤s (s≤s z≤n)) s }
+        → {geq : get-index {n = n} 0 ≤-ok s ≥₁ get-index {n = n} 1 ≤-ok s}
         → (∀ {m} → Stack ℕ (1 + m) → Stack ℕ (l + m)) 
         → Stack ℕ (count geq l + n)
     for (s , i , .i) {done}    f = f (s , i)
     for {n} {ll} (s , i , l)  {next qq} f = subst-stack (sym $ +-assoc _ ll n) (for (f (s , i) , suc i , l) {qq} f)
 
+module ForNoGrow where
+    for : ∀ {n k} 
+        → (s : Stack ℕ (2 + k + n)) 
+        → {e≥₁s : get-index {n = n} 0 ≤-ok s ≥₁ get-index {n = n} 1 ≤-ok s}
+        → (∀ {m} → Stack ℕ (1 + m) → Stack ℕ m) 
+        → Stack ℕ (k + n)
+    for        (st , s , .s) {done}    f = f (st , s)
+    for {n}{k} (st , s ,  e) {next e≥₁1+s} f = for {n}{k} (f (st , s) , suc s , e) {e≥₁1+s} f
 
 module _ where
     thm : ∀ a b c d → a + b + (c + d) ≡ a + (b + c) + d
@@ -88,7 +101,8 @@ module _ where
       rec = for (apply-f , 1 + s , e) {e≥₁1+s} f
       in subst-stack (thm k _ l n) rec
 
---open AnotherFor
+
+
 
 hd : ∀ {X n} → Stack X (1 + n) → X
 hd (_ , x) = x
