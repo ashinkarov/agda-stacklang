@@ -284,19 +284,19 @@ add-1′ s = s ▹ push 1 ▹ add
 
 % This function does nothing to the stack but it introduces
 % a bunch of runtime irrelevant argumetns.
-% 
+%
 % \begin{code}
 % stack-id : (s : Stack ℕ 1) → {@0 b : m ℕ.> 0} → Stack ℕ 1
 % stack-id xs@(t # h) = (t # h)
 % \end{code}
-% 
+%
 % These two functions demonstrate a trivial case when one function
 % calls another function.
-% 
+%
 % \begin{code}
 % add1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
 % add1 xs = add (push 1 xs)
-% 
+%
 % dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
 % dblsuc xs = add1 (dup xs)
 % \end{code}
@@ -328,7 +328,7 @@ but also prove some properties about existing functions as theorems.  For
 example, we can prove that the above function actually implements the squared
 sum:
 \begin{code}
-sqsum-thm : ∀ {s : Stack ℕ n}{a b} 
+sqsum-thm : ∀ {s : Stack ℕ n}{a b}
           → sqsum (s # a # b) ≡ s # a * a + b * b
 sqsum-thm = refl
 \end{code}
@@ -350,8 +350,8 @@ module FibNonTerm where
   fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
   fib s@(_ # 0)             = s ▹ pop   ▹ push 1
   fib s@(_ # 1)             = s ▹ pop   ▹ push 1
-  fib s@(_ # suc (suc x))   = s ▹ dup   ▹ push 1 ▹ sub ▹ fib 
-                                ▹ exch  ▹ push 2 ▹ sub ▹ fib 
+  fib s@(_ # suc (suc x))   = s ▹ dup   ▹ push 1 ▹ sub ▹ fib
+                                ▹ exch  ▹ push 2 ▹ sub ▹ fib
                                 ▹ add
 \end{code}
 A standard way to conditionalise on the argument in Agda is by using
@@ -366,7 +366,7 @@ function.
 \begin{code}
   fib-spec : ℕ → ℕ
   fib-spec 0 = 1 ; fib-spec 1 = 1
-  fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x 
+  fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x
 
   fib-thm : (s : Stack ℕ n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
   fib-thm _ 0 = refl ; fib-thm _ 1 = refl
@@ -478,32 +478,32 @@ and the function is accepted by the termination checker.
 
 % New implicit variables fucked-up the code in FibTerm
 %
-% 
+%
 % \begin{code}
 % _++_ : ∀ {X m n} → Stack X m → Stack X n → Stack X (n + m)
 % xs ++ [] = xs
 % xs ++ (ys # y) = xs ++ ys # y
-% 
+%
 % split : ∀ {X}{n} → (m : ℕ) → Stack X (m + n) → Stack X n × Stack X m
 % split zero xs = xs , []
 % split (suc m) (xs # x) =
 %   let ys , zs = split m xs
 %   in  ys , zs # x
-% 
-% iframep : ∀ {X m n k} {P : Stack X m → Set} 
-%         → ((s : Stack X m) → @0 (P s) → Stack X n) 
+%
+% iframep : ∀ {X m n k} {P : Stack X m → Set}
+%         → ((s : Stack X m) → @0 (P s) → Stack X n)
 %         → (xs : Stack X (m + k))
 %         → @0 (P (proj₂ (split m xs)))
 %         → Stack X (n + k)
 % iframep {m = m} f xs p =
 %   let (ys , zs) = split m xs
 %   in ys ++ (f zs p)
-% 
-% 
+%
+%
 % module FibTerm where
 %   open import Data.Nat using (_<_; s≤s; z≤n)
 %   open import Function using (_$_)
-% 
+%
 %   fib′ : ∀ {@0 y} → (s : Stack ℕ (1 + n)) → @0 {hd s < y} → Stack ℕ (1 + n)
 %   fib′ s@(_ # 0) = s ▹ pop ▹ push 1
 %   fib′ s@(_ # 1) = s ▹ pop ▹ push 1
@@ -517,10 +517,10 @@ and the function is accepted by the termination checker.
 %     in                 add $ fib′ l:fib[r-1]:r-2
 %                                   { fib-thm {ys =  fib′ ([] # suc x)} (<-trans ≤-refl x<y) }
 %    where
-%     fib-thm : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x}{l} 
+%     fib-thm : ∀ {n}{xs : Stack ℕ n}{ys : Stack ℕ 1}{x}{l}
 %             → x < l → hd (sub (exch ((xs # suc (suc x)) ++ ys) # 2)) < l
 %     fib-thm {ys = [] # y} x<l = x<l
-% 
+%
 %   fib : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
 %   fib xs = fib′ xs {≤-refl}
 % \end{code}
@@ -553,14 +553,14 @@ module Fib3 where
     open import Function using (_$_)
 \end{code}
 \begin{code}
-    fib3 : (s : Stack ℕ (3 + n)) 
-         → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s ≡ k} 
+    fib3 : (s : Stack ℕ (3 + n))
+         → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s ≡ k}
          → Stack ℕ (3 + n)
     fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
     fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} = let
       s:1+m:a:b    = s
       s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 (s≤s (s≤s z≤n)) ▹ add
-      s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub 
+      s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub
       s:m:b:a+b    = s:a+b:b:m   ▹ rot3
       in fib3 {k = k} s:m:b:a+b {refl}
 
@@ -575,5 +575,3 @@ and cleans-up the stack.  We defined a new stack operation
 called \AF{rot3} that reverses the top three elements of the stack.
 Note that this is not a built-in operation of PostScript, but it is
 trvial to implement it in terms of \AF{roll} and \AF{exch}.
-
-
