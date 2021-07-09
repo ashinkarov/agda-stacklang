@@ -10,6 +10,41 @@
     and
 } def
 
+% /PsExample.Sierpinski.draw-if {
+%   0 index 0 eq 
+%   {
+%     pop 1 index 1 index PsExample.Sierpinski.draw-circ-xy
+%   }
+%   {
+%     pop
+%   } ifelse
+% 
+% } def
+% 
+% 
+% /PsExample.Sierpinski.out-body {
+%   0 2 index 
+%   1 exch
+%   {
+%   1 index 1 index PsExample.Sierpinski.bit-and PsExample.Sierpinski.draw-if pop
+%   
+% } for
+%  pop
+% } def
+% 
+% 
+% /PsExample.Sierpinski.sierp {
+%   0 1 index 
+%   1 exch
+%   {
+%   PsExample.Sierpinski.out-body
+%   
+% } for
+%  pop
+% } def
+
+
+
 /PsExample.Sierpinski.draw-if {
   0 index 0 eq 
   {
@@ -22,26 +57,24 @@
 } def
 
 
-/PsExample.Sierpinski.outer-for-loop {
-  0 2 index 
-  1 exch
-  {
-  1 index 1 index PsExample.Sierpinski.bit-and PsExample.Sierpinski.draw-if pop
-  
-} for
- pop
-} def
-
-
 /PsExample.Sierpinski.sierp {
   0 1 index 
   1 exch
   {
-  PsExample.Sierpinski.outer-for-loop
+  0 2 index 
+    1 exch
+    {
+    1 index 1 index PsExample.Sierpinski.bit-and PsExample.Sierpinski.draw-if pop
+    
+} for
+ pop
   
 } for
  pop
 } def
+
+
+
 
 63 PsExample.Sierpinski.sierp 
 

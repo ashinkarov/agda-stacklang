@@ -3,14 +3,21 @@
 module psembedding where
 
 open import Data.Bool using (Bool; true; false; if_then_else_; not)
-open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_) renaming (_∸_ to _-_)
+open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_; _≤_) renaming (_∸_ to _-_)
 open import Data.Nat.Properties
 open import Data.Product
-open import Data.Unit
+open import Data.Unit using (⊤; tt)
 
 open import Function using (case_of_; flip)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; subst)
+open import Relation.Nullary
+open import Relation.Nullary.Decidable
+
+-- Debug
+open import ReflHelper
+open import Agda.Builtin.Reflection
+import Data.List as L
 
 infixl 5 _#_
 
@@ -574,3 +581,84 @@ and cleans-up the stack.  We defined a new stack operation
 called \AF{rot3} that reverses the top three elements of the stack.
 Note that this is not a built-in operation of PostScript, but it is
 trvial to implement it in terms of \AF{roll} and \AF{exch}.
+
+\subsection{For Loop}
+
+\todo[inline]{Deal with the code}
+
+\begin{code}
+≤-ok : ∀ {x y} → {w : True (y ≥? x)} → x ≤ y
+≤-ok {w = w} = toWitness w
+
+infixr 9 _∘~_
+_∘~_ : ∀ {A B C : Set} → (A → B) → (B → C) → (A → C)
+f ∘~ g = λ x → g (f x)
+{-# INLINE _∘~_ #-}
+
+-- For loop
+data _≥₁_ (l : ℕ) : ℕ → Set where
+  ≥-done : l ≥₁ l
+  ≥-next : ∀ {m} → l ≥₁ (suc m) → l ≥₁ m
+
+≥₁-count : ∀ {a b} → a ≥₁ b → (n : ℕ) → ℕ
+≥₁-count ≥-done      n = n
+≥₁-count (≥-next a≥sb) n = ≥₁-count a≥sb n + n
+
+for : (s : Stack ℕ (2 + k + n)) 
+      → {e≥₁s : get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s}
+      → (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m)) 
+      → Stack ℕ (k + n)
+for {k}{n} (st # s # .s) {≥-done}        f = f {n} (st # s)
+for {k}{n} (st # s #  e) {≥-next e≥₁1+s} f = for {k}{n} (f (st # s) # suc s # e) {e≥₁1+s} f
+
+x≥₁sy→x≥₁y : ∀ {x y} → x ≥₁ suc y → x ≥₁ y
+x≥₁sy→x≥₁y ≥-done = ≥-next ≥-done
+x≥₁sy→x≥₁y (≥-next x≥sy) = ≥-next (x≥₁sy→x≥₁y x≥sy)
+
+x≥₁y→s[x]≥₁y : ∀ {x y} → x ≥₁ y → suc x ≥₁ y
+x≥₁y→s[x]≥₁y {x} {.x} ≥-done = ≥-next ≥-done
+x≥₁y→s[x]≥₁y {x} {y} (≥-next x≥₁y) = ≥-next (x≥₁y→s[x]≥₁y x≥₁y)
+
+≥₁-trans : ∀ {x y z} → x ≥₁ y → y ≥₁ z → x ≥₁ z
+≥₁-trans {x} {y} {.y} x≥y ≥-done = x≥y
+≥₁-trans {x} {y} {z} x≥y (≥-next y≥z) = x≥₁sy→x≥₁y (≥₁-trans x≥y y≥z)
+
+x≥₁0 : ∀ {x} → x ≥₁ 0
+x≥₁0 {zero} = ≥-done
+x≥₁0 {suc x} = ≥₁-trans (≥-next ≥-done) x≥₁0
+
+-- 10 + 0 + 1 + ... + x
+sum-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+sum-for s@(_ # x) = for {k = 1} 
+                        (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
+                        add
+
+-- note that we start from 0 1 here, as the loop goes from 0 to x inclusively.
+-- alternatively, we could conditionalise on x
+fib-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+fib-for s@(_ # x) = for {k = 2}
+                        (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0} 
+                        (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
+                    ▹ pop
+
+
+module Sierpinski where
+    postulate
+      draw-circ-xy : Stack ℕ (2 + n) → Stack ℕ n
+      bit-and : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+
+    draw-if : Stack ℕ (3 + n) → Stack ℕ (2 + n)
+    draw-if s@(_ # 0) = s ▹ pop ▹ index 1 ≤-ok ▹ index 1 ≤-ok
+                          ▹ draw-circ-xy
+    draw-if s         = s ▹ pop
+
+    sierp : Stack ℕ (1 + n) → Stack ℕ n
+    sierp s = for {k = 1}
+                  (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0} 
+                  (λ s → for {k = 1} 
+                             (s ▹ push 0 ▹ index 2 ≤-ok) {x≥₁0}
+                             (index 1 ≤-ok ∘~ index 1 ≤-ok ∘~
+                              bit-and ∘~ draw-if ∘~ pop)
+                         ▹ pop)
+              ▹ pop
+\end{code}

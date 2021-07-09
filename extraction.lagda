@@ -40,6 +40,11 @@ open import Relation.Nullary
 open import Relation.Unary
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; subst)
 
+
+-- Debug
+open import ReflHelper
+--open import Agda.Builtin.Reflection
+
 open import psembedding
 
 -- Check if there exists an element in the list that satisfies the predicate P.
@@ -115,6 +120,7 @@ data PsCmd : Set where
   Pop Dup Exch Add Sub Mul Eq Ge And Rot3 : PsCmd
   Push     : ℕ → PsCmd
   If       : List PsCmd → PsCmd
+  For      : List PsCmd → PsCmd
   IfElse   : List PsCmd → List PsCmd → PsCmd
   FunDef   : String → List PsCmd → PsCmd
   Index    : ℕ → PsCmd
@@ -146,6 +152,10 @@ expr-to-string ind Pop = "pop"
 expr-to-string ind Sub = "sub"
 expr-to-string ind Exch = "exch"
 expr-to-string ind Rot3 = "3 1 roll exch"
+expr-to-string ind (For xs) = "\n"
+                           <> indent ind <> "{\n"
+                           <> indent ind <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
+                           <> indent ind <> "\n} for\n"
 expr-to-string ind (If xs) = "\n"
                            <> indent ind <> "{\n"
                            <> indent ind <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
@@ -390,6 +400,7 @@ pattern `gt s   = def (quote gt) (_ ∷ vArg s ∷ [])
 
 pattern `index k s = def (quote index) (_ ∷ _ ∷ vArg k ∷ _ ∷ vArg s ∷ [])
 pattern `subst-stack s = def (quote subst-stack) (_ ∷ _ ∷ _ ∷ _ ∷ vArg s ∷ [])
+pattern `for x b = def (quote for) (_ ∷ _ ∷ vArg x ∷ _ ∷ b ∷ [])
 \end{code}
 
 \begin{code}[hide]
@@ -415,23 +426,23 @@ PostScript commands in an accumulator.
 \begin{code}
 -- extract-term : Term → Pattern
 --              → ExtractM (List PsCmd)
-extract-term v stackp = go v []
+extract-term v stackp = go v stackp []
   where
-  go : Term → List PsCmd → ExtractM (List PsCmd)
+  go : Term → Pattern → List PsCmd → ExtractM (List PsCmd)
 \end{code}
 
 The cases for basic instructions are completely straightforward.
 
 \begin{code}
-  go (`pop   x)  acc = go x (Pop   ∷ acc)
-  go (`dup   x)  acc = go x (Dup   ∷ acc)
-  go (`exch  x)  acc = go x (Exch  ∷ acc)
-  go (`rot3  x)  acc = go x (Rot3  ∷ acc)
-  go (`add   x)  acc = go x (Add   ∷ acc)
-  go (`sub   x)  acc = go x (Sub   ∷ acc)
-  go (`mul   x)  acc = go x (Mul   ∷ acc)
-  go (`eq    x)  acc = go x (Eq    ∷ acc)
-  go (`gt    x)  acc = go x (Ge    ∷ acc)
+  go (`pop   x) p acc = go x p (Pop   ∷ acc)
+  go (`dup   x) p acc = go x p (Dup   ∷ acc)
+  go (`exch  x) p acc = go x p (Exch  ∷ acc)
+  go (`rot3  x) p acc = go x p (Rot3  ∷ acc)
+  go (`add   x) p acc = go x p (Add   ∷ acc)
+  go (`sub   x) p acc = go x p (Sub   ∷ acc)
+  go (`mul   x) p acc = go x p (Mul   ∷ acc)
+  go (`eq    x) p acc = go x p (Eq    ∷ acc)
+  go (`gt    x) p acc = go x p (Ge    ∷ acc)
 \end{code}
 
 For the commands \AF{push} and \AF{index}, the extractor currently
@@ -440,18 +451,18 @@ the argument. For any other argument the extraction is aborted by
 calling the \AF{fail} function.
 
 \begin{code}
-  go (`push (lit (nat n)) x) acc = go x (Push n ∷ acc)
-  go (`push k x) acc =
+  go (`push (lit (nat n)) x) p acc = go x p (Push n ∷ acc)
+  go (`push k x) p acc =
     fail ("push non-literal: " <> showTerm k)
-  go (`index (lit (nat n)) x) acc = go x (Index n ∷ acc)
-  go (`index k x) acc =
+  go (`index (lit (nat n)) x) p acc = go x p (Index n ∷ acc)
+  go (`index k x) p acc =
     fail ("index non-literal " <> showTerm k)
 \end{code}
 
 \begin{code}[hide]
-  go v@(s `# (lit (nat n))) acc = do
-    b ← stack-ok stackp v
-    if b then return acc else go s (Push n ∷ acc)
+  go v@(s `# (lit (nat n))) p acc = do
+    b ← stack-ok p v
+    if b then return acc else go s p (Push n ∷ acc)
 \end{code}
 
 The function \AF{subst-stack} is only needed to satisfy the Agda
@@ -459,8 +470,21 @@ typechecker, but does not have any run-time behaviour. Hence it is
 erased during extraction.
 
 \begin{code}
-  go (`subst-stack x) acc = go x acc
+  go (`subst-stack x) p acc = go x p acc
 \end{code}
+
+\todo[inline]{NOTE, here is an attempt to add extraction rules for for loop}
+
+\begin{code}
+  go (`for x (vArg (hLam _ (vLam _ b)))) p acc = do
+    proc ← go b (var 0) []
+    go x p (For proc ∷ acc) 
+
+  go (`for x (vArg (hLam _ (def f (hArg0 (var 0 []) ∷ []))))) p acc = do
+    mark-todo f
+    go x p (For [ FunCall (prettyName f) ] ∷ acc)
+\end{code}
+
 
 When it reaches a defined function that is not in the set of base
 functions, the extraction proceeds in three steps. First, it adds the
@@ -471,12 +495,12 @@ the corresponding argument in the argument list and continues
 extraction with that argument.
 
 \begin{code}
-  go (def f args@(_ ∷ _)) acc = do
+  go (def f args@(_ ∷ _)) p acc = do
     mark-todo f
     ty  ← get-normalised-type f
     n   ← extract-type ty
     a   ← lookup-arg args n
-    go a (FunCall (prettyName f) ∷ acc)
+    go a p (FunCall (prettyName f) ∷ acc)
 \end{code}
 
 After traversing through the stack operations, we reach the stack
@@ -486,10 +510,10 @@ If the check succeeds, we return the list of commands collected in
 \AB{acc}.
 
 \begin{code}
-  go v acc = do
-    b ← stack-ok stackp v
+  go v p acc = do
+    b ← stack-ok p v
     if b then (return acc) else
-      (fail ("stack mismatch: "  <> showPattern stackp
+      (fail ("stack mismatch: "  <> showPattern p
                      <> " and "  <> showTerm v))
 \end{code}
 
@@ -767,7 +791,8 @@ base : List Name
 base = quote add ∷ quote sub ∷ quote mul
      ∷ quote eq ∷ quote gt
      ∷ quote push ∷ quote pop ∷ quote dup ∷ quote exch
-     ∷ quote rot3 ∷ quote index ∷ quote subst-stack ∷ []
+     ∷ quote rot3 ∷ quote index ∷ quote subst-stack 
+     ∷ quote for ∷ []
 \end{code}
 
 \paragraph{Testing the extractor}
@@ -884,4 +909,45 @@ _ : lines (extract Fib3.fib base base) ≡
   ∷ [] )
 _ = refl
 \end{code}
+
+\begin{code}
+_ : lines (extract sum-for base base) ≡
+  ( "/sum-for {" ∷
+    "  10 exch 0 exch " ∷
+    "  {" ∷ "  add" ∷ "  " ∷ "} for" ∷ "" ∷ "} def" ∷ [])
+_ = refl
+
+_ : lines (extract fib-for base base) ≡ 
+  ("/fib-for {" ∷
+   "  0 exch 1 exch 0 exch " ∷
+   "  {" ∷
+   "  pop exch 1 index add" ∷ "  " ∷ "} for" ∷ " pop" ∷ "} def" ∷ [])
+_ = refl
+
+base′ : Names
+base′ = quote Sierpinski.bit-and ∷ quote Sierpinski.draw-circ-xy ∷ base
+
+_ : lines (extract Sierpinski.sierp base′ base′) ≡
+  ("/draw-if {" ∷
+   "  0 index 0 eq " ∷
+   "  {" ∷
+   "    pop 1 index 1 index draw-circ-xy" ∷
+   "  }" ∷
+   "  {" ∷
+   "    pop" ∷
+   "  } ifelse" ∷
+   "" ∷
+   "} def" ∷
+   "" ∷
+   "/sierp {" ∷
+   "  0 1 index " ∷
+   "  {" ∷
+   "  0 2 index " ∷
+   "    {" ∷
+   "    1 index 1 index bit-and draw-if pop" ∷
+   "    " ∷ "} for" ∷ " pop" ∷ "  " ∷ "} for" ∷ " pop" ∷ "} def" ∷ []
+   )
+_ = refl
+\end{code}
+
 \end{AgdaAlign}

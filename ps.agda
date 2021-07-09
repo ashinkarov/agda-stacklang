@@ -58,6 +58,17 @@ subst-stack refl xs = xs
 ≤-ok : ∀ {x y} → {w : True (y ≥? x)} → x ≤ y
 ≤-ok {w = w} = toWitness w
 
+infixl 5 _▹_
+_▹_ : ∀ {X Y : Set} → X → (X → Y) → Y
+x ▹ f = f x
+{-# INLINE _▹_ #-}
+
+infixr 9 _∘~_
+_∘~_ : ∀ {A B C : Set} → (A → B) → (B → C) → (A → C)
+f ∘~ g = λ x → g (f x)
+{-# INLINE _∘~_ #-}
+
+
 -- For loop
 data _≥₁_ (l : ℕ) : ℕ → Set where
   done : l ≥₁ l
@@ -76,16 +87,8 @@ module ForSimple where
     for (s , i , .i) {done}    f = f (s , i)
     for {n} {ll} (s , i , l)  {next qq} f = subst-stack (sym $ +-assoc _ ll n) (for (f (s , i) , suc i , l) {qq} f)
 
-module ForNoGrow where
-    for : ∀ {n k} 
-        → (s : Stack ℕ (2 + k + n)) 
-        → {e≥₁s : get-index {n = n} 0 ≤-ok s ≥₁ get-index {n = n} 1 ≤-ok s}
-        → (∀ {m} → Stack ℕ (1 + m) → Stack ℕ m) 
-        → Stack ℕ (k + n)
-    for        (st , s , .s) {done}    f = f (st , s)
-    for {n}{k} (st , s ,  e) {next e≥₁1+s} f = for {n}{k} (f (st , s) , suc s , e) {e≥₁1+s} f
 
-module _ where
+module ForGeneric where
     thm : ∀ a b c d → a + b + (c + d) ≡ a + (b + c) + d
     thm a b c d rewrite (+-assoc (a + b) c d)
       | sym $ +-assoc a b c | sym $ +-assoc (a + b) c d =  refl
@@ -101,7 +104,14 @@ module _ where
       rec = for (apply-f , 1 + s , e) {e≥₁1+s} f
       in subst-stack (thm k _ l n) rec
 
-
+module _ where
+    for : ∀ {n k} 
+        → (s : Stack ℕ (2 + k + n)) 
+        → {e≥₁s : get-index {n = n} 0 ≤-ok s ≥₁ get-index {n = n} 1 ≤-ok s}
+        → (∀ {m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m)) 
+        → Stack ℕ (k + n)
+    for        (st , s , .s) {done}        f = f (st , s)
+    for {n}{k} (st , s ,  e) {next e≥₁1+s} f = for {n}{k} (f (st , s) , suc s , e) {e≥₁1+s} f
 
 
 hd : ∀ {X n} → Stack X (1 + n) → X

@@ -352,7 +352,7 @@ kompile-term (def (quote PostScript.iframep)
   return $ _++_ <$> f ⊛ a
 
 kompile-term (def (quote PostScript.for)
-              args@(_₁ ∷ _₂ ∷ _₃ ∷ vArg x ∷ _ ∷ vArg (hLam _ (vLam _ b)) ∷ [])) p = do
+              args@(_₁ ∷ _₂ ∷ vArg x ∷ _ ∷ vArg (hLam _ (vLam _ b)) ∷ [])) p = do
   init ← kompile-term x p
   proc ← kompile-term b (var 0)
   --return $ _++_ <$> init ⊛ emap (_∷ []) (emap For proc)
@@ -360,7 +360,7 @@ kompile-term (def (quote PostScript.for)
 
 
 kompile-term (def (quote PostScript.for)
-              args@(_₁ ∷ _₂ ∷ _₃ ∷ vArg x ∷ _ ∷ vArg (hLam _ (def fname (hArg (var 0 []) ∷ []))) ∷ [])) p = do
+              args@(_₁ ∷ _₂ ∷ vArg x ∷ _ ∷ vArg (hLam _ (def fname (hArg (var 0 []) ∷ []))) ∷ [])) p = do
   init ← kompile-term x p
   RR.modify λ k → record k { funs = KS.funs k ++ [ fname ] }
   let for-call = For (FunCall (showName fname) ∷ [])

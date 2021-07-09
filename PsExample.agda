@@ -97,29 +97,23 @@ count-0-thm done = refl
 count-0-thm (next p) rewrite +-identityʳ (count p 0) = count-0-thm p
 
 sum-for : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
-sum-for {n} s@(_ , x) = let
-  xx = for {l = 0}{k = 1} (exch $ push 0 $ exch $ push 10 $ s) {x≥₁0} foo
-  in subst-stack cast-for xx
+sum-for {n} s@(_ , x) = 
+  for {k = 1} (exch $ push 0 $ exch $ push 10 $ s) {x≥₁0} foo
   where
-    cast-for : suc (count {a = x} x≥₁0 0 + n) ≡ suc n
-    cast-for rewrite count-0-thm {x = x} x≥₁0 = refl
-
     foo : ∀ {m} → Stack ℕ (2 + m) → Stack ℕ (1 + m)
     foo {m} s = push 1 $ pop $ pop s -- add s
 
 fib-for : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ (1 + n)
 fib-for {n} s@(_ , x) = let
-  init  = exch $ push 0 $ exch $ push 1 $ exch $ push 1 $ s
-  s:x:y = subst-stack cast-for $ for {l = 0}{k = 2} init {x≥₁0} foo
-  in pop s:x:y
-  where
-    cast-for : suc (suc (count {a = x} x≥₁0 0 + n)) ≡ suc (suc n)
-    cast-for rewrite count-0-thm {x = x} x≥₁0 = refl
+  init = exch $ push 0 $ exch $ push 1 $ exch $ push 1 $ s
+  res  = for {k = 2} init {x≥₁0} (add ∘ index {m = 2} 1 ≤-ok ∘ exch ∘ pop)
+  in pop res
 
-    foo : ∀ {m} → Stack ℕ (3 + m) → Stack ℕ (2 + m)
-    foo s = add $ index {m = 2} 1 (s≤s (s≤s z≤n)) $ exch $ pop s
-
-
+--  where
+--    body : ∀ {m} → Stack ℕ (3 + m) → Stack ℕ (2 + m)
+--    body s = add $ index {m = 2} 1 ≤-ok $ exch $ pop s
+-- 
+-- 
 module Sierpinski where
     -- 0 1 n {
     --   0 1 n {
@@ -143,38 +137,22 @@ module Sierpinski where
     --     and
     -- } def
 
-    cast-for : ∀ {k n x} → k + (count {a = x} x≥₁0 0 + n) ≡ k + n
-    cast-for {x = x} rewrite count-0-thm {x = x} x≥₁0 = refl
-
-
     draw-if : ∀ {n} → Stack ℕ (3 + n) → Stack ℕ (2 + n)
-    draw-if s@(_ , x , y , 0) =  
-            draw-circ-xy 
-            $ index {m = 2} 1 (s≤s (s≤s z≤n)) 
-            $ index {m = 2} 1 (s≤s (s≤s z≤n)) 
-            $ pop s
-    draw-if s = pop s
-
-    inner-for-loop : ∀ {m} → Stack ℕ (2 + m) → Stack ℕ (1 + m)
-    inner-for-loop s:x:i:j = let
-      s:x:i:j:i&j = bit-and 
-                    $ index {m = 2} 1 (s≤s (s≤s z≤n)) 
-                    $ index {m = 2} 1 (s≤s (s≤s z≤n)) 
-                    $ s:x:i:j
-      cond-draw = draw-if s:x:i:j:i&j
-      in pop cond-draw
-
-    outer-for-loop : ∀ {m} → Stack ℕ (2 + m) → Stack ℕ (1 + m)
-    outer-for-loop {m} s:x:i@(_ , x , _) = let
-      s:x:i:0:x = index {m = 3} 2 (s≤s (s≤s (s≤s z≤n))) $ push 0 $ s:x:i
-      res-for = for {l = 0}{k = 1} s:x:i:0:x {x≥₁0} inner-for-loop
-      in subst-stack (cast-for {0}{suc m}{x = x}) $ pop $ res-for
+    draw-if s@(_ , 0) = s ▹ pop 
+                          ▹ index {m = 2} 1 ≤-ok 
+                          ▹ index {m = 2} 1 ≤-ok
+                          ▹ draw-circ-xy
+    draw-if s         = s ▹ pop
 
     sierp : ∀ {n} → Stack ℕ (1 + n) → Stack ℕ n
-    sierp {n} s@(_ , x) = let
-      s:x:0:x = index {m = 2} 1 (s≤s (s≤s z≤n)) $ push 0 $ s
-      res-for = for {l = 0}{k = 1} s:x:0:x {x≥₁0} outer-for-loop
-      in subst-stack (cast-for {0}{n}{x}) $ pop $ res-for
+    sierp s = for {k = 1}
+                  (s ▹ push 0 ▹ index {m = 2} 1 ≤-ok) {x≥₁0} 
+                  (λ s → for {k = 1} 
+                             (s ▹ push 0 ▹ index {m = 3} 2 ≤-ok) {x≥₁0}
+                             (index {m = 2} 1 ≤-ok ∘~ index {m = 2} 1 ≤-ok ∘~
+                              bit-and ∘~ draw-if ∘~ pop)
+                         ▹ pop)
+              ▹ pop
 
 -- The `rep` function is the simplest example of
 -- using dependent types in a stack function.  `rep` [ x n ]
@@ -312,8 +290,8 @@ base-sierp = quote Sierpinski.bit-and ∷ quote Sierpinski.draw-circ-xy ∷ base
 ktest-sierp : Prog
 ktest-sierp = kompile Sierpinski.sierp base-sierp base-sierp
 
-ktest-for : Prog
-ktest-for = kompile sum-for base base
+ktest-sumfor : Prog
+ktest-sumfor = kompile sum-for base base
 
 ktest-fibfor : Prog
 ktest-fibfor = kompile fib-for base base
@@ -356,4 +334,6 @@ ktest₇ : Prog
 ktest₇ = kompile Fib3.fib base base
 test₇ : ok _ ≡ ktest₇
 test₇ = refl
+
+
 
