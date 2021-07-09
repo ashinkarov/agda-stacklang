@@ -470,7 +470,7 @@ erased during extraction.
 \begin{code}
   go (`for x (vArg (hLam _ (vLam _ b)))) acc = do
     proc ← extract-term b (var 0)
-    go x (For proc ∷ acc) 
+    go x (For proc ∷ acc)
 
   go (`for x (vArg (hLam _ (def f (hArg0 (var 0 []) ∷ []))))) acc = do
     mark-todo f
@@ -783,7 +783,7 @@ base : List Name
 base = quote add ∷ quote sub ∷ quote mul
      ∷ quote eq ∷ quote gt
      ∷ quote push ∷ quote pop ∷ quote dup ∷ quote exch
-     ∷ quote rot3 ∷ quote index ∷ quote subst-stack 
+     ∷ quote rot3 ∷ quote index ∷ quote subst-stack
      ∷ quote for ∷ []
 \end{code}
 
@@ -906,22 +906,22 @@ _ = refl
 _ : lines (extract sum-for base base) ≡
   ("/sum-for {" ∷
    "  10 exch 0 exch " ∷
-   "  1 exch" ∷ 
-   "  {" ∷ 
-   "    add" ∷ 
-   "  } for" ∷ 
-   "" ∷ 
+   "  1 exch" ∷
+   "  {" ∷
+   "    add" ∷
+   "  } for" ∷
+   "" ∷
    "} def" ∷ [])
 _ = refl
 
-_ : lines (extract fib-for base base) ≡ 
+_ : lines (extract fib-for base base) ≡
   ("/fib-for {" ∷
    "  0 exch 1 exch 0 exch " ∷
    "  1 exch" ∷
    "  {" ∷
-   "    pop exch 1 index add" ∷ 
-   "  } for" ∷ 
-   " pop" ∷ 
+   "    pop exch 1 index add" ∷
+   "  } for" ∷
+   " pop" ∷
    "} def" ∷ [])
 _ = refl
 

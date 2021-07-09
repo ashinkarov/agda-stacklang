@@ -595,9 +595,9 @@ data _≥₁_ (l : ℕ) : ℕ → Set where
 ≥₁-count ≥-done      n = n
 ≥₁-count (≥-next a≥sb) n = ≥₁-count a≥sb n + n
 
-for : (s : Stack ℕ (2 + k + n)) 
+for : (s : Stack ℕ (2 + k + n))
       → {e≥₁s : get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s}
-      → (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m)) 
+      → (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m))
       → Stack ℕ (k + n)
 for {k}{n} (st # s # .s) {≥-done}        f = f {n} (st # s)
 for {k}{n} (st # s #  e) {≥-next e≥₁1+s} f = for {k}{n} (f (st # s) # suc s # e) {e≥₁1+s} f
@@ -620,7 +620,7 @@ x≥₁0 {suc x} = ≥₁-trans (≥-next ≥-done) x≥₁0
 
 -- 10 + 0 + 1 + ... + x
 sum-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-sum-for s@(_ # x) = for {k = 1} 
+sum-for s@(_ # x) = for {k = 1}
                         (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
                         add
 
@@ -628,7 +628,7 @@ sum-for s@(_ # x) = for {k = 1}
 -- alternatively, we could conditionalise on x
 fib-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
 fib-for s@(_ # x) = for {k = 2}
-                        (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0} 
+                        (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
                         (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
                     ▹ pop
 
@@ -645,8 +645,8 @@ module Sierpinski where
 
     sierp : Stack ℕ (1 + n) → Stack ℕ n
     sierp s = for {k = 1}
-                  (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0} 
-                  (λ s → for {k = 1} 
+                  (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0}
+                  (λ s → for {k = 1}
                              (s ▹ push 0 ▹ index 2 ≤-ok) {x≥₁0}
                              (index 1 ≤-ok ∘~ index 1 ≤-ok ∘~
                               bit-and ∘~ draw-if ∘~ pop)
