@@ -153,13 +153,14 @@ expr-to-string ind Sub = "sub"
 expr-to-string ind Exch = "exch"
 expr-to-string ind Rot3 = "3 1 roll exch"
 expr-to-string ind (For xs) = "\n"
+                           <> indent ind <> "1 exch\n" -- adding step
                            <> indent ind <> "{\n"
-                           <> indent ind <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
-                           <> indent ind <> "\n} for\n"
+                           <> indent (1 + ind) <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
+                           <> indent ind <> "} for\n"
 expr-to-string ind (If xs) = "\n"
                            <> indent ind <> "{\n"
                            <> indent ind <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
-                           <> indent ind <> "\n} if\n"
+                           <> indent ind <> "} if\n"
 expr-to-string ind (FunDef n xs) = indent ind <> "/" <> n <> " {\n"
                                 <> indent (1 + ind) <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
                                 <> indent ind <> "} def\n"
@@ -912,16 +913,25 @@ _ = refl
 
 \begin{code}
 _ : lines (extract sum-for base base) ≡
-  ( "/sum-for {" ∷
-    "  10 exch 0 exch " ∷
-    "  {" ∷ "  add" ∷ "  " ∷ "} for" ∷ "" ∷ "} def" ∷ [])
+  ("/sum-for {" ∷
+   "  10 exch 0 exch " ∷
+   "  1 exch" ∷ 
+   "  {" ∷ 
+   "    add" ∷ 
+   "  } for" ∷ 
+   "" ∷ 
+   "} def" ∷ [])
 _ = refl
 
 _ : lines (extract fib-for base base) ≡ 
   ("/fib-for {" ∷
    "  0 exch 1 exch 0 exch " ∷
+   "  1 exch" ∷
    "  {" ∷
-   "  pop exch 1 index add" ∷ "  " ∷ "} for" ∷ " pop" ∷ "} def" ∷ [])
+   "    pop exch 1 index add" ∷ 
+   "  } for" ∷ 
+   " pop" ∷ 
+   "} def" ∷ [])
 _ = refl
 
 base′ : Names
@@ -941,12 +951,17 @@ _ : lines (extract Sierpinski.sierp base′ base′) ≡
    "" ∷
    "/sierp {" ∷
    "  0 1 index " ∷
+   "  1 exch" ∷
    "  {" ∷
-   "  0 2 index " ∷
+   "    0 2 index " ∷
+   "    1 exch" ∷
    "    {" ∷
-   "    1 index 1 index bit-and draw-if pop" ∷
-   "    " ∷ "} for" ∷ " pop" ∷ "  " ∷ "} for" ∷ " pop" ∷ "} def" ∷ []
-   )
+   "      1 index 1 index bit-and draw-if pop" ∷
+   "    } for" ∷
+   " pop" ∷
+   "  } for" ∷
+   " pop" ∷
+   "} def" ∷ [])
 _ = refl
 \end{code}
 
