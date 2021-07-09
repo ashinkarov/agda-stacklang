@@ -301,6 +301,28 @@ allows us to focus on the essence of the proposed approach and avoid unrelated
 technical details.  We use Agda as our host language, and we demonstrate the
 embedding, how to specify a program, and most importantly, program extraction.
 
+
+\paragraph{Limitations}
+
+While we claim our approach is flexible and powerful, it is
+certainly not a magic bullet. There are still a lot of things that
+need to be implemented for each target language: the language
+embedding itself, the encoding of the properties under consideration
+as types in the host language, and the extractor that transforms
+embedded programs back into the syntax of the original language.  For
+enforcing more complex properties, it might also be necessary to write
+proofs to convince the typechecker of the host language that they are
+indeed satisfied.
+%
+The main advantage of our approach is twofold: first, it allows
+you to implement all these things --- as well as the embedded programs
+themselves --- \emph{side by side in a single language}, simplifying
+the development. And secondly, it allows you to reuse the typechecker
+and evaluator of the host language, saving you a lot of work.  In the
+end, our goal is not to showcase a single example but to empower you
+to apply this approach yourself to verify code in any language.
+
+
 \paragraph{Contributions.}
 \begin{itemize}
   
