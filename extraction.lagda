@@ -365,20 +365,11 @@ extract-def      : Name → ExtractM PsCmd
 In the remainder of this section, we explain the implementation of
 these functions in detail.
 
-\paragraph{Pattern synonyms for reflected syntax}
-Working with reflected syntax in Agda can quickly become very verbose.
-To reduce the syntactic noise, we make use of pattern synonyms for
-commonly used pieces of syntax. As a convention, the names of these
-pattern synonyms start with a backtick \` followed by the name of the
-represented Agda construct. We give two representative examples, other
-pattern synonyms are defined analogously.
-
-\begin{code}
-pattern `zero   = con (quote ℕ.zero) []
-pattern `suc n  = con (quote ℕ.suc) (vArg n ∷ [])
-\end{code}
 
 \begin{code}[hide]
+pattern `zero   = con (quote ℕ.zero) []
+pattern `suc n  = con (quote ℕ.suc) (vArg n ∷ [])
+
 pattern vArg0 x = arg (arg-info visible (modality _ quantity-0)) x
 pattern hArg0 x = arg (arg-info hidden (modality _ quantity-0)) x
 pattern erasedArg x = arg (arg-info _ (modality _ quantity-0)) x

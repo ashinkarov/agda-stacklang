@@ -19,8 +19,6 @@ open import ReflHelper
 open import Agda.Builtin.Reflection
 import Data.List as L
 
-infixl 5 _#_
-
 variable
   X Y Z : Set
   S : Set
@@ -132,6 +130,8 @@ the length of the corresponding stack. The stack can store elements of type
 data Stack (X : Set) : @0 ℕ → Set where
   []  : Stack X 0
   _#_ : Stack X n → X → Stack X (suc n)
+
+infixl 5 _#_
 \end{code}
 Similarly to lists, stacks can be constructed in two ways.  Stacks of length
 zero can are constructed using \AC{[]}.  Stacks of length $1 + n$ are constructed
@@ -143,10 +143,6 @@ ex₁ : Stack ℕ 3
 ex₁ = [] # 1 # 2 # 3
 \end{code}
 We defined \AC{\_\#\_} to be left-associative, therefore we do not put any parenthesis.
-The ``@0'' annotation in the type tells Agda that the length
-that we carry in the type is runtime-irrelevant.  This means that we cannot
-evaluate the length of the stack by simply referring to the type parameter.
-We will come back to this point in the next subsections.
 
 \paragraph{Basic Operations}
 
@@ -442,13 +438,8 @@ However, as long as a programmer is happy to take responsibility by putting
 the annotation, we can immediately proceed to extraction.
 
 We demonstrate a way to prove termination of the functions from previous
-sections.  While it is impossible to infer termination for an arbitrary
-function due to the halting problem, Agda uses heuristics to handle common cases.  The main idea behind
-the check is that the argument to the recursive call has to be structurally
-smaller than the input argument.  This means that we have to remove at least
-one constructor from at least one argument.  For more details on the algorithm
-see~\cite{}.
-
+sections.
+%
 The problem with \AF{rep} is that the recursive call happens on the stack
 that is became one element bigger, yet the top element decreased by one.
 Therefore, this argument is not strictly smaller, and there are no other
@@ -475,7 +466,7 @@ module RepTerm where
     rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
     rep s = rep′ s {refl}
 \end{code}
-As the function is pattern-matchin on the top of the stack, and the
+As the function is pattern-matching on the top of the stack, and the
 only value of the \AD{\_≡\_} type is \AC{refl}, the argument \AB{k}
 has to be \AN{0} in the first case, and some successor in the second
 case.  This trick creates ensures that \AB{k} is structurally decreasing,

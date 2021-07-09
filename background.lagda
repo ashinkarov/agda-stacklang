@@ -1,6 +1,4 @@
 \begin{code}[hide]
-postulate
-  ⋯ : ∀ {a}{A : Set a} → A
 module _ where
 module Basics where
 \end{code}
@@ -12,109 +10,144 @@ to the Agda user manual~\cite{agda}.
 
 \subsection{Agda Basics}
 Agda is an implementation of Martin-L{\"o}f's dependent type
-theory~\cite{Martin-Lof-1972} extended with many convenience
-constructions such as records, modules, do-notation, \etc{}
-Types are defined using the following syntax:
-\begin{mathpar}
-\codeblock{
+theory~\cite{Martin-Lof-1972} extended with many constructions such as
+records, modules, do-notation, \etc{} Datatypes are defined using the
+following syntax:
 \begin{code}
   data ℕ : Set where
     zero : ℕ
     suc  : ℕ → ℕ
 \end{code}
-}
-\and
-\codeblock{
-\begin{code}
-  data Fin : ℕ → Set where
-    zero : ∀ {n} → Fin (suc n)
-    suc  : ∀ {n} → Fin n → Fin (suc n)
-\end{code}
-}
-\and
-\codeblock{
-\begin{code}
-  data _≡_ {a} {A : Set a}
-      (x : A) : A → Set a where
-    refl : x ≡ x
-\end{code}
-}
-\end{mathpar}
-Unary natural numbers \AD{ℕ} is a type with two constructors:
-\AC{zero} and \AC{suc}.  \AD{Fin} is an indexed type, where the index
-is of type \AD{ℕ}.  Constructor names can be overloaded and are
-disambiguated from the typing context, or can be prefixed with the
-type name: \AC{ℕ.zero}, \AC{ℕ.suc}.
-%
-The \AD{Fin} \AB{n} type represents natural numbers that are bounded
-by \AB{n}.  In the definition of \AD{Fin}, ∀ binds the variable
-without needing to specify its type.  Curly braces indicate hidden
-arguments, which can be left out at function applications: we have
-\AC{suc} \AC{zero}~:~\AD{Fin} \AN{3}, assuming that Agda can infer a
-(unique) value for the hidden argument.  Hidden arguments can be
-passed explicitly using the syntax $\AC{zero}\ \{\AB{n} = \AB{x}\}$.
-%
-The propositional equality type \AF{\_≡\_} expresses equality of its
-two arguments, and has a single constructor \AC{refl} stating that any
-value \AB{x} is equal to itself.  It uses mixfix
-syntax~\cite{10.1007/978-3-642-24452-0_5}: the
-underscores in the name indicate placeholders for the arguments.
-%
-\AF{Set} is the name of the type of all small types.  Sets form a
-predicative hierarchy, meaning that \AF{Set} \AB{i} is of type
-\AF{Set} (\AF{ℓsuc} \AB{i}), and \AF{Set} is a synonym for \AF{Set}
-\AF{ℓzero}.  The functions \AF{ℓsuc} and \AF{ℓzero} are used to construct elements of type \AD{Level}.
+The type \AD{ℕ} of unary natural numbers is a datatype with two constructors:
+\AC{zero} and \AC{suc}.  Note that \AD{ℕ} itself belongs to
+the type \AF{Set}, Agda's builtin type of all (small) types.
 
+Agda allows the declaration of indexed
+datatypes\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/data-types.html}},
+such as the type \AD{Vec} which is indexed over values of type \AD{ℕ}:
+\begin{code}
+  data Vec (A : Set) : ℕ → Set where
+    []   : Vec A zero
+    _∷_  : {n : ℕ} → A → Vec A n → Vec A (suc n)
+\end{code}
+The type \AD{Vec} \AB{A} \AB{n} represents vectors holding \AB{n}
+values of type \AB{A}.  It has two constructors: \AC{[]} for the empty
+vector of length \AC{zero} and \AC{\_∷\_} for adding an element to a
+vector, increasing the length by 1.  Curly braces indicate hidden
+arguments, which can be left out at function
+applications.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/implicit-arguments.html}}
+Hidden arguments can be passed explicitly using the syntax \AC{\_∷\_}
+\{\AB{n}\} \AB{x} \AB{xs}.  The underscores in the name of \AC{\_∷\_}
+indicate mixfix
+syntax:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/mixfix-operators.html}}
+we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
+\AB{xs}.
 
 Functions are defined in a pattern-matching style:
-\begin{code}[hide]
-  postulate _+_ : ℕ → ℕ → ℕ
+\begin{code}
+  _+_ : ℕ → ℕ → ℕ
+  zero     + y = y
+  (suc x)  + y = suc (x + y)
 
+  tail : {n : ℕ} → Vec ℕ (suc n) → Vec ℕ n
+  tail (x ∷ xs) = xs
 \end{code}
-\begin{mathpar}
-\codeblock{
-\begin{code}
-  _*_ : ℕ → ℕ → ℕ
-  zero     * y  = zero
-  (suc x)  * y  = y + (x * y)
-\end{code}
-}
-\and
-\codeblock{
-\begin{code}
-  abs : Fin zero → ℕ
-  abs ()
-\end{code}
-}
-\and
-\codeblock{
-\begin{code}
-  wth : (a b : ℕ) → ℕ
-  wth a b with a * b
-  ...     | zero = zero
-  ...     | _    = b
-\end{code}
-}
-\end{mathpar}
-The definition of \AF{abs} uses the \emph{absurd pattern} (),
-indicating an impossible case for the first argument, \ie{} there is
-no constructor constructing a term of type \AD{Fin} \AC{zero}.
-Clauses with absurd patterns do not have a body, as the type system
-guarantees that they are never called at run-time.
+Agda requires that all definitions by pattern matching cover all
+cases.  In the definition of \AF{tail}, we can omit the case for the
+empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
+(\AC{suc}\ \AB{n}), so it can never be called with input \AC{[]}.
+
+
+\paragraph{Termination checking}
+In order to ensure totality, Agda checks that all recursive functions
+are terminating on all
+inputs.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}}
 %
-In the definition of \AF{wth} we demonstrate the use of the \AK{with}
-construction~\cite{10.1017/S0956796803004829} which makes it possible
-to match on the result of an expression locally.
+While it is impossible to infer termination for an arbitrary function
+due to the halting problem, Agda uses heuristics to handle common
+cases.  The main idea behind the check is that the argument to the
+recursive call has to be structurally smaller than the input argument.
+This means that we have to remove at least one constructor from at
+least one argument.  For example, in the recursive call to \AF{\_+\_},
+the first argument is \AB{x}, which is structurally smaller than the
+input \AC{suc} \AB{x}.
+
+\paragraph{Proving equalities}
+Agda can be used both as a programming language and a proof assistant.
+One very common example of this is the equality type \AF{\_≡\_}, which
+expresses equality of its two arguments. It has a single constructor
+\AC{refl} : \AB{x} \AD{≡} \AB{x} stating that any value \AB{x} is
+equal to itself.
+\begin{code}[hide]
+module Proving where
+  open import Agda.Builtin.Nat renaming (Nat to ℕ)
+  open import Data.Vec.Base
+  open import Agda.Builtin.Equality
+\end{code}
+Using the equality type, we can state and prove equations between Agda
+expressions, which are then checked by the typechecker. For example,
+we can prove that \AN{1} \AF{+} \AN{1} = \AN{2}:
+\begin{code}
+  simple-proof : 1 + 1 ≡ 2
+  simple-proof = refl
+\end{code}
+Although in this paper we only prove a few basic properties, the fact
+that it is possible to prove arbitrary (functional) properties of
+programs embedded in Agda is an important benefit of our approach.
+
+%The definition of \AF{abs} uses the \emph{absurd pattern} (),
+%indicating an impossible case for the first argument, \ie{} there is
+%no constructor constructing a term of type \AD{Fin} \AC{zero}.
+%Clauses with absurd patterns do not have a body, as the type system
+%guarantees that they are never called at run-time.
+%
+%In the definition of \AF{wth} we demonstrate the use of the \AK{with}
+%construction~\cite{10.1017/S0956796803004829} which makes it possible
+%to match on the result of an expression locally.
 
 % \todo[inline]{Amongst other things we need to explain with-clauses
 %   and pattern-matching functions.  Maybe records and their eta-equality.
 %
 %   Nat, Fin, Vec, Eq, with, patterns, hidden values, mixfix}
 
+\paragraph{Run-time irrelevance}
+
+Function arguments can be marked as \emph{run-time
+irrelevant}~\cite{McBride16} with the @0
+annotation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/runtime-irrelevance.html}} The
+Agda typechecker guarantees that run-time irrelevant arguments are not
+needed for evaluation of the program, they can thus safely be erased
+by the compiler. For example, we can mark the \AB{n} argument to the
+\AF{tail} function as run-time irrelevant:
+\begin{code}
+  tail' : {@0 n : ℕ} → Vec ℕ (suc n) → Vec ℕ n
+  tail' (x ∷ xs) = xs
+\end{code}
+In our embedding of PostScript into Agda, we make use of this
+annotation to ensure that the functions we define do not
+computationally depend on arguments that are not on the stack and can
+hence safely be erased during extraction of PostScript code (see
+\secref{embedding} and \secref{extraction}).
+
 \subsection{Reflection}
-Instead of explaining the full structure of all types that Agda uses
-to encode reflected syntax, we consider a small but representative
-sample: the function \AF{foo} (left) and its reflection (right).
+
+The reflection API of Agda allows quoting and unquoting of expressions
+and declarations, and provides access to some of the internals of the
+Agda typechecker such as unification and
+normalisation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
+%
+Effectively using Agda's reflection API can be challenging because the
+syntax it uses matches the \emph{internal}
+representation of Agda terms, which differs significantly from the
+surface syntax.
+
+\paragraph{Reflected syntax}
+
+To demonstrate the types and constructors involved in the
+representation of reflected syntax, we use the following function as
+an example:
+
+
 \begin{code}[hide]
 module FunExample where
   open import Data.List
@@ -124,147 +157,106 @@ module FunExample where
   open import Reflection
   open import Data.Unit
   open import Data.Product
-  open import Function
-
+  open Clause
+  open Pattern
 \end{code}
-\begin{mathpar}
-\codeblock{
+
 \begin{code}
   foo : ℕ → ℕ
   foo 0        = zero
   foo (suc x)  = x + x
 \end{code}
-}
-\and
-\codeblock{
+
+Expressions are represented by a constructor such as \AC{con} (for
+constructors), \AC{def} (for other defined symbols), or \AC{var} (for
+variables) applied to a quoted name and a list of arguments.
+\AC{vArg} denotes a visible argument, while \AC{hArg} is used for
+hidden arguments).  For example, the full reflected form of the
+expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
+
+Working with reflected syntax in Agda can quickly become very verbose.
+To reduce the syntactic noise, we make use of \emph{pattern synonyms}
+for commonly used pieces of syntax. As a convention, the names of
+these pattern synonyms start with a backtick \` followed by the name
+of the represented Agda construct. We give two representative
+examples, other pattern synonyms are defined analogously.
+
 \begin{code}
-  `foo = Definition.function
-       $ Clause.clause
-           []
-           (vArg (Pattern.con (quote ℕ.zero) []) ∷ [])
-           (Term.con (quote ℕ.zero) [])
-       ∷ Clause.clause
-           (("x" , vArg (Term.def (quote ℕ) [])) ∷ [])
-           (vArg (Pattern.con (quote ℕ.suc) (vArg (Pattern.var 0) ∷ [])) ∷ [])
-           (def (quote _+_) (vArg (Term.var 0 []) ∷ vArg (Term.var 0 []) ∷ []))
-       ∷ []
+  pattern `ℕ        = def (quote ℕ) []
+  pattern `zero     = con (quote zero) []
+  pattern `suc x    = con (quote suc) (vArg x ∷ [])
+  pattern _`+_ x y  = def (quote _+_) (vArg x ∷ vArg y ∷ [])
 \end{code}
-}
-\end{mathpar}
-The reflected function is defined by the list of clauses \AC{Clause.clause}.  Each
-clause has three arguments: i) the telescope, which is a list of free variables
-and their types; ii) the list of patterns; and iii) the body of the
-clause.  The first clause does not have free variables, so the telescope
+
+
+With these pattern synonyms, we can write the reflected syntax of
+\AF{foo} as follows:
+\begin{code}
+  `foo = function
+    ( clause [] (vArg `zero ∷ []) `zero
+    ∷ clause (("x" , vArg `ℕ) ∷ [])
+             (vArg (`suc (var 0)) ∷ [])
+             (var 0 [] `+ var 0 [])
+    ∷ [] )
+\end{code}
+It is represented by the constructor \AC{function} applied to a list
+of clauses. Each clause itself is represented by the constructor
+\AC{clause} applied to three arguments: i) the telescope, which is a
+list of the names of variables and their types; ii) the list of
+ patterns; and iii) the body of the clause.
+%
+The first clause does not have variables, so the telescope
 is empty. The second clause has one variable called \AB{x}.  The
-pattern list in the first clause has one argument;  \AC{vArg} denotes that
-it is visible argument (\AC{hArg} is used for hidden arguments).
-The actual pattern matches against the \AC{zero} constructor, as expressed
-by \AC{Pattern.con}, which has two arguments: the reflected constructor name and the
-list of reflected arguments.  The number of reflected arguments must be the
-same as the number of the actual arguments, which is none in the case of \AC{zero}.
-The \AK{quote} primitive returns
-a representation of the name for the given Agda definition or constructor,
-which is of type \AD{Name}.
+pattern list in the first clause has one argument.
+The actual pattern matches against the \AC{zero} constructor.
 %
 Variables (both in patterns and in terms) are given as de Bruijn indices
-into the telescope of the clause.  That is, in the second clause the
-de Bruijn index \AN{0} refers to the variable \AS{x}.  Note that we write
+relative to the telescope of the clause.  That is, in the second clause the
+de Bruijn index \AN{0} refers to the variable \AB{x}.  Note that we write
 \AN{0} instead of \AC{zero}, as numbers are expanded
 into their corresponding \AC{zero}/\AC{suc} representations.
 
 
-Effectively using Agda's reflection API can be challenging because the
-syntax it uses matches the \emph{internal}
-representation of Agda terms, which differs significantly from the
-surface syntax.
-%
-Many constructs such as
-implicit arguments, instance arguments, \AK{let} and \AK{with} definitions
-exist only in the surface language.  Translation from the surface
-language is performed by the \emph{elaborator}.
-%As types may depend
-%on the values, elaboration involves evaluation of expressions.
-%
-%For example, if the function
-%{
-%\begin{code}[inline]
-%  f : (x : Bool) → if x then ℕ else Bool
-%\end{code}
-%\begin{code}[hide]
-%  f = ⋯
-%\end{code}
-%}
-%
-%is applied to the value \AC{true}, the type of the result will compute
-%to \AF{ℕ}.
+\paragraph{The \AD{TC} monad}
+
 Following the approach of \emph{elaborator reflection}
 introduced by Idris~\cite{idris-refl}, Agda exposes many parts
 of the elaborator to the reflection API, including reduction
 and normalisation of expressions.
 %
 These operations are made available through the \AD{TC} monad, which
-takes care of managing the current context of the elaborator.
+takes care of managing the current context of the elaborator.  The two
+basic operations of the \AD{TC} monad are \AF{quoteTC} and
+\AF{unquoteTC}, which convert from normal Agda syntax to reflected
+syntax and vice versa.
 
-The key metaprogramming primitives are \AK{quote} and
-\AK{unquote}, that operate as follows:
-\begin{mathpar}
-\codeblock{
-\begin{code}
-  ex : (a : Bool) → if a then ℕ else Bool
-  ex true = unquote helper
-    where helper : Term → TC ⊤
-          helper h = unify h (lit (nat 42))
-  ex false = false
-\end{code}
-}
-\and
-\codeblock{
-\begin{code}
-  macro getDef : Name → (Term → TC ⊤)
-        getDef n h = do
-         d ← getDefinition n
-         t ← quoteTC d
-         unify h t
-  ``foo = getDef foo
-\end{code}
-}
-\end{mathpar}
-In \AF{ex}, the \AK{unquote} occurs in the \AC{true} clause of the
-function.
-%In this case the return type of the function normalises to
-%\AD{ℕ}.  Therefore, the type of \AK{unquote} \AF{helper} must be
-%\AB{ℕ} as well.
+Functions of return type \AD{Term} → \AD{TC} \AD{⊤} can be marked as a
+\AK{macro}. When the elaborator encounters a macro call, it creates a
+`hole' that it passes to the macro. The macro can `fill' the hole by
+calling the function \AF{unify}.
 %
-The argument to \AK{unquote} is expected to be a
-function of type \AD{Term} → \AD{TC} \AD{⊤}, where \AD{⊤} is the unit
-type. During elaboration,  Agda creates a
-metavariable \AB{h} of type \AD{ℕ}, quotes it, and passes it to the
-function \AF{helper}. In the body of \AF{helper}, we call the \AF{TC}
-operation \AF{unify} \AB{h} (\AC{lit} (\AC{nat} \AN{42})) to
-unify the two expressions, instantiating
-\AB{h} to the value 42.  Finally, Agda replaces the
-expression \AK{unquote} \AF{helper} expression with the instantiated
-value of \AB{h}.  Overall, the effect of \AK{unquote} \AF{helper} is
-identical to just writing \AN{42}.  However, the expression inside the
-\AF{helper} can be arbitrarily complex and can depend on the syntactic
-structure of the term \AB{h} as well as information obtained through
-operations in the \AF{TC} monad.
+For example, the macro \AF{norm} below takes a term, quotes it,
+normalises the quoted term, and unifies the result with the hole.
+%
+Effectively, this macro is a partial evaluator for Agda programs.  For
+example, \AF{norm} (\AN{1} \AF{+} \AN{1}) will be statically replaced
+by \AN{2}.
 
-Instead of quoting/unquoting explicitly, we can use the \AK{macro}
-keyword to wrap any function with return type \AD{Term} →
-\AD{TC} \AD{⊤}.  This takes care of quoting the arguments and unquoting
-the result.  On the right, we define a macro \AF{getDef} that
-obtains the definition of a name.  The macro calls three functions
-from the reflection API.  Firstly, \AF{getDefinition} obtains the definition
-of the object with the name \AB{n}.  Secondly, \AF{quoteTC} quotes the
-previously obtained definition (resulting in a doubly-quoted expression).
-Finally, we \AF{unify} the quoted hole and the doubly quoted definition,
-so that after unquoting we get the reflected definition (and not the
-original one).  We apply the macro in the last line, and as can be seen,
-no \AK{quote}/\AK{unquote} is needed.
-%
-More details on reflection in Agda can be found in the user
-manual~\cite{agda}.
+\begin{code}
+  macro
+    norm : {A : Set} → A → (Term → TC ⊤)
+    norm x hole = do
+      `x ← quoteTC x
+      `x ← normalise `x
+      unify `x hole
+  test : ℕ
+  test = norm (1 + 1) -- equivalent to 'test = 2'
+\end{code}
+
+In more realistic examples, a macro can perform arbitrary
+manipulations on the syntactic structure of Agda expressions as well
+as information obtained through operations in the \AF{TC} monad.
+
 
 
 % \begin{code}[hide]
