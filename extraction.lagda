@@ -117,14 +117,12 @@ representation as an intermediate stage:
 
 \begin{code}
 data PsCmd : Set where
-  Pop Dup Exch Add Sub Mul Eq Ge And Rot3 : PsCmd
-  Push     : ℕ → PsCmd
-  If       : List PsCmd → PsCmd
-  For      : List PsCmd → PsCmd
-  IfElse   : List PsCmd → List PsCmd → PsCmd
-  FunDef   : String → List PsCmd → PsCmd
-  Index    : ℕ → PsCmd
-  FunCall  : String → PsCmd
+  Pop Dup Exch Add Mul Eq Ge And Rot3 : PsCmd
+  Push Index : ℕ → PsCmd
+  FunCall    : String → PsCmd
+  For        : List PsCmd → PsCmd
+  IfElse     : List PsCmd → List PsCmd → PsCmd
+  FunDef     : String → List PsCmd → PsCmd
 \end{code}
 
 We implement a basic pretty-printer for sequences of PostScript
@@ -149,7 +147,6 @@ expr-to-string ind Eq = "eq"
 expr-to-string ind Ge = "ge"
 expr-to-string ind And = "and"
 expr-to-string ind Pop = "pop"
-expr-to-string ind Sub = "sub"
 expr-to-string ind Exch = "exch"
 expr-to-string ind Rot3 = "3 1 roll exch"
 expr-to-string ind (For xs) = "\n"
@@ -157,10 +154,6 @@ expr-to-string ind (For xs) = "\n"
                            <> indent ind <> "{\n"
                            <> indent (1 + ind) <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
                            <> indent ind <> "} for\n"
-expr-to-string ind (If xs) = "\n"
-                           <> indent ind <> "{\n"
-                           <> indent ind <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
-                           <> indent ind <> "} if\n"
 expr-to-string ind (FunDef n xs) = indent ind <> "/" <> n <> " {\n"
                                 <> indent (1 + ind) <> intercalate " " (lexpr-to-string (1 + ind) xs) <> "\n"
                                 <> indent ind <> "} def\n"
@@ -183,6 +176,8 @@ print-ps es = intercalate "\n" (reverse (L.map (expr-to-string 0) es))
 
 \subsection{The extraction monad}
 
+\todo[inline]{I think we can further cat on the details about internals
+of the monad and RawMonad-related stuff.}
 We make use of a monad for extraction to keep track of the current
 state of functions that still need to be extracted, and for
 propagating errors.
@@ -431,7 +426,6 @@ The cases for basic instructions are completely straightforward.
   go (`exch  x) acc = go x (Exch  ∷ acc)
   go (`rot3  x) acc = go x (Rot3  ∷ acc)
   go (`add   x) acc = go x (Add   ∷ acc)
-  go (`sub   x) acc = go x (Sub   ∷ acc)
   go (`mul   x) acc = go x (Mul   ∷ acc)
   go (`eq    x) acc = go x (Eq    ∷ acc)
   go (`gt    x) acc = go x (Ge    ∷ acc)
@@ -465,8 +459,15 @@ erased during extraction.
   go (`subst-stack x) acc = go x acc
 \end{code}
 
-\todo[inline]{NOTE, here is an attempt to add extraction rules for for loop}
-
+Extraction of \AF{for} falls into two cases, depending on the form
+of the loop function.  In  case the function is inlined, we end-up with
+a nested lambda term.  From the type we know that the stack variable
+will be bound to the innre lambda.  Therefore, we can extract the body
+\AB{b} with the pattern (\AC{var} \AN{0}) that refers to that very variable.
+After the body of the loop function has been extracted, we construct the
+\AC{For} node and recurse into the inital stack $x$.  Alternatively,
+the function can be referred by name, in which case we annote it with
+\AF{mark-todo} and call this function within the loop body.
 \begin{code}
   go (`for x (vArg (hLam _ (vLam _ b)))) acc = do
     proc ← extract-term b (var 0)
@@ -683,6 +684,17 @@ pattern. This is a correct optimization because Agda enforces
 completeness of definitions by pattern matching, so if the final case
 is reached it is guaranteed to match.
 
+\todo[inline]{FIXME: absurd clauses are handled wrongly.  We must
+extract the conditional from the pattern list.  This is because our if-chain
+has to take this into account when extracting further clauses.  \Ie{}
+f (suc x) (); f x = e should be extracted to (if x ≥ 1 () else e) not (e).}
+\todo[inline]{TODO: we never give examples of absurd patterns, we also
+do not generate any code for that case.  There is a quit command in PostScript
+that we can insret for extra safety.  Maybe?}
+\todo[inline]{XXX: We do not deal with the case when the body of the clause
+is a lambda function, \eg{} f = add o pop.  This can be hacked away by extending
+the list of patterns with (var 0), however, it completely ignores the telescope.
+Not sure, is there a better way, or shall we just ignore this case?}
 \begin{code}
 -- extract-clauses : Clauses → ℕ
 --                 → ExtractM (List PsCmd)
@@ -835,12 +847,17 @@ _ : lines (extract dblsuc base (quote add-1 ∷ base)) ≡
   ∷ [] )
 _ = refl
 
-_ : lines (extract sqsum base base) ≡
-  ( "/sqsum {"
-  ∷ "  dup mul exch dup mul exch add"
-  ∷ "} def"
-  ∷ [] )
-_ = refl
+boo : Stack ℕ (1 + n) → @0 ℕ → Stack ℕ (1 + n)
+boo (s # x) n = s # (0 + x)
+--boo s n = add (push 1 s)
+--boo s = λ n → add (push 1) s
+
+-- _ : lines (extract sqsum base base) ≡
+--   ( "/sqsum {"
+--   ∷ "  dup mul exch dup mul exch add"
+--   ∷ "} def"
+--   ∷ [] )
+-- _ = refl
 
 _ : lines (extract RepSimple.rep base base) ≡
   ( "/rep {"

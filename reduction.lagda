@@ -34,6 +34,9 @@ the use of \emph{rewrite rules}.
 
 \paragraph{Using Agda functions as macros}
 
+\todo[inline]{We could also mention that we are relying on \AF{\_▹\_}
+and friends to be inlined, so that we don't have to specialcase them
+in the extractor.}
 By reducing Agda expressions prior to extraction, we may use any host
 language constructs that are not present in the embedding, as long as
 they can be eliminated prior to extraction. For example, we can make

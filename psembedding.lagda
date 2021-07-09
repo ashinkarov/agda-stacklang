@@ -3,7 +3,7 @@
 module psembedding where
 
 open import Data.Bool using (Bool; true; false; if_then_else_; not)
-open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_; _≤_) renaming (_∸_ to _-_)
+open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_; _≤_; _<_; s≤s; z≤n) renaming (_∸_ to _-_)
 open import Data.Nat.Properties
 open import Data.Product
 open import Data.Unit using (⊤; tt)
@@ -30,13 +30,13 @@ variable
 % PostScript Language and its embedding
 \section{PostScript and its embedding in Agda} \label{sec:embedding}
 
-PostScript is a document description language.  Besides the usual markup,
-it also allows to define arbitrary computations.  It is dynamically typed
-and it is stack-based. \Ie{} there is a notion of a global stack, which
+PostScript is a document description language, and besides the usual markup,
+it is possible to define arbitrary computations.  The language is dynamically typed
+and stack-based.  That is, there is a notion of a global stack, which
 is used for both, passing values and storing results.  All the commands
 are argumentless operators, and a program is a chain of such commands.
-For example, consider a function that computes $a^2 + b^2$ for $a$ and
-$b$ being the top two values on the stack.
+For example, consider a function that computes $a^2 + b^2$, where $a$ and
+$b$ are the top two stack values.
 \begin{lstlisting}[language=PostScript]
 % a b -- a*a+b*b
 dup   % a b b    duplicate top element
@@ -47,7 +47,9 @@ mul   % b*b a*a  multiply top two numbers
 add   % b*b+a*a  add top two numbers
 \end{lstlisting}
 
-As it can be seen, commands use mnemonic names and typically implement
+\todo[inline]{Most likely we don't need both fibonacci and factorial, leave
+only one example.}
+Commands use mnemonic names and typically implement
 a simple computation or element manipulation on the stack.  Recursive
 function definitions are written as follows:
 \begin{lstlisting}[language=PostScript]
@@ -69,14 +71,14 @@ function definitions are written as follows:
 \end{lstlisting}
 A function is defined with the slash name (fact in the above example),
 followed by a block of commands that are written within braces (the
-body of the function) and the \textbf{def} command.  The definition may be
-used as a regular command, including the case when it is called
-recursively.  In the body of the function we check whether the argument
-(the top most stack element) is zero, in which case we remove the argument
-from the stack and put value one.  Otherwise, we duplicate the argument,
-substract one, make a recursive call, and multiply the result with the
-original argument.  Conditional is expressed with an \textbf{ifelse} command,
-putting two code blocks on the stack as arguments.
+body of the function) followed by the \textbf{def} command.  Definitions may be
+used as regular commands, including recursive calls.
+In the body of the function, we check whether the argument
+(the top stack element) is zero, in which case we remove it
+from the stack and put the value one.  Otherwise, we duplicate the argument,
+subtract one, make a recursive call, and multiply the result with the
+original argument.  Conditional are expressed with two code blocks
+followed by the \textbf{ifelse} command.
 
 Finally, consider the fibonacci function:
 \begin{lstlisting}[language=PostScript]
@@ -106,10 +108,10 @@ the corresponding height each time.
 
 While in principle PostScript has many more operators and drawing commands,
 in this paper we mostly consider it as a stack language that can define
-functions on natural numbers.  We do this to keep the complexity as low
+functions on natural numbers.  We do this to keep the extractor complexity as low
 as possible, yet exposing enough operators to demonstrate the
 verification.  Also, such a minimalist subset makes the example immediately
-transferrable to other stack-based languages such as Forth.
+transferable to other stack-based languages such as Forth.
 
 \subsection{Embedding in Agda}
 
@@ -117,12 +119,14 @@ Our Agda embedding defines a stack type and a number of basic operators
 operating on it.  A typical error that happens when programming
 in stack languages directly is underflowing or overflowing the stack.  The
 former is when we expect more elements on the stack than we actually have,
-therefore indexing beyound the first element will cause a runtime error.
+therefore indexing beyond the first element will cause a runtime error.
 The latter is when we put more elements on the stack than it is capable to
 store.  In the embedding one of our main goals is avoiding underflows,
 which occur extremely often.
 
 \paragraph{Stack type}
+\todo[inline]{XXX we may consider removing $X$ from the Stack, we are using
+natural numbers anyway, so we could specialise it.  Not sure.}
 We define the type of our stack inductively, and we force the type to carry
 the length of the corresponding stack. The stack can store elements of type
 \AB{X}, which is a type parameter.
@@ -166,7 +170,8 @@ dup (xs # x) = xs # x # x
 
 exch : Stack X (2 + n) → Stack X (2 + n)
 exch (xs # x # y) = xs # y # x
-
+\end{code}
+\begin{code}[hide]
 clear : Stack X n → Stack X 0
 clear _ = []
 \end{code}
@@ -175,6 +180,8 @@ note that the length index of \AD{Stack} ensures that the body of the function
 respects the specification.  If the body of the function returns the stack that
 does not have the length prescribed by the type, such a function would not typecheck.
 
+\todo[inline]{We never use this function, and we have plenty of points about
+irrelevance, so maybe we should get rid of this definition?}
 Consider the \AD{count} function that computes the length of the stack and stores
 it as the top element.  While it would be tempting to implement this function as
 \begin{code}
@@ -195,15 +202,22 @@ count xs = xs # go xs
     go (xs # _) = suc (go xs)
 \end{code}
 
-Finally, we define arithmetic operations:
+Finally, we define arithmetic operations for addition and multiplication:
 \begin{code}
-add sub mul eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+add mul : Stack ℕ (2 + n) → Stack ℕ (1 + n)
 add (s # x # y) = s # x + y
-sub (s # x # y) = s # x - y
 mul (s # x # y) = s # x * y
+\end{code}
+\begin{code}[hide]
+sub eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sub (s # x # y) = s # x - y
 eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
 gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
+Notice, that we are not defining subtraction and division, as when operating
+strictly in natural numbers, these functions would require additional proofs.
+We will need a proof that $a > b$ when subtracting $a - b$, and we will need
+a proof that $b \not= 0$ when dividing $a / b$.
 
 %Finally, we define arithmetic operations using a helper function \AD{binop}
 %that always acts on the two topmost elements of the stack.
@@ -219,24 +233,65 @@ gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 %gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
 %\end{code}
 
-\todo[inline]{Explain these guys below}
 
+We define several operations that do not represent PostScript
+commands, but that will be useful in some of the examples.
+The \AF{subs-stack} command makes it possible to cast a
+stack of length $m$ into the stack of length $n$, given
+the proof that $m \equiv n$.
 \begin{code}
 subst-stack : @0 m ≡ n → Stack X m → Stack X n
 subst-stack refl xs = xs
 \end{code}
+In dependnently-typed langauges, $m$ and $n$ can be arbitrary
+expressions, and it is not always obvious to Agda that these are
+equal.  For example, if we require a stack of length $a + b$, but
+we have a stack of length $b + a$, we cannot blindly use it, as
+this would not typecheck.  However, we can solve the problem by
+using \AF{subst-stack} and providing a proof that
+$a + b \equiv b + a$.
 
+Next, we define the PostScript command called \AF{index} that 
+makes it possible to access any element of the stack by providing
+its offset.  This can be seen as a more general version of the
+\AF{dup} command.  We first implement a helper function \AF{get-index}
+that does the actual indexing (we only give a signature), and then 
+\AF{index} puts the element obtained by \AF{get-index} on the stack.
+Notice that both functions require a proof that the index is within
+bounds.  Also, we are not strictly following the semantics of
+PostScript, and we force to pass the index explicitly, rather
+than taking it from the stack.
 \begin{code}
-
-get-index : (k : ℕ) (@0 _ : k ℕ.< m) → Stack X m → X
-get-index zero    (ℕ.s≤s k<m) (xs # x) = x
-get-index (suc k) (ℕ.s≤s k<m) (xs # x) = get-index k k<m xs
-
-index : (k : ℕ) → @0 k ℕ.< m → Stack X m → Stack X (1 + m)
+get-index : (k : ℕ) → @0 k < m → Stack X m → X
+index : (k : ℕ) → @0 k < m → Stack X m → Stack X (1 + m)
 index k k<m xs = xs # get-index k k<m xs
 \end{code}
+\begin{code}[hide]
+get-index zero     (s≤s k<m) (xs # x) = x
+get-index (suc k)  (s≤s k<m) (xs # x) = get-index k k<m xs
+\end{code}
 
-\todo[inline]{Move this to section 4}
+Finally, we implement a convenience function \AF{≤-ok} that
+can automatically find simple proofs that some $x$ is less or
+equal than some $y$.
+\begin{code}
+≤-ok : ∀ {x y} → {w : True (y ≥? x)} → x ≤ y
+≤-ok {w = w} = toWitness w
+\end{code}
+While this might look a bit like magic, the core idea is that
+\AF{≥?} is a decision procedure, and \AF{True} forces normalisation
+of \AB{y} \AF{≥?} \AB{x}.  In case normalisation is enough to compute the answer, 
+there is a standard way to turn \AB{w} into the proof of inequality.
+Practically, we often get away with using \AF{≤-ok} in places where
+a simple proof is needed.
+
+We explicitly forego the definition of conditionals, and comparison
+operators in favour of using pattern-matching functions.  Recursion
+is essential part of Agda, so there is no need to introduce any new
+operators.  Later we will demonstrate how can we add a for-loop to
+the embedding.
+
+\todo[inline]{Move this to section 4? Maybe ok here.}
 Note that nothing in this shallow embedding prevents us from doing
 operations that are illegal in PostScript, such as duplicating the
 whole stack or discarding it altogether. Such properties could be
@@ -247,10 +302,10 @@ illegal programs in our extractor.
 
 \subsection{Examples}
 
-Let us demonstrate how a typical program would look like in the
-proposed embedding.  Per our assumption, we need to express all the
-operations in terms of the base functions defined above.  Let us
-start with a trivial operation that adds one to the top element of
+Let us consider a typical program in the proposed embedding.
+Per our assumption, we express all the
+operations in terms of base functions defined above.  We
+start with a trivial function that adds one to the top element of
 the stack.
 
 \begin{code}
@@ -262,27 +317,33 @@ We are required to define the type, which in turn forces us to
 specify how does the operation change the length of the stack.
 Stack operators are regular functions, so the chain of applications
 would be written in reverse, when comparing to the corresponding
-PostScript program.  While this does not effect functionality,
+PostScript program.  While this does not affect functionality,
 it may be aesthetically pleasing to maintain the original order
-of operators.  This can be achieved by defining a trivial Agda
-operator that reverses arguments in function application.  We
-call this operator \AD{\_▹\_}:
+of operators.  This can be achieved by defining two
+operations that reverse arguments in application and
+composition.  We call these operations \AF{\_▹\_} and \AF{\_∘\textasciitilde{}\_}
+correspondingly:
 
-\begin{code}
+\begin{code}[hide]
 infixl 5 _▹_
+infixr 9 _∘~_
 _▹_ : X → (X → Y) → Y
-x ▹ f = f x
+_∘~_ : ∀ {A B C : Set} → (A → B) → (B → C) → (A → C)
+\end{code}
+\begin{code}
+x ▹  f  = f x
+f ∘~ g  = λ x → g (f x)
 \end{code}
 \begin{code}[hide]
 -- not sure if we need to expose this in the text
 {-# INLINE _▹_ #-}
-\end{code}
-
-Now we can rewrite the above example as:
-
-\begin{code}
+{-# INLINE _∘~_ #-}
 add-1′ : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-add-1′ s = s ▹ push 1 ▹ add
+add-1′′ : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+\end{code}
+Now we can rewrite the above example as:
+\begin{code}
+add-1′ s = s ▹ push 1 ▹ add;  {- or -} add-1′′ = push 1 ∘~ add
 \end{code}
 
 % This function does nothing to the stack but it introduces
@@ -309,40 +370,24 @@ Consider now a slightly more complicated function that computes
 $a^2 + b^2$ where $a$ and $b$ are top two elements of the stack:
 \begin{code}
 sqsum : Stack ℕ (2 + n) → Stack ℕ (1 + n)
-sqsum s = s ▹ dup ▹ mul ▹ exch ▹ dup ▹ mul ▹ exch ▹ add
+sqsum = dup ∘~ mul ∘~ exch ∘~ dup ∘~ mul ∘~ exch ∘~ add
 \end{code}
 It can be easier to understand the code if we introduce internal
-stack states as let bindings:
+stack states in variables names of let:
 \begin{code}
 sqsum′ : Stack ℕ (2 + n) → Stack ℕ (1 + n)
-sqsum′ s:a:b = let
-        s:a:b*b    = s:a:b      ▹ dup   ▹ mul
-        s:b*b:a*a  = s:a:b*b    ▹ exch  ▹ dup ▹ mul
-        s:a*a:b*b  = s:b*b:a*a  ▹ exch
-    in s:a*a:b*b ▹ add
+sqsum′ s:a:b = let s:a:b*b    = s:a:b      ▹ dup   ▹ mul
+                   s:b*b:a*a  = s:a:b*b    ▹ exch  ▹ dup ▹ mul
+                   s:a*a:b*b  = s:b*b:a*a  ▹ exch
+               in  s:a*a:b*b ▹ add
 \end{code}
 Notice that in Agda, variable/function names are chains of almost
 arbitrary symbols with no spaces.
 
-\todo[inline]{Shall we talk about verification here or in a separate chapter?}
-The nature of dependently-typed systems makes it possible not only to
-specify functions with ``built-in'' constraints, such as length of the stack,
-but also prove some properties about existing functions as theorems.  For
-example, we can prove that the above function actually implements the sum of squares:
-\begin{code}
-sqsum-thm : ∀ {s : Stack ℕ n}{a b}
-          → sqsum (s # a # b) ≡ s # a * a + b * b
-sqsum-thm = refl
-\end{code}
-The theorem says that for any $s$, $a$ and $b$, application of \AD{sqsum} to
-$s$ appended with $a$ and $b$ equals to $s$ appended with $a^2 + b^2$.  Luckily,
-from the way we constructed basic operations, this fact is obvious to Agda,
-therefore, the proof is simply the \AC{refl}exivity constructor.
-
 \paragraph{Pattern Matching}
-Let us now consider a function that
-computes $n$-th fibonacci number, where we use recursion
-and need to conditionalise on a stack element.
+The only way to express conditional in the proposed embedding is
+by means of pattern matching.  Consider the implementation of the
+fibonacci example:
 
 \begin{code}[hide]
 module FibNonTerm where
@@ -356,40 +401,25 @@ module FibNonTerm where
                                 ▹ exch  ▹ push 2 ▹ sub ▹ fib
                                 ▹ add
 \end{code}
-A standard way to conditionalise on the argument in Agda is by using
-pattern-matching.  Here we have to match the structure of the stack
-as well as the structure of the element, but the rest is a straight-forward
-code.
+The only unusual thing here is that we match the structure of the stack
+and the structure of the element simultaneously.
+For now, it is an excercise to the reader to verify that \AC{fib}
+actually implements fibonacci numbers.  In a later section we will give
+a formal proof of that.
 
-We leave it as an excercise to the reader to verify that the above code
-is actually computing fibonacci numbers.  We only provide a formal
-proof that the \AD{fib} always computes the same element as \AD{fib-spec}
-function.
-\begin{code}
-  fib-spec : ℕ → ℕ
-  fib-spec 0 = 1 ; fib-spec 1 = 1
-  fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x
+Note that Agda does not see that the \AD{fib} function terminates.
+For now, we add an explicit annotation, but in a later
+ection we will demonstrate how to deal with this formally.
 
-  fib-thm : (s : Stack ℕ n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
-  fib-thm _ 0 = refl ; fib-thm _ 1 = refl
-  fib-thm s (suc (suc x))
-          rewrite  (fib-thm (s # suc (suc x)) (suc x)) |
-                   (fib-thm (s # fib-spec (suc x)) x) = refl
-\end{code}
-
-While we can prove that the function computes the expected
-result, Agda does not see that the \AD{fib} function terminates.
-For now, we add an explicit annotation of this fact, but in the next
-subsection we will demonstrate how to deal with this formally.
 
 
 \paragraph{Dependent Stack Length}
-So far all the specifications within the embedded langauge did not
+So far all the specifications within the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it becomes very clear
 that even simplest programs in stack languages may expose a dependency
 between the stack argument and the stack length.  Those cases cannot
-be expressed in non-dependently-typed host langauges.  A simple example
+be expressed in non-dependently-typed host languages.  A simple example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
@@ -406,11 +436,11 @@ module RepSimple where
     {-# TERMINATING #-}
     rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
     rep       s@(_ # _ # zero)   = s ▹ pop ▹ pop
-    rep s:x:m+1@(_ # _ # suc m)  = let
-             s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index 1 (s≤s (s≤s z≤n))
+    rep s:x:m+1@(_ # _ # suc m)  =
+         let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
+             s:x:m:x  = s:x:m    ▹ index 1 ≤-ok
              s:x:x:m  = s:x:m:x  ▹ exch
-           in subst-stack (+-suc _ _) (rep s:x:x:m)
+         in  subst-stack (+-suc _ _) (rep s:x:x:m)
 \end{code}
 
 First, we define the \AD{hd} helper function that returns the top element
@@ -420,13 +450,52 @@ stack when entering the function the first time.  In case this argument
 is zero, we remove two elements from the stack: the argument we were
 replicating, and the count argument.  Otherwise, we decrease the count,
 copy the argument we are replicating, and put them in the expected position
-to make the next recrusive call.  The second argument to \AF{index} is a
-proff that $1 < 2 + n$.  At the end we apply
+to make the next recursive call.  The second argument to \AF{index} is a
+proof that $1 < 2 + n$, which Agda can compute automatically using \AF{≤-ok}.
+At the end we apply
 \AF{subst-stack} to fit the type definition.  The length of \AF{rep} \AB{s:x:x:m}
 is $(m + (1 + n))$ whereas we need the length
 $(1 + (m + n))$.  Such an equality is not obvious to Agda, we
 apply the \AD{+-suc} function from the standard library that translates
 between these expressions.
+
+\paragraph{Extrinsic Verification}
+The nature of dependently-typed systems makes it possible not only to
+specify functions with intrinsic constraints, such as length of the stack,
+but also to prove some properties about existing functions as theorems.  For
+example, we can prove that \AF{sqsum} actually implements the sum of squares:
+\begin{code}
+sqsum-thm : ∀ {s : Stack ℕ n}{a b}
+          → sqsum (s # a # b) ≡ s # a * a + b * b
+sqsum-thm = refl
+\end{code}
+The theorem says that for any $s$, $a$ and $b$, application of \AD{sqsum} to
+$s$ appended with $a$ and $b$ equals to $s$ appended with $a^2 + b^2$.  Luckily,
+from the way we constructed the basic operations, this fact is obvious to Agda.
+So the proof is simply the \AC{refl}exivity constructor.
+
+On the other hand, proving that \AF{fib} matches a simpler specification that
+we call \AF{fib-spec} requires a bit more work.
+\begin{code}[hide]
+module FibNonTermPf where
+  open FibNonTerm
+\end{code}
+\begin{code}
+  fib-spec : ℕ → ℕ
+  fib-spec 0 = 1 ; fib-spec 1 = 1
+  fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x
+\end{code}
+This is an inductive proof where we consider two base cases, and the
+step case.  In the latter we refer to the theorem with a structurally
+smaller arguments, and after rewriting such cases, the statement becomes
+obvious.
+\begin{code}
+  fib-thm : (s : Stack ℕ n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
+  fib-thm _ 0 = refl ; fib-thm _ 1 = refl
+  fib-thm s (suc (suc x))
+          rewrite  (fib-thm (s # suc (suc x)) (suc x)) |
+                   (fib-thm (s # fib-spec (suc x)) x) = refl
+\end{code}
 
 
 \paragraph{Proving Termination}
@@ -457,11 +526,11 @@ module RepTerm where
 \begin{code}
     rep′ : (s : Stack ℕ (2 + n)) → @0{hd s ≡ k} → Stack ℕ (hd s + n)
     rep′ {k = .0}            s@(_ # _ # zero)  {refl}  = s ▹ pop ▹ pop
-    rep′ {k = .suc k}  s:x:m+1@(_ # _ # suc m) {refl}  = let
-             s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index 1 (s≤s (s≤s z≤n))
+    rep′ {k = .suc k}  s:x:m+1@(_ # _ # suc m) {refl}  =
+         let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
+             s:x:m:x  = s:x:m    ▹ index 1 ≤-ok
              s:x:x:m  = s:x:m:x  ▹ exch
-           in subst-stack (+-suc _ _) (rep′ {k = k} s:x:x:m {refl})
+         in  subst-stack (+-suc _ _) (rep′ {k = k} s:x:x:m {refl})
 
     rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
     rep s = rep′ s {refl}
@@ -523,12 +592,11 @@ and the function is accepted by the termination checker.
 % \end{code}
 
 
-
 Showing termination of the \AF{fib} function fails for the same reason
 as in case of \AF{rep} --- it is unclear whether any argument decreases when
 calling \AF{fib} recursively.  Unfortunately, we cannot use the above trick
 with relation as is, because we make two recursive calls, but we keep results
-on the same stack.  The problem is that after the first recusive call \AF{fib}
+on the same stack.  The problem is that after the first recursive call \AF{fib}
 \AB{s:x:x-1} we obtain (conceptually) a new stack.  In order to call \AF{fib}
 on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
 (to bring \AB{x} at the top).  However, we cannot prove that \AF{fib} only
@@ -538,7 +606,7 @@ we show the shortest one.  We adjust the structure of our recursion,
 so that we deal with three elements per iteration, implementing a simple
 scheme $\langle 1+x, a, b \rangle \leadsto \langle x, b, a+b \rangle$.
 Where $x$ is the number in the sequence that we want to find, and $a = b = 1$
-in the inital call:
+in the initial call:
 
 \begin{code}
 rot3 : ∀ {X}{@0 n} → Stack X (3 + n) → Stack X (3 + n)
@@ -551,21 +619,21 @@ module Fib3 where
 \end{code}
 \begin{code}
     fib3 : (s : Stack ℕ (3 + n))
-         → {@0 _ : get-index 2 (s≤s (s≤s (s≤s z≤n))) s ≡ k}
+         → @0{get-index 2 ≤-ok s ≡ k}
          → Stack ℕ (3 + n)
     fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
-    fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} = let
-      s:1+m:a:b    = s
-      s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 (s≤s (s≤s z≤n)) ▹ add
-      s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub
-      s:m:b:a+b    = s:a+b:b:m   ▹ rot3
-      in fib3 {k = k} s:m:b:a+b {refl}
+    fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} =
+      let s:1+m:a:b    = s
+          s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 ≤-ok ▹ add
+          s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub
+          s:m:b:a+b    = s:a+b:b:m   ▹ rot3
+      in  fib3 {k = k} s:m:b:a+b {refl}
 
     fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-    fib s = let
-      s:m:1:1              = s ▹ push 1 ▹ push 1
-      s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {refl}
-      in s:0:fib[m]:fib[1+m] ▹ pop ▹ exch ▹ pop
+    fib s =
+      let s:m:1:1              = s ▹ push 1 ▹ push 1
+          s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {refl}
+      in  s:0:fib[m]:fib[1+m] ▹ pop ▹ exch ▹ pop
 \end{code}
 Then \AF{fib3} is doing the iteration; \AF{fib} sets the inital seed
 and cleans-up the stack.  We defined a new stack operation
@@ -574,34 +642,75 @@ Note that this is not a built-in operation of PostScript, but it is
 trvial to implement it in terms of \AF{roll} and \AF{exch}.
 
 \subsection{For Loop}
+The final part of our embedding is the for-loop construct.  Not only
+this is often found in practical PostScript documents, it also helps
+to avoid termination problems that we had before.  The difficulty with
+encoding the for-loop behaviour lies in its potential ability to
+arbitrarily modify stack at every iteration.  While there is no
+technical problem to encode such a behaviour in Agda, it would be
+quite inconvenient to work with.  Every time one needs to ensure
+that a stack returned by a for-loop contains enough elements, a
+potentially complex proof has to be given.  We can make our life
+easier by encoding a well-behaved subset that is easy to work with
+and that is sufficient for our examples.  The boundaries
+of the loop are given by two numbes $s$ and $e$, where $s \le e$.
+The loop iterations would go through indices $s, 1+s, \dots, e$
+inclusively.
 
-\todo[inline]{Deal with the code}
-
+As we require the inequality proof anyway, we can use the proof
+object to run a well-founded recursion, and automatically increment
+indices the way we need.  We define the (a two-argument) \AF{\_≥₁\_}
+type with two constructors:
 \begin{code}
-≤-ok : ∀ {x y} → {w : True (y ≥? x)} → x ≤ y
-≤-ok {w = w} = toWitness w
-
-infixr 9 _∘~_
-_∘~_ : ∀ {A B C : Set} → (A → B) → (B → C) → (A → C)
-f ∘~ g = λ x → g (f x)
-{-# INLINE _∘~_ #-}
-
--- For loop
 data _≥₁_ (l : ℕ) : ℕ → Set where
   ≥-done : l ≥₁ l
   ≥-next : ∀ {m} → l ≥₁ (suc m) → l ≥₁ m
+\end{code}
+Reflexivity ($l \ge l$) is given by \AC{≥-done}, and \AC{≥-next} says
+that proving $l \ge m$ requires first proving that $l \ge 1+m$.  For
+example, 3 \AD{≥₁} 1 is given by:
+\begin{code}
+_ : 3 ≥₁ 1
+_ = let 3≥₁3 = ≥-done ; 3≥₁2 = ≥-next 3≥₁3
+        3≥₁1 = ≥-next 3≥₁2 in 3≥₁1
+\end{code}
+and the second argument will grow every time we ``unpeel'' the \AC{≥-next}
+constructor.
 
-≥₁-count : ∀ {a b} → a ≥₁ b → (n : ℕ) → ℕ
-≥₁-count ≥-done      n = n
-≥₁-count (≥-next a≥sb) n = ≥₁-count a≥sb n + n
 
-for : (s : Stack ℕ (2 + k + n))
+We define for-loop as a function of three arguments: the initial stack,
+the proof that two top elements are related by \AC{\_≥₁\_}, and the body
+of the for-loop given by a function.
+\begin{code}
+for : (s : Stack ℕ (2 + k + n)) 
       → {e≥₁s : get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s}
       → (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m))
       → Stack ℕ (k + n)
-for {k}{n} (st # s # .s) {≥-done}        f = f {n} (st # s)
-for {k}{n} (st # s #  e) {≥-next e≥₁1+s} f = for {k}{n} (f (st # s) # suc s # e) {e≥₁1+s} f
+for {k}{n} (st # s # .s) {≥-done} f = f {n} (st # s)
+for {k}{n} (st # s #  e) {≥-next e≥₁1+s}  f =
+    for {k}{n} (f (st # s) # suc s # e) {e≥₁1+s} f
+\end{code}
+Our assumption here is that we have $k$ top elements of the stack that
+are accessible to the body of the loop, and that it does not add more
+elements after the iteration is over.  Initial stack contains 2 loop boundary
+elements, then $k$ inital elements that the body of the loop can read and/or
+modify and the rest $n$ elements.  The loop function gets the the iteration
+element at the top of the stack, $k$ elements and the rest $m$ elements.
+It has to return $k+m$-long stack.  We recurse over the \AB{e≥₁s} proof
+object, and no matter how many iterations we will do, it is guaranteed that
+the stack lenght would stay $k+n$ elements long.
+\begin{code}[hide]
+for′ : (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m)) 
+     → Σ (Stack ℕ (2 + k + n)) (λ s → get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s)
+     → Stack ℕ (k + n)
+\end{code}
 
+For convenience we define the wrapper function \AF{for′} that put together the
+stack and the proof, allowing for a nice use of \AD{\_▹\_}.
+\begin{code}
+for′ f (s , ≥-ok) = for s {≥-ok} f
+\end{code}
+\begin{code}[hide]
 x≥₁sy→x≥₁y : ∀ {x y} → x ≥₁ suc y → x ≥₁ y
 x≥₁sy→x≥₁y ≥-done = ≥-next ≥-done
 x≥₁sy→x≥₁y (≥-next x≥sy) = ≥-next (x≥₁sy→x≥₁y x≥sy)
@@ -611,45 +720,97 @@ x≥₁y→s[x]≥₁y {x} {.x} ≥-done = ≥-next ≥-done
 x≥₁y→s[x]≥₁y {x} {y} (≥-next x≥₁y) = ≥-next (x≥₁y→s[x]≥₁y x≥₁y)
 
 ≥₁-trans : ∀ {x y z} → x ≥₁ y → y ≥₁ z → x ≥₁ z
-≥₁-trans {x} {y} {.y} x≥y ≥-done = x≥y
-≥₁-trans {x} {y} {z} x≥y (≥-next y≥z) = x≥₁sy→x≥₁y (≥₁-trans x≥y y≥z)
-
+≥₁-trans {x} {y} {.y}  x≥y ≥-done        = x≥y
+≥₁-trans {x} {y} {z}   x≥y (≥-next y≥z)  = x≥₁sy→x≥₁y (≥₁-trans x≥y y≥z)
+\end{code}
+We prove a simple fact that for any number \AB{x}, we have \AB{x} \AF{≥₁} \AN{0}.
+\begin{code}
 x≥₁0 : ∀ {x} → x ≥₁ 0
+\end{code}
+\begin{code}[hide]
 x≥₁0 {zero} = ≥-done
 x≥₁0 {suc x} = ≥₁-trans (≥-next ≥-done) x≥₁0
+\end{code}
 
+\begin{code}[hide]
 -- 10 + 0 + 1 + ... + x
 sum-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-sum-for s@(_ # x) = for {k = 1}
-                        (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
-                        add
+sum-for s@(_ # x) = (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch , x≥₁0) 
+                    ▹ for′ {k = 1} add
+\end{code}
+% This is an alternative version of the code we used before introducing for′
+% for {k = 1} 
+%     (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
+%     add
 
--- note that we start from 0 1 here, as the loop goes from 0 to x inclusively.
--- alternatively, we could conditionalise on x
+Now we are ready to define our running fibonacci example using \AF{for′}:
+\begin{code}
 fib-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-fib-for s@(_ # x) = for {k = 2}
-                        (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
-                        (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
-                    ▹ pop
-
-
+fib-for s@(_ # x) 
+    = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
+    ▹ for′ {k = 2} (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
+    ▹ pop
+\end{code}
+% This is an alternative version of the code we used before introducing for′
+% for {k = 2} 
+%     (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0} 
+%     (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
+% ▹ pop
+Our initial stack contains the function argument $x$ at the top. We modify
+the stack by inserting $0 1$ (inital fibonacci seeds) and $0$ (for-loop lower
+bound) before $x$.  In the function body, we remove the iteration value,
+and modify $\langle a , b\rangle$ into $\langle b , a+b\rangle$.
+Note that we start from 0 1 and not 1 1, as the loop goes from 0 to $x$
+inclusively.  Alternatively, we could have conditionalise on $x$.
+\begin{code}[hide]
 module Sierpinski where
+\end{code}
+
+Consider now an example that demonstates a realistic PostScript
+example that generates a version of Sierpinski fractal.  The
+structure of the code is straight-forward: have a double-nested
+for-loop, and we draw a dot at the coordinate $i j$ given that
+bit-wise and of $i$ and $j$ is not zero.  First, we define drawing
+and bit-wise and as postualtes.  This means that we only provide
+a type signature of the functions, but not the implementaiton.
+We assume that these are already implemented in PostScript, and
+we can simply refer to them.  We implement conditional drawing
+via the helper function \AF{draw-if}.
+\begin{code}
     postulate
       draw-circ-xy : Stack ℕ (2 + n) → Stack ℕ n
       bit-and : Stack ℕ (2 + n) → Stack ℕ (1 + n)
 
     draw-if : Stack ℕ (3 + n) → Stack ℕ (2 + n)
-    draw-if s@(_ # 0) = s ▹ pop ▹ index 1 ≤-ok ▹ index 1 ≤-ok
-                          ▹ draw-circ-xy
-    draw-if s         = s ▹ pop
-
-    sierp : Stack ℕ (1 + n) → Stack ℕ n
-    sierp s = for {k = 1}
-                  (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0}
-                  (λ s → for {k = 1}
-                             (s ▹ push 0 ▹ index 2 ≤-ok) {x≥₁0}
-                             (index 1 ≤-ok ∘~ index 1 ≤-ok ∘~
-                              bit-and ∘~ draw-if ∘~ pop)
-                         ▹ pop)
-              ▹ pop
+    draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ≤-ok ▹ index 1 ≤-ok
+                            ▹ draw-circ-xy
+    draw-if s          = s  ▹ pop
 \end{code}
+The main function sets the boundaries for both for-loops, applies
+\AF{bit-and} to $i$ and $j$, and calls the drawing function, ensuring
+that no extra arguments are left on the stack.
+\begin{code}
+    sierp : Stack ℕ (1 + n) → Stack ℕ n
+    sierp s  = (s ▹ push 0 ▹ index 1 ≤-ok , x≥₁0)
+             ▹ for′ {k = 1} 
+               (λ s → (s ▹ push 0 ▹ index 2 ≤-ok , x≥₁0)
+                      ▹ for′ {k = 1} (index 1 ≤-ok ∘~ index 1 ≤-ok
+                                      ∘~ bit-and ∘~ draw-if ∘~ pop)
+                      ▹ pop)
+             ▹ pop
+\end{code}
+While the algorithm is straight-forward, it is very easy to forget to
+remove or copy an element within for-loops when implementing such
+a code manually.  Strict stack size discipline that we have in Agda
+comes very helpful here, and eliminates an entire class of errors.
+
+
+% This is an alternative version of the code we used before introducing for′
+% for {k = 1}
+%     (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0} 
+%     (λ s → for {k = 1} 
+%                (s ▹ push 0 ▹ index 2 ≤-ok) {x≥₁0}
+%                (index 1 ≤-ok ∘~ index 1 ≤-ok ∘~
+%                 bit-and ∘~ draw-if ∘~ pop)
+%            ▹ pop)
+% ▹ pop
