@@ -427,23 +427,23 @@ PostScript commands in an accumulator.
 \begin{code}
 -- extract-term : Term → Pattern
 --              → ExtractM (List PsCmd)
-extract-term v stackp = go v stackp []
+extract-term v stackp = go v []
   where
-  go : Term → Pattern → List PsCmd → ExtractM (List PsCmd)
+  go : Term → List PsCmd → ExtractM (List PsCmd)
 \end{code}
 
 The cases for basic instructions are completely straightforward.
 
 \begin{code}
-  go (`pop   x) p acc = go x p (Pop   ∷ acc)
-  go (`dup   x) p acc = go x p (Dup   ∷ acc)
-  go (`exch  x) p acc = go x p (Exch  ∷ acc)
-  go (`rot3  x) p acc = go x p (Rot3  ∷ acc)
-  go (`add   x) p acc = go x p (Add   ∷ acc)
-  go (`sub   x) p acc = go x p (Sub   ∷ acc)
-  go (`mul   x) p acc = go x p (Mul   ∷ acc)
-  go (`eq    x) p acc = go x p (Eq    ∷ acc)
-  go (`gt    x) p acc = go x p (Ge    ∷ acc)
+  go (`pop   x) acc = go x (Pop   ∷ acc)
+  go (`dup   x) acc = go x (Dup   ∷ acc)
+  go (`exch  x) acc = go x (Exch  ∷ acc)
+  go (`rot3  x) acc = go x (Rot3  ∷ acc)
+  go (`add   x) acc = go x (Add   ∷ acc)
+  go (`sub   x) acc = go x (Sub   ∷ acc)
+  go (`mul   x) acc = go x (Mul   ∷ acc)
+  go (`eq    x) acc = go x (Eq    ∷ acc)
+  go (`gt    x) acc = go x (Ge    ∷ acc)
 \end{code}
 
 For the commands \AF{push} and \AF{index}, the extractor currently
@@ -452,18 +452,18 @@ the argument. For any other argument the extraction is aborted by
 calling the \AF{fail} function.
 
 \begin{code}
-  go (`push (lit (nat n)) x) p acc = go x p (Push n ∷ acc)
-  go (`push k x) p acc =
+  go (`push (lit (nat n)) x) acc = go x (Push n ∷ acc)
+  go (`push k x) acc =
     fail ("push non-literal: " <> showTerm k)
-  go (`index (lit (nat n)) x) p acc = go x p (Index n ∷ acc)
-  go (`index k x) p acc =
+  go (`index (lit (nat n)) x) acc = go x (Index n ∷ acc)
+  go (`index k x) acc =
     fail ("index non-literal " <> showTerm k)
 \end{code}
 
 \begin{code}[hide]
-  go v@(s `# (lit (nat n))) p acc = do
-    b ← stack-ok p v
-    if b then return acc else go s p (Push n ∷ acc)
+  go v@(s `# (lit (nat n))) acc = do
+    b ← stack-ok stackp v
+    if b then return acc else go s (Push n ∷ acc)
 \end{code}
 
 The function \AF{subst-stack} is only needed to satisfy the Agda
@@ -471,19 +471,19 @@ typechecker, but does not have any run-time behaviour. Hence it is
 erased during extraction.
 
 \begin{code}
-  go (`subst-stack x) p acc = go x p acc
+  go (`subst-stack x) acc = go x acc
 \end{code}
 
 \todo[inline]{NOTE, here is an attempt to add extraction rules for for loop}
 
 \begin{code}
-  go (`for x (vArg (hLam _ (vLam _ b)))) p acc = do
-    proc ← go b (var 0) []
-    go x p (For proc ∷ acc) 
+  go (`for x (vArg (hLam _ (vLam _ b)))) acc = do
+    proc ← extract-term b (var 0)
+    go x (For proc ∷ acc) 
 
-  go (`for x (vArg (hLam _ (def f (hArg0 (var 0 []) ∷ []))))) p acc = do
+  go (`for x (vArg (hLam _ (def f (hArg0 (var 0 []) ∷ []))))) acc = do
     mark-todo f
-    go x p (For [ FunCall (prettyName f) ] ∷ acc)
+    go x (For [ FunCall (prettyName f) ] ∷ acc)
 \end{code}
 
 
@@ -496,12 +496,12 @@ the corresponding argument in the argument list and continues
 extraction with that argument.
 
 \begin{code}
-  go (def f args@(_ ∷ _)) p acc = do
+  go (def f args@(_ ∷ _)) acc = do
     mark-todo f
     ty  ← get-normalised-type f
     n   ← extract-type ty
     a   ← lookup-arg args n
-    go a p (FunCall (prettyName f) ∷ acc)
+    go a (FunCall (prettyName f) ∷ acc)
 \end{code}
 
 After traversing through the stack operations, we reach the stack
@@ -511,10 +511,10 @@ If the check succeeds, we return the list of commands collected in
 \AB{acc}.
 
 \begin{code}
-  go v p acc = do
-    b ← stack-ok p v
+  go v acc = do
+    b ← stack-ok stackp v
     if b then (return acc) else
-      (fail ("stack mismatch: "  <> showPattern p
+      (fail ("stack mismatch: "  <> showPattern stackp
                      <> " and "  <> showTerm v))
 \end{code}
 
