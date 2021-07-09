@@ -30,7 +30,7 @@ variable
 \end{code}
 
 % PostScript Language and its embedding
-\section{PostScript and its embedding in Agda}
+\section{PostScript and its embedding in Agda} \label{sec:embedding}
 
 PostScript is a document description language.  Besides the usual markup,
 it also allows to define arbitrary computations.  It is dynamically typed

@@ -72,7 +72,7 @@ prettyName f = maybe id "" (L.last (S.wordsBy ('.' C.≟_) (showName f)))
 \end{code}
 
 
-\section{Extraction}
+\section{Extraction} \label{sec:extraction}
 
 In this section, we show a concrete example of an extractor
 implemented using reflection in Agda. On a basic level, the extractor

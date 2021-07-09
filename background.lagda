@@ -4,7 +4,7 @@ postulate
 module _ where
 module Basics where
 \end{code}
-\section{Background}
+\section{Background} \label{sec:background}
 We start with a brief overview of key Agda constructions that
 are used in this paper.  We also present relevant parts of the
 reflection API.  For a more in-depth introduction to Agda refer

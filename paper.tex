@@ -103,6 +103,16 @@
 }
 
 
+\newcommand{\myref}[2]{\hyperref[#2]{#1~\ref*{#2}}}
+\newcommand{\figref}[1]{\myref{Fig.}{fig:#1}}%{Fig.~\ref{fig:#1}}
+\newcommand{\secref}[1]{\myref{Sect.}{sec:#1}}
+\newcommand{\lemref}[1]{\myref{Lemma}{lem:#1}}
+\newcommand{\thmref}[1]{\myref{Theorem}{thm:#1}}
+\newcommand{\defref}[1]{\myref{Definition}{def:#1}}
+\newcommand{\eqnref}[1]{\hyperref[#1]{(\ref{#1})}}
+
+
+
 \begin{document}
 
 %% Title information
@@ -147,17 +157,17 @@
   from trivial, as it requires significant re-engineering of the existing
   compilers and tools.  This paper proposes a novel technique to write
   correct-by-construction programs in languages without built-in verification
-  capabilities, maintaining the ability to use existing tools.
+  capabilities, while maintaining the ability to use existing tools.
   This is achieved in three steps.  Firstly, we
   give a shallow embedding of the language (or a subset) into a
   dependently typed language.  Secondly, we write a program
   in that embedding, and we use dependent types to guarantee
   correctness properties of interest.  Thirdly, we
-  translate the embedded program back into the original language,
+  extract a program written in the original language,
   so that it can be used by the existing compilers and tools.
 
   Our main insight is that it is possible to
-  express all three steps in a single language, as long as it supports
+  express all three steps in a single language that supports
   both dependent types and reflection. Essentially,
   this allows us to express a program, its formal properties, and
   a compiler for it hand-in-hand, offering a lot of flexibility to programmers.
@@ -223,71 +233,110 @@
 \end{abstract}
 \maketitle
 
-\section{Introduction}
+\section{Introduction}\label{sec:introduction}
 
 
+When writing a program, it is often desirable to guarantee that a
+certain class of errors does not occur in the given program.  For
+example, the program can never dereference a null pointer; or division
+by zero never occurs; or indexing is always within bounds.  In most
+programming languages, the class of guarantees that can be checked
+statically is very limited.  Nevertheless, moving to a different
+language is not always an option.  For example, these languages may
+come with great tooling, compilers and libraries.  In this paper, we
+investigate how to provide strong static guarantees for programs in a
+given language, while maintaining the ability to to use existing
+compilers and tools.
 
-It is often desirable to guarantee that a certain class of errors does
-not occur in the given program.  For example, the program can never dereference
-a null pointer; or division by zero never occurs; or indexing is always
-within bounds.  In practical programming languages, the kind of guarantees
-that we can provide formally is typically very limited.  At the same time,
-there could be many arguments in favour of keeping using these languages.
-For example they may come with great tooling, compilers and libraries.
-Therefore, the problem we are investigating in this paper is how to
-provide formal guarantees for the program in some language, yet being
-able to use the original compilers and tools.
+One very powerful method for enforcing almost any functional property
+of a program statically is by using \emph{dependent types}.
+In a dependently typed language, properties can be encoded as types,
+and if the program typechecks, the property is guaranteed to hold.
+If we can extend our existing language with dependent types
+(for verification part) and then eliminate them (for using the original
+compiler), then our goal is achieved.
 
-One way to tackle this problem is via rephrasing it in terms
-of dependent types.  If the language of interest were to support dependent
-types, we could encode any property about the given program in
-types.  Then, if the program typechecks, the property holds automatically.
-So, the question now becomes how can we add dependent types to a language
-(for verification part), and then eliminate them (for using the original
-compiler).
-
-While implementing a custom typechecker from scratch for a
-dependently-typed language is possible, it is time-consuming and error-prone.
-Alternatively, one can reuse existing implementations of dependently-type
-systems by means of embedding.  In this case, we can share the type system
+While it is possible to add dependent types to an existing language
+from scratch, doing so is time-consuming and error-prone.  Instead,
+one can also embed the language we want to use into an existing
+dependently typed language, which allows us to re-use the typechecker
 of the host language to typecheck the embedded language.
 
 There are two common approaches to language embedding: deep and shallow.
-Shallow embedding defines a language in terms of functions and operators
+A shallow embedding defines a language in terms of functions and operators
 of the host language.  Programs in a shallowly-embedded language are programs
 in the host language, so they are immediately runnable; types of the embedded
 language are types of the host language, so the host typechecker is used for
 checking embedded programs.  The downside of this approach is that we cannot
 easily get the representation of the embedded program.
 
-Deep embedding defines a data type to represent the AST of the embedded language.
-Then we need to define a type system and evaluator for the language separately.
-With a dependently-typed host language the AST and the type system can be
-defined within a single data structure, which is typically referred as
-tagless interpreters~\cite{}.  The benefit of deep embedding is that we
-get immediate access to the structure of the embedded program.
-The approach works beautifully for
-embedded languages with simple type systems.  If the language we want to
-embed is dependently-typed, it is shown~\cite{} to be possible, but the
-resulting embedding is very difficult to use in practice.
+Meanwhile, a deep embedding defines a data type to represent the AST
+of the embedded language.  This requires us to define a type system
+and evaluator for the language separately.  With a dependently typed
+host language the AST and the type system can be defined as a single
+data structure, which is typically referred to as a tagless
+interpreter~\cite{}.  The benefit of deep embedding is that we get
+full access to the syntactic structure of the embedded program.  This
+approach works beautifully for embedded languages with simple type
+systems. However, for embedded languages with dependent types,
+defining a tagless interpreter is technically possible~\cite{}, but
+extremely challenging to define and use in practice.
 
-Our solution to this problem is to rely on a reflection mechanism that
-can be found in dependently-typed systems such as Idris, Agda, Lean.
-Reflection makes it possible to obtain a representation of the
-given term of the host language.  Essentially, shallow embedding in
-a host language with reflections suddenly becomes deep.
+We propose a novel approach that combines the best parts of shallow
+and deep embeddings through the use of reflection in a
+dependently-typed host language such as Coq, Agda, Idris, or Lean.
+Concretely, we start by defining a shallow embedding of the target
+language while making use of dependent types to statically enforce the
+properties of interest, and write a program in this embedding. We then
+make use of reflection to obtain a syntactic representation of the
+program, and extract a program in the syntax of the target language
+from it.  Finally, we compile the extracted program using existing
+tools and libraries. Essentially, a shallow embedding in a host
+language with reflections suddenly becomes deep.
 
 In this paper we demonstrate that the proposed approach is actually possible
 by example.  We embed a subset of PostScript~\cite{}, which is a stack-based
-language used in the corresponding document format.  Simplicity of the language
+language used in the corresponding document format.  The simplicity of the language
 allows us to focus on the essence of the proposed approach and avoid unrelated
 technical details.  We use Agda as our host language, and we demonstrate the
 embedding, how to specify a program, and most importantly, program extraction.
 
-\todo[inline]{Should we talk about using rewrites as an optimisation?
-        Should we talk here about scaling to realistic examples?
-        Should we mention our work on extending Agda?}
-\todo[inline]{Technical contributions}
+\paragraph{Contributions.}
+\begin{itemize}
+  
+\item We propose a novel approach that can be used to statically
+  enforce almost any property of programs in an existing language, by
+  embedding it in a host language that supports dependent types and
+  reflection.
+
+\item We demonstate this approach by a concrete example: an embedding
+  of (a subset of the) PostScript language into Agda.
+
+\item We give several examples of PostScript programs written in our
+  embedding, and demonstrate how to statically enforce properties such
+  as the absence of stack underflows, termination, and functional
+  correctness.
+
+\item We show how to use reflection in Agda to implement an extractor
+  that translates code written in our embedding to plain PostScript.
+
+\item We show how to our approach provides easy support for partial
+  evaluation by making use of normalisation in the host language. This
+  allows us to use functions of the host language as macros, as well
+  as automatically apply optimizations through the use of rewrite
+  rules.
+\end{itemize}
+
+The rest of this paper is structured as follows. \secref{background}
+provides background information on Agda and its reflection
+capabilities. \secref{embedding} describes our embedding of PostScript
+in Agda, and gives several examples of programs written in
+it. \secref{extraction} shows how to implement an extractor for this
+embedding using reflection. Next, \secref{partial-evaluation}
+demonstrates how to apply partial evaluation to programs prior to
+extraction by using Agda's normalisation procedure. Finally,
+\secref{related} discusses related work and \secref{conclusion}
+concludes.
 
 % Right now we have the following plan about the structure of the GPCE paper.
 % \begin{enumerate}
@@ -319,7 +368,7 @@ embedding, how to specify a program, and most importantly, program extraction.
 \input{latex/reduction}
 
 
-\section{Scaling to Bigger Langauges}
+\section{Scaling to Bigger Languages} \label{sec:scaling}
 Not sure whether this deserves a separate section, but we need to explain
 that the proposed technology perfectly scales to the level of bigger (more complex)
 languages.
@@ -406,7 +455,7 @@ is quite similar to our own. While they are able to formally
 reason about preservation of semantics (which we can't do yet), it is unclear
 whether their approach scales to dependently-typed embedded languages.
 
-\section{Conclusions and Future Work}
+\section{Conclusions and Future Work} \label{sec:conclusion}
 
 
 In this paper we investigate the idea of developing

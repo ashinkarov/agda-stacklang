@@ -23,7 +23,7 @@ open import extraction
 \end{code}
 
 
-\section{Partial evaluation}
+\section{Partial evaluation} \label{sec:partial-evaluation}
 
 Working with a shallow embedding brings us gives us an important
 benefit: we can use the existing evaluator of Agda to partially
