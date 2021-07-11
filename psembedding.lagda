@@ -47,40 +47,10 @@ mul   % b*b a*a  multiply top two numbers
 add   % b*b+a*a  add top two numbers
 \end{lstlisting}
 
-\todo[inline]{Most likely we don't need both fibonacci and factorial, leave
-only one example.}
 Commands use mnemonic names and typically implement
 a simple computation or element manipulation on the stack.  Recursive
 function definitions are written as follows:
-\begin{lstlisting}[language=PostScript]
-/fact {
-  % n -- n!
-  dup      % n n
-  0 eq     % n 0==n
-  {        % if 0==n
-    pop    % empty stack
-    1      % 1 [result]
-  }
-  {        % if !0==n
-    dup    % n n
-    1 sub  % n n-1
-    fact   % n fac(n-1)
-    mul    % n*fac(n-1) [result]
-  } ifelse
-} def
-\end{lstlisting}
-A function is defined with the slash name (fact in the above example),
-followed by a block of commands that are written within braces (the
-body of the function) followed by the \textbf{def} command.  Definitions may be
-used as regular commands, including recursive calls.
-In the body of the function, we check whether the argument
-(the top stack element) is zero, in which case we remove it
-from the stack and put the value one.  Otherwise, we duplicate the argument,
-subtract one, make a recursive call, and multiply the result with the
-original argument.  Conditional are expressed with two code blocks
-followed by the \textbf{ifelse} command.
 
-Finally, consider the fibonacci function:
 \begin{lstlisting}[language=PostScript]
 /fib {
   % n -- fib(n)
@@ -98,13 +68,22 @@ Finally, consider the fibonacci function:
   } ifelse
 } def
 \end{lstlisting}
-And here is how we can use this function application repeatedly to draw
-a picture using PostScript interpreter:
+
+A function is defined with the slash name (`fib' in the above example),
+followed by a block of commands that are written within braces (the
+body of the function) followed by the \textbf{def} command.  Definitions may be
+used as regular commands, including recursive calls.
+In the body of the function, we check whether the argument
+(the top stack element) is zero, in which case we remove it
+from the stack and put the value one.  Otherwise, we duplicate the argument,
+subtract one, make a recursive call, and multiply the result with the
+original argument.  Conditional are expressed with two code blocks
+followed by the \textbf{ifelse} command.
+
+By printing the results of the fib function (code not shown here), we
+can obtain the following picture using a PostScript interpreter:
 
 \epsfbox[0 0 200 100]{1.ps}
-
-We have applied the fib function several times, while drawing a bar of
-the corresponding height each time.
 
 While in principle PostScript has many more operators and drawing commands,
 in this paper we mostly consider it as a stack language that can define
