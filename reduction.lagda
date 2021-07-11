@@ -34,9 +34,6 @@ the use of \emph{rewrite rules}.
 
 \paragraph{Using Agda functions as macros}
 
-\todo[inline]{We could also mention that we are relying on \AF{\_▹\_}
-and friends to be inlined, so that we don't have to specialcase them
-in the extractor.}
 By reducing Agda expressions prior to extraction, we may use any host
 language constructs that are not present in the embedding, as long as
 they can be eliminated prior to extraction. For example, we can make
@@ -48,7 +45,7 @@ applyN : ℕ → (X → X) → X → X
 applyN zero     f x = x
 applyN (suc n)  f x = f (applyN n f x)
 
-pow32 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+pow32 : Stack (1 + n) → Stack (1 + n)
 pow32 s = applyN 5 (λ s → s ▹ dup ▹ mul) s
 \end{code}
 
@@ -81,7 +78,7 @@ functions that should not be inlined). For example, it can eliminate
 values that are first pushed and then popped again without being used:
 
 \begin{code}
-push-pop : Stack ℕ n → Stack ℕ n
+push-pop : Stack n → Stack n
 push-pop s = s ▹ push 42 ▹ pop
 
 _ : lines (extract push-pop base []) ≡
@@ -129,7 +126,7 @@ As an example, we can prove that first pushing \AN{0} to the stack and
 then calling \AF{add} does not have any effect.
 
 \begin{code}
-add-0-cancel : (s : Stack ℕ (1 + n)) → s ▹ push 0 ▹ add ≡ s
+add-0-cancel : (s : Stack (1 + n)) → s ▹ push 0 ▹ add ≡ s
 add-0-cancel (s # x) = cong (s #_) (+-identityʳ x)
 \end{code}
 
@@ -144,7 +141,7 @@ From now on the rule will be applied automatically by the extractor
 whenever it can:
 
 \begin{code}
-add-some-numbers : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+add-some-numbers : Stack (1 + n) → Stack (1 + n)
 add-some-numbers s = s  ▹ push 0 ▹ add  ▹ push 2 ▹ add
                         ▹ push 7 ▹ add  ▹ push 0 ▹ add
 
@@ -160,7 +157,7 @@ We can further optimize the example by adding another rule
 that joins together two adjacent additions:
 
 \begin{code}
-add-add-join : (s : Stack ℕ (1 + n)) (k l : ℕ)
+add-add-join : (s : Stack (1 + n)) (k l : ℕ)
   → s ▹ push k ▹ add ▹ push l ▹ add ≡ s ▹ push (k + l) ▹ add
 add-add-join (s # x) k l = cong (s #_) (+-assoc x k l)
 {-# REWRITE add-add-join #-}
@@ -175,12 +172,12 @@ _ = refl
 
 \begin{code}[hide]
 -- Another example, pretty similar to the previous one.
-add-sub-cancel : (s : Stack ℕ (1 + n)) (k : ℕ) → s ▹ push k ▹ add ▹ push k ▹ sub ≡ s
+add-sub-cancel : (s : Stack (1 + n)) (k : ℕ) → s ▹ push k ▹ add ▹ push k ▹ sub ≡ s
 add-sub-cancel (s # x) k = cong (s #_) (m+n∸n≡m x k)
 
 {-# REWRITE add-sub-cancel #-}
 
-foo : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+foo : Stack (1 + n) → Stack (1 + n)
 foo s = s ▹ push 5 ▹ add ▹ push 5 ▹ sub
 
 _ : lines (extract foo base []) ≡ "/foo {" ∷ "  " ∷ "} def" ∷ []
