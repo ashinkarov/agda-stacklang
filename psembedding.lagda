@@ -230,11 +230,11 @@ this would not typecheck.  However, we can solve the problem by
 using \AF{subst-stack} and providing a proof that
 $a + b \equiv b + a$.
 
-Next, we define the PostScript command called \AF{index} that 
+Next, we define the PostScript command called \AF{index} that
 makes it possible to access any element of the stack by providing
 its offset.  This can be seen as a more general version of the
 \AF{dup} command.  We first implement a helper function \AF{get-index}
-that does the actual indexing (we only give a signature), and then 
+that does the actual indexing (we only give a signature), and then
 \AF{index} puts the element obtained by \AF{get-index} on the stack.
 Notice that both functions require a proof that the index is within
 bounds.  Also, we are not strictly following the semantics of
@@ -259,7 +259,7 @@ equal than some $y$.
 \end{code}
 While this might look a bit like magic, the core idea is that
 \AF{≥?} is a decision procedure, and \AF{True} forces normalisation
-of \AB{y} \AF{≥?} \AB{x}.  In case normalisation is enough to compute the answer, 
+of \AB{y} \AF{≥?} \AB{x}.  In case normalisation is enough to compute the answer,
 there is a standard way to turn \AB{w} into the proof of inequality.
 Practically, we often get away with using \AF{≤-ok} in places where
 a simple proof is needed.
@@ -661,7 +661,7 @@ We define for-loop as a function of three arguments: the initial stack,
 the proof that two top elements are related by \AC{\_≥₁\_}, and the body
 of the for-loop given by a function.
 \begin{code}
-for : (s : Stack ℕ (2 + k + n)) 
+for : (s : Stack ℕ (2 + k + n))
       → {e≥₁s : get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s}
       → (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m))
       → Stack ℕ (k + n)
@@ -679,7 +679,7 @@ It has to return $k+m$-long stack.  We recurse over the \AB{e≥₁s} proof
 object, and no matter how many iterations we will do, it is guaranteed that
 the stack lenght would stay $k+n$ elements long.
 \begin{code}[hide]
-for′ : (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m)) 
+for′ : (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m))
      → Σ (Stack ℕ (2 + k + n)) (λ s → get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s)
      → Stack ℕ (k + n)
 \end{code}
@@ -714,25 +714,25 @@ x≥₁0 {suc x} = ≥₁-trans (≥-next ≥-done) x≥₁0
 \begin{code}[hide]
 -- 10 + 0 + 1 + ... + x
 sum-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-sum-for s@(_ # x) = (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch , x≥₁0) 
+sum-for s@(_ # x) = (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
                     ▹ for′ {k = 1} add
 \end{code}
 % This is an alternative version of the code we used before introducing for′
-% for {k = 1} 
+% for {k = 1}
 %     (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
 %     add
 
 Now we are ready to define our running fibonacci example using \AF{for′}:
 \begin{code}
 fib-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-fib-for s@(_ # x) 
+fib-for s@(_ # x)
     = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
     ▹ for′ {k = 2} (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
     ▹ pop
 \end{code}
 % This is an alternative version of the code we used before introducing for′
-% for {k = 2} 
-%     (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0} 
+% for {k = 2}
+%     (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
 %     (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
 % ▹ pop
 Our initial stack contains the function argument $x$ at the top. We modify
@@ -771,7 +771,7 @@ that no extra arguments are left on the stack.
 \begin{code}
     sierp : Stack ℕ (1 + n) → Stack ℕ n
     sierp s  = (s ▹ push 0 ▹ index 1 ≤-ok , x≥₁0)
-             ▹ for′ {k = 1} 
+             ▹ for′ {k = 1}
                (λ s → (s ▹ push 0 ▹ index 2 ≤-ok , x≥₁0)
                       ▹ for′ {k = 1} (index 1 ≤-ok ∘~ index 1 ≤-ok
                                       ∘~ bit-and ∘~ draw-if ∘~ pop)
@@ -786,8 +786,8 @@ comes very helpful here, and eliminates an entire class of errors.
 
 % This is an alternative version of the code we used before introducing for′
 % for {k = 1}
-%     (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0} 
-%     (λ s → for {k = 1} 
+%     (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0}
+%     (λ s → for {k = 1}
 %                (s ▹ push 0 ▹ index 2 ≤-ok) {x≥₁0}
 %                (index 1 ≤-ok ∘~ index 1 ≤-ok ∘~
 %                 bit-and ∘~ draw-if ∘~ pop)
