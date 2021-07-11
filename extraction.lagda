@@ -465,20 +465,22 @@ erased during extraction.
 Extraction of \AF{for} falls into two cases, depending on the form
 of the loop function.  In  case the function is inlined, we end-up with
 a nested lambda term.  From the type we know that the stack variable
-will be bound to the innre lambda.  Therefore, we can extract the body
+will be bound to the inner lambda.  Therefore, we can extract the body
 \AB{b} with the pattern (\AC{var} \AN{0}) that refers to that very variable.
 After the body of the loop function has been extracted, we construct the
 \AC{For} node and recurse into the inital stack $x$.  Alternatively,
 the function can be referred by name, in which case we annote it with
 \AF{mark-todo} and call this function within the loop body.
 \begin{code}
-  go (`for x (vArg (hLam _ (vLam _ b)))) acc = do
-    proc ← extract-term b (var 0)
-    go x (For proc ∷ acc)
-
-  go (`for x (vArg (hLam _ (def f (hArg0 (var 0 []) ∷ []))))) acc = do
-    mark-todo f
-    go x (For [ FunCall (prettyName f) ] ∷ acc)
+  go (`for x (vArg (hLam _ body))) acc = do
+    case body of λ where
+      (vLam _ b) → do
+        proc ← extract-term b (var 0)
+        go x (For proc ∷ acc)
+      (def f (hArg0 (var 0 []) ∷ [])) → do
+        mark-todo f
+        go x (For [ FunCall (prettyName f) ] ∷ acc)
+      _ → fail "invalid body of for loop"
 \end{code}
 
 
