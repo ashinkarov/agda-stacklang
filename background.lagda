@@ -1,5 +1,8 @@
 \begin{code}[hide]
 module _ where
+
+variable A : Set
+
 module Basics where
 \end{code}
 \section{Background} \label{sec:background}
@@ -15,8 +18,8 @@ records, modules, do-notation, \etc{} Datatypes are defined using the
 following syntax:
 \begin{code}
   data ℕ : Set where
-    zero : ℕ
-    suc  : ℕ → ℕ
+    zero  : ℕ
+    suc   : ℕ → ℕ
 \end{code}
 The type \AD{ℕ} of unary natural numbers is a datatype with two constructors:
 \AC{zero} and \AC{suc}.  Note that \AD{ℕ} itself belongs to
@@ -36,8 +39,9 @@ vector of length \AC{zero} and \AC{\_∷\_} for adding an element to a
 vector, increasing the length by 1.  Curly braces indicate hidden
 arguments, which can be left out at function
 applications.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/implicit-arguments.html}}
-Hidden arguments can be passed explicitly using the syntax \AC{\_∷\_}
-\{\AB{n}\} \AB{x} \AB{xs}.  The underscores in the name of \AC{\_∷\_}
+%Hidden arguments can be passed explicitly using the syntax \AC{\_∷\_}
+%\{\AB{n}\} \AB{x} \AB{xs}.
+The underscores in the name of \AC{\_∷\_}
 indicate mixfix
 syntax:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/mixfix-operators.html}}
 we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
@@ -143,10 +147,18 @@ surface syntax.
 
 \paragraph{Reflected syntax}
 
-To demonstrate the types and constructors involved in the
-representation of reflected syntax, we use the following function as
-an example:
 
+Expressions are represented by a constructor such as \AC{con} (for
+constructors), \AC{def} (for other defined symbols), or \AC{var} (for
+variables) applied to a quoted name and a list of arguments.
+\AC{vArg} denotes a visible argument, while \AC{hArg} is used for
+hidden arguments).  For example, the full reflected form of the
+expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
+
+To make reflected syntax more readable, we use \emph{pattern synonyms}
+for commonly used pieces of syntax. As a convention, the names of
+these pattern synonyms start with a backtick \` followed by the name
+of the represented Agda construct, for example:
 
 \begin{code}[hide]
 module FunExample where
@@ -160,27 +172,6 @@ module FunExample where
   open Clause
   open Pattern
 \end{code}
-
-\begin{code}
-  foo : ℕ → ℕ
-  foo 0        = zero
-  foo (suc x)  = x + x
-\end{code}
-
-Expressions are represented by a constructor such as \AC{con} (for
-constructors), \AC{def} (for other defined symbols), or \AC{var} (for
-variables) applied to a quoted name and a list of arguments.
-\AC{vArg} denotes a visible argument, while \AC{hArg} is used for
-hidden arguments).  For example, the full reflected form of the
-expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
-
-Working with reflected syntax in Agda can quickly become very verbose.
-To reduce the syntactic noise, we make use of \emph{pattern synonyms}
-for commonly used pieces of syntax. As a convention, the names of
-these pattern synonyms start with a backtick \` followed by the name
-of the represented Agda construct. We give two representative
-examples, other pattern synonyms are defined analogously.
-
 \begin{code}
   pattern `ℕ        = def (quote ℕ) []
   pattern `zero     = con (quote zero) []
@@ -188,18 +179,28 @@ examples, other pattern synonyms are defined analogously.
   pattern _`+_ x y  = def (quote _+_) (vArg x ∷ vArg y ∷ [])
 \end{code}
 
+As a complete example, below is the definition of a function \AF{foo}
+and its reflected syntax \AF{`foo}:
 
-With these pattern synonyms, we can write the reflected syntax of
-\AF{foo} as follows:
-\begin{code}
+\begin{mathpar}
+\codeblock{\begin{code}
+  foo : ℕ → ℕ
+  foo 0        = zero
+  foo (suc x)  = x + x
+\end{code}}
+\and
+\codeblock{\begin{code}
   `foo = function
     ( clause [] (vArg `zero ∷ []) `zero
     ∷ clause (("x" , vArg `ℕ) ∷ [])
              (vArg (`suc (var 0)) ∷ [])
              (var 0 [] `+ var 0 [])
     ∷ [] )
-\end{code}
-It is represented by the constructor \AC{function} applied to a list
+\end{code}}
+\end{mathpar}
+
+
+The reflected syntax of \AF{foo} is represented by the constructor \AC{function} applied to a list
 of clauses. Each clause itself is represented by the constructor
 \AC{clause} applied to three arguments: i) the telescope, which is a
 list of the names of variables and their types; ii) the list of
@@ -219,16 +220,11 @@ into their corresponding \AC{zero}/\AC{suc} representations.
 
 \paragraph{The \AD{TC} monad}
 
-Following the approach of \emph{elaborator reflection}
-introduced by Idris~\cite{idris-refl}, Agda exposes many parts
-of the elaborator to the reflection API, including reduction
-and normalisation of expressions.
-%
-These operations are made available through the \AD{TC} monad, which
-takes care of managing the current context of the elaborator.  The two
-basic operations of the \AD{TC} monad are \AF{quoteTC} and
-\AF{unquoteTC}, which convert from normal Agda syntax to reflected
-syntax and vice versa.
+Following the approach of \emph{elaborator reflection} introduced by
+Idris~\cite{idris-refl}, Agda exposes many parts of the elaborator to
+the reflection API, including reduction and normalisation of
+expressions, through the \AD{TC} monad. Agda terms can be converted to
+reflected syntax by using the \AF{quoteTC} primitive.
 
 Functions of return type \AD{Term} → \AD{TC} \AD{⊤} can be marked as a
 \AK{macro}. When the elaborator encounters a macro call, it creates a
@@ -244,12 +240,11 @@ by \AN{2}.
 
 \begin{code}
   macro
-    norm : {A : Set} → A → (Term → TC ⊤)
+    norm : A → (Term → TC ⊤)
     norm x hole = do
       `x ← quoteTC x
       `x ← normalise `x
       unify `x hole
-  test : ℕ
   test = norm (1 + 1) -- equivalent to 'test = 2'
 \end{code}
 
