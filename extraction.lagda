@@ -176,8 +176,6 @@ print-ps es = intercalate "\n" (reverse (L.map (expr-to-string 0) es))
 
 \subsection{The extraction monad}
 
-\todo[inline]{I think we can further cat on the details about internals
-of the monad and RawMonad-related stuff.}
 We make use of a monad for extraction to keep track of the current
 state of functions that still need to be extracted, and for
 propagating errors.
@@ -199,20 +197,21 @@ record ExtractState : Set where
 \end{code}
 
 \begin{code}
-record ExtractM (X : Set) : Set where
+record ExtractM (X : Set) : Set where -- ...
+\end{code}
+\begin{code}[hide]
   field
     runExtractM : ExtractState
                 → TC (ExtractState × Err X)
 \end{code}
 
-The monadic operations are defined by giving a value of type
-\AD{RawMonad}\ \AD{ExtractM}. By opening the \AD{RawMonad} instance,
-we bring the monadic operations \AR{>>=} and \AR{return} into scope,
-which also enables \AK{do}-notation.
+The monad structure is given by the monadic operations \AR{>>=} and
+\AR{return}, which are used in the desugaring of \AK{do}-notation.
 
 \begin{code}
-monadExtractM : RawMonad ExtractM
-open RawMonad monadExtractM
+return : X → ExtractM X
+_>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y
+_<$>_ : (X → Y) → ExtractM X → ExtractM Y
 \end{code}
 
 The \AF{fail} function throws an error, aborting the extraction
@@ -251,11 +250,16 @@ The implementation of these operations is standard so we omit it here.
 \begin{code}[hide]
 open ExtractM
 
-monadExtractM .RawMonad.return x .runExtractM s = R.return (s , ok x)
-monadExtractM .RawMonad._>>=_ m f .runExtractM s =
+return x .runExtractM s = R.return (s , ok x)
+_>>=_ m f .runExtractM s =
   runExtractM m s R.>>= λ where
     (s' , ok x)    → runExtractM (f x) s'
     (s' , error s) → R.return (s' , error s)
+
+_>>_ : ExtractM X → ExtractM Y → ExtractM Y
+m1 >> m2 = m1 >>= λ _ → m2
+
+f <$> m = m >>= λ x → return (f x)
 
 fail err .runExtractM s = R.return (s , error err)
 
