@@ -117,10 +117,8 @@ infixl 5 _#_
 \begin{code}[hide]
 variable s : Stack n
 \end{code}
-Similarly to lists, stacks can be constructed in two ways.  Stacks of length
-zero can are constructed using \AC{[]}.  Stacks of length $1 + n$ are constructed
-with the append constructor \AC{\_\#\_}, where the first argument is a stack of
-length $n$ and the second argument is the element of type \AB{X}.  For example,
+Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
+zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
 a stack of three natural numbers can be built as follows:
 \begin{code}
 ex₁ : Stack 3
@@ -150,11 +148,21 @@ dup (xs # x) = xs # x # x
 
 exch : Stack (2 + n) → Stack (2 + n)
 exch (xs # x # y) = xs # y # x
+
+add mul : Stack (2 + n) → Stack (1 + n)
+add (s # x # y) = s # x + y
+mul (s # x # y) = s # x * y
 \end{code}
 \begin{code}[hide]
 clear : Stack n → Stack 0
 clear _ = []
+
+sub eq gt : Stack (2 + n) → Stack (1 + n)
+sub (s # x # y) = s # x - y
+eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
+gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
+
 As it can be seen, the nature of these operations is straight-forward.  However,
 note that the length index of \AD{Stack} ensures that the body of the function
 respects the specification.  If the body of the function returns the stack that
@@ -182,19 +190,7 @@ count xs = xs # go xs
 \end{code}
 \end{comment}
 
-Finally, we define arithmetic operations for addition and multiplication:
-\begin{code}
-add mul : Stack (2 + n) → Stack (1 + n)
-add (s # x # y) = s # x + y
-mul (s # x # y) = s # x * y
-\end{code}
-\begin{code}[hide]
-sub eq gt : Stack (2 + n) → Stack (1 + n)
-sub (s # x # y) = s # x - y
-eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
-gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
-\end{code}
-Notice, that we are not defining subtraction and division, as when operating
+For simplicity We do not define subtraction and division, as when operating
 strictly in natural numbers, these functions would require additional proofs.
 We will need a proof that $a > b$ when subtracting $a - b$, and we will need
 a proof that $b \not= 0$ when dividing $a / b$.
@@ -216,22 +212,22 @@ a proof that $b \not= 0$ when dividing $a / b$.
 
 We define several operations that do not represent PostScript
 commands, but that will be useful in some of the examples.
-The \AF{subs-stack} command makes it possible to cast a
+The \AF{subst-stack} command makes it possible to cast a
 stack of length $m$ into the stack of length $n$, given
 the proof that $m \equiv n$.
 \begin{code}
 subst-stack : @0 m ≡ n → Stack m → Stack n
 subst-stack refl xs = xs
 \end{code}
-In dependnently-typed langauges, $m$ and $n$ can be arbitrary
+In dependently typed langauges, $m$ and $n$ can be arbitrary
 expressions, and it is not always obvious to Agda that these are
-equal.  For example, if we require a stack of length $a + b$, but
-we have a stack of length $b + a$, we cannot blindly use it, as
+equal.  For example, if we require a stack of length $m + n$, but
+we have a stack of length $n + m$, we cannot blindly use it, as
 this would not typecheck.  However, we can solve the problem by
 using \AF{subst-stack} and providing a proof that
-$a + b \equiv b + a$.
+$m + n \equiv n + m$.
 
-Next, we define the PostScript command called \AF{index} that
+We also define the PostScript command \AF{index} that
 makes it possible to access any element of the stack by providing
 its offset.  This can be seen as a more general version of the
 \AF{dup} command.  We first implement a helper function \AF{get-index}
@@ -265,7 +261,7 @@ there is a standard way to turn \AB{w} into the proof of inequality.
 Practically, we often get away with using \AF{≤-ok} in places where
 a simple proof is needed.
 
-We explicitly forego the definition of conditionals, and comparison
+We explicitly forego the definition of conditionals and comparison
 operators in favour of using pattern-matching functions.  Recursion
 is essential part of Agda, so there is no need to introduce any new
 operators.  Later we will demonstrate how can we add a for-loop to
