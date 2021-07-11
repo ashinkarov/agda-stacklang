@@ -687,10 +687,6 @@ pattern. This is a correct optimization because Agda enforces
 completeness of definitions by pattern matching, so if the final case
 is reached it is guaranteed to match.
 
-\todo[inline]{XXX: We do not deal with the case when the body of the clause
-is a lambda function, \eg{} f = add o pop.  This can be hacked away by extending
-the list of patterns with (var 0), however, it completely ignores the telescope.
-Not sure, is there a better way, or shall we just ignore this case?}
 \begin{code}
 -- extract-clauses : Clauses → ℕ
 --                 → ExtractM (List PsCmd)
