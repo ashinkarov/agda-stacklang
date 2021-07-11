@@ -104,17 +104,18 @@ store.  In the embedding one of our main goals is avoiding underflows,
 which occur extremely often.
 
 \paragraph{Stack type}
-\todo[inline]{XXX we may consider removing $X$ from the Stack, we are using
-natural numbers anyway, so we could specialise it.  Not sure.}
 We define the type of our stack inductively, and we force the type to carry
 the length of the corresponding stack. The stack can store elements of type
-\AB{X}, which is a type parameter.
+\AD{ℕ}.
 \begin{code}
-data Stack (X : Set) : @0 ℕ → Set where
-  []  : Stack X 0
-  _#_ : Stack X n → X → Stack X (suc n)
+data Stack : @0 ℕ → Set where
+  []  : Stack 0
+  _#_ : Stack n → ℕ → Stack (suc n)
 
 infixl 5 _#_
+\end{code}
+\begin{code}[hide]
+variable s : Stack n
 \end{code}
 Similarly to lists, stacks can be constructed in two ways.  Stacks of length
 zero can are constructed using \AC{[]}.  Stacks of length $1 + n$ are constructed
@@ -122,7 +123,7 @@ with the append constructor \AC{\_\#\_}, where the first argument is a stack of
 length $n$ and the second argument is the element of type \AB{X}.  For example,
 a stack of three natural numbers can be built as follows:
 \begin{code}
-ex₁ : Stack ℕ 3
+ex₁ : Stack 3
 ex₁ = [] # 1 # 2 # 3
 \end{code}
 We defined \AC{\_\#\_} to be left-associative, therefore we do not put any parenthesis.
@@ -130,7 +131,7 @@ We defined \AC{\_\#\_} to be left-associative, therefore we do not put any paren
 \paragraph{Basic Operations}
 
 \begin{code}[hide]
-tl : ∀ {X n} → Stack X (1 + n) → Stack X n
+tl : Stack (1 + n) → Stack n
 tl (xs # _) = xs
 \end{code}
 
@@ -138,20 +139,20 @@ The basic stack operations are defined as functions from \AD{Stack} to \AD{Stack
 The type index makes it possible to capture precisely the effect of each
 operation.  For example:
 \begin{code}
-push : X → Stack X n → Stack X (1 + n)
+push : ℕ → Stack n → Stack (1 + n)
 push x xs = xs # x
 
-pop : Stack X (1 + n) → Stack X n
+pop : Stack (1 + n) → Stack n
 pop (xs # x) = xs
 
-dup : Stack X (suc n) → Stack X (2 + n)
+dup : Stack (suc n) → Stack (2 + n)
 dup (xs # x) = xs # x # x
 
-exch : Stack X (2 + n) → Stack X (2 + n)
+exch : Stack (2 + n) → Stack (2 + n)
 exch (xs # x # y) = xs # y # x
 \end{code}
 \begin{code}[hide]
-clear : Stack X n → Stack X 0
+clear : Stack n → Stack 0
 clear _ = []
 \end{code}
 As it can be seen, the nature of these operations is straight-forward.  However,
@@ -173,22 +174,22 @@ but not when constructing the result.  This irrelevance annotation gives us a cl
 separation between the variables that we use for verification and that we use for
 computations.  One way to implement \AD{count} is:
 \begin{code}
-count : Stack ℕ n → Stack ℕ (1 + n)
+count : Stack n → Stack (1 + n)
 count xs = xs # go xs
   where
-    go : Stack X n → ℕ
+    go : Stack n → ℕ
     go []       = 0
     go (xs # _) = suc (go xs)
 \end{code}
 
 Finally, we define arithmetic operations for addition and multiplication:
 \begin{code}
-add mul : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+add mul : Stack (2 + n) → Stack (1 + n)
 add (s # x # y) = s # x + y
 mul (s # x # y) = s # x * y
 \end{code}
 \begin{code}[hide]
-sub eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sub eq gt : Stack (2 + n) → Stack (1 + n)
 sub (s # x # y) = s # x - y
 eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
 gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
@@ -201,7 +202,7 @@ a proof that $b \not= 0$ when dividing $a / b$.
 %Finally, we define arithmetic operations using a helper function \AD{binop}
 %that always acts on the two topmost elements of the stack.
 %\begin{code}
-%binop : (X → X → X) → Stack X (2 + n) → Stack X (1 + n)
+%binop : (X → X → X) → Stack (2 + n) → Stack (1 + n)
 %binop f (xs # x # y) = xs # f x y
 %
 %add sub mul eq gt : Stack ℕ (2 + n) → Stack ℕ (1 + n)
@@ -219,7 +220,7 @@ The \AF{subs-stack} command makes it possible to cast a
 stack of length $m$ into the stack of length $n$, given
 the proof that $m \equiv n$.
 \begin{code}
-subst-stack : @0 m ≡ n → Stack X m → Stack X n
+subst-stack : @0 m ≡ n → Stack m → Stack n
 subst-stack refl xs = xs
 \end{code}
 In dependnently-typed langauges, $m$ and $n$ can be arbitrary
@@ -241,8 +242,8 @@ bounds.  Also, we are not strictly following the semantics of
 PostScript, and we force to pass the index explicitly, rather
 than taking it from the stack.
 \begin{code}
-get-index : (k : ℕ) → @0 k < m → Stack X m → X
-index : (k : ℕ) → @0 k < m → Stack X m → Stack X (1 + m)
+get-index : (k : ℕ) → @0 k < m → Stack m → ℕ
+index : (k : ℕ) → @0 k < m → Stack m → Stack (1 + m)
 index k k<m xs = xs # get-index k k<m xs
 \end{code}
 \begin{code}[hide]
@@ -254,7 +255,7 @@ Finally, we implement a convenience function \AF{≤-ok} that
 can automatically find simple proofs that some $x$ is less or
 equal than some $y$.
 \begin{code}
-≤-ok : ∀ {x y} → {w : True (y ≥? x)} → x ≤ y
+≤-ok : {x y : ℕ} → {w : True (y ≥? x)} → x ≤ y
 ≤-ok {w = w} = toWitness w
 \end{code}
 While this might look a bit like magic, the core idea is that
@@ -288,7 +289,7 @@ start with a trivial function that adds one to the top element of
 the stack.
 
 \begin{code}
-add-1 : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+add-1 : Stack (1 + n) → Stack (1 + n)
 add-1 s = add (push 1 s)
 \end{code}
 
@@ -307,7 +308,7 @@ correspondingly:
 infixl 5 _▹_
 infixr 9 _∘~_
 _▹_ : X → (X → Y) → Y
-_∘~_ : ∀ {A B C : Set} → (A → B) → (B → C) → (A → C)
+_∘~_ : (X → Y) → (Y → Z) → (X → Z)
 \end{code}
 \begin{code}
 x ▹  f  = f x
@@ -317,8 +318,8 @@ f ∘~ g  = λ x → g (f x)
 -- not sure if we need to expose this in the text
 {-# INLINE _▹_ #-}
 {-# INLINE _∘~_ #-}
-add-1′ : Stack ℕ (1 + n) → Stack ℕ (1 + n)
-add-1′′ : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+add-1′ : Stack (1 + n) → Stack (1 + n)
+add-1′′ : Stack (1 + n) → Stack (1 + n)
 \end{code}
 Now we can rewrite the above example as:
 \begin{code}
@@ -348,13 +349,13 @@ add-1′ s = s ▹ push 1 ▹ add;  {- or -} add-1′′ = push 1 ∘~ add
 Consider now a slightly more complicated function that computes
 $a^2 + b^2$ where $a$ and $b$ are top two elements of the stack:
 \begin{code}
-sqsum : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sqsum : Stack (2 + n) → Stack (1 + n)
 sqsum = dup ∘~ mul ∘~ exch ∘~ dup ∘~ mul ∘~ exch ∘~ add
 \end{code}
 It can be easier to understand the code if we introduce internal
 stack states in variables names of let:
 \begin{code}
-sqsum′ : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+sqsum′ : Stack (2 + n) → Stack (1 + n)
 sqsum′ s:a:b = let s:a:b*b    = s:a:b      ▹ dup   ▹ mul
                    s:b*b:a*a  = s:a:b*b    ▹ exch  ▹ dup ▹ mul
                    s:a*a:b*b  = s:b*b:a*a  ▹ exch
@@ -373,7 +374,7 @@ module FibNonTerm where
 \end{code}
 \begin{code}
   {-# TERMINATING #-}
-  fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+  fib : Stack (1 + n) → Stack (1 + n)
   fib s@(_ # 0)             = s ▹ pop   ▹ push 1
   fib s@(_ # 1)             = s ▹ pop   ▹ push 1
   fib s@(_ # suc (suc x))   = s ▹ dup   ▹ push 1 ▹ sub ▹ fib
@@ -404,7 +405,7 @@ where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
 
 \begin{code}
-hd : ∀ {X n} → Stack X (1 + n) → X
+hd : Stack (1 + n) → ℕ
 hd (_ # x) = x
 \end{code}
 \begin{code}[hide]
@@ -413,7 +414,7 @@ module RepSimple where
 \end{code}
 \begin{code}
     {-# TERMINATING #-}
-    rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
+    rep : (s : Stack (2 + n)) → Stack (hd s + n)
     rep       s@(_ # _ # zero)   = s ▹ pop ▹ pop
     rep s:x:m+1@(_ # _ # suc m)  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
@@ -444,12 +445,11 @@ specify functions with intrinsic constraints, such as length of the stack,
 but also to prove some properties about existing functions as theorems.  For
 example, we can prove that \AF{sqsum} actually implements the sum of squares:
 \begin{code}
-sqsum-thm : ∀ {s : Stack ℕ n}{a b}
-          → sqsum (s # a # b) ≡ s # a * a + b * b
+sqsum-thm : sqsum (s # k # l) ≡ s # k * k + l * l
 sqsum-thm = refl
 \end{code}
-The theorem says that for any $s$, $a$ and $b$, application of \AD{sqsum} to
-$s$ appended with $a$ and $b$ equals to $s$ appended with $a^2 + b^2$.  Luckily,
+The theorem says that for any $s$, $k$ and $l$, application of \AD{sqsum} to
+$s$ appended with $k$ and $l$ equals to $s$ appended with $k^2 + l^2$.  Luckily,
 from the way we constructed the basic operations, this fact is obvious to Agda.
 So the proof is simply the \AC{refl}exivity constructor.
 
@@ -469,7 +469,7 @@ step case.  In the latter we refer to the theorem with a structurally
 smaller arguments, and after rewriting such cases, the statement becomes
 obvious.
 \begin{code}
-  fib-thm : (s : Stack ℕ n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
+  fib-thm : (s : Stack n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
   fib-thm _ 0 = refl ; fib-thm _ 1 = refl
   fib-thm s (suc (suc x))
           rewrite  (fib-thm (s # suc (suc x)) (suc x)) |
@@ -503,7 +503,7 @@ module RepTerm where
     open import Data.Nat using (s≤s; z≤n)
 \end{code}
 \begin{code}
-    rep′ : (s : Stack ℕ (2 + n)) → @0{hd s ≡ k} → Stack ℕ (hd s + n)
+    rep′ : (s : Stack (2 + n)) → @0{hd s ≡ k} → Stack (hd s + n)
     rep′ {k = .0}            s@(_ # _ # zero)  {refl}  = s ▹ pop ▹ pop
     rep′ {k = .suc k}  s:x:m+1@(_ # _ # suc m) {refl}  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
@@ -511,7 +511,7 @@ module RepTerm where
              s:x:x:m  = s:x:m:x  ▹ exch
          in  subst-stack (+-suc _ _) (rep′ {k = k} s:x:x:m {refl})
 
-    rep : (s : Stack ℕ (2 + n)) → Stack ℕ (hd s + n)
+    rep : (s : Stack (2 + n)) → Stack (hd s + n)
     rep s = rep′ s {refl}
 \end{code}
 As the function is pattern-matching on the top of the stack, and the
@@ -588,7 +588,7 @@ Where $x$ is the number in the sequence that we want to find, and $a = b = 1$
 in the initial call:
 
 \begin{code}
-rot3 : ∀ {X}{@0 n} → Stack X (3 + n) → Stack X (3 + n)
+rot3 : Stack (3 + n) → Stack (3 + n)
 rot3 (s # a # b # c) =  s # c # b # a
 \end{code}
 \begin{code}[hide]
@@ -597,9 +597,9 @@ module Fib3 where
     open import Function using (_$_)
 \end{code}
 \begin{code}
-    fib3 : (s : Stack ℕ (3 + n))
+    fib3 : (s : Stack (3 + n))
          → @0{get-index 2 ≤-ok s ≡ k}
-         → Stack ℕ (3 + n)
+         → Stack (3 + n)
     fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
     fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} =
       let s:1+m:a:b    = s
@@ -608,7 +608,7 @@ module Fib3 where
           s:m:b:a+b    = s:a+b:b:m   ▹ rot3
       in  fib3 {k = k} s:m:b:a+b {refl}
 
-    fib : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+    fib : Stack (1 + n) → Stack (1 + n)
     fib s =
       let s:m:1:1              = s ▹ push 1 ▹ push 1
           s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {refl}
@@ -643,7 +643,7 @@ type with two constructors:
 \begin{code}
 data _≥₁_ (l : ℕ) : ℕ → Set where
   ≥-done : l ≥₁ l
-  ≥-next : ∀ {m} → l ≥₁ (suc m) → l ≥₁ m
+  ≥-next : l ≥₁ (suc m) → l ≥₁ m
 \end{code}
 Reflexivity ($l \ge l$) is given by \AC{≥-done}, and \AC{≥-next} says
 that proving $l \ge m$ requires first proving that $l \ge 1+m$.  For
@@ -661,10 +661,10 @@ We define for-loop as a function of three arguments: the initial stack,
 the proof that two top elements are related by \AC{\_≥₁\_}, and the body
 of the for-loop given by a function.
 \begin{code}
-for : (s : Stack ℕ (2 + k + n))
+for : (s : Stack (2 + k + n))
       → {e≥₁s : get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s}
-      → (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m))
-      → Stack ℕ (k + n)
+      → ({@0 m : ℕ} → Stack (1 + k + m) → Stack (k + m))
+      → Stack (k + n)
 for {k}{n} (st # s # .s) {≥-done} f = f {n} (st # s)
 for {k}{n} (st # s #  e) {≥-next e≥₁1+s}  f =
     for {k}{n} (f (st # s) # suc s # e) {e≥₁1+s} f
@@ -679,9 +679,9 @@ It has to return $k+m$-long stack.  We recurse over the \AB{e≥₁s} proof
 object, and no matter how many iterations we will do, it is guaranteed that
 the stack lenght would stay $k+n$ elements long.
 \begin{code}[hide]
-for′ : (∀ {@0 m} → Stack ℕ (1 + k + m) → Stack ℕ (k + m))
-     → Σ (Stack ℕ (2 + k + n)) (λ s → get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s)
-     → Stack ℕ (k + n)
+for′ : ({@0 m : ℕ} → Stack (1 + k + m) → Stack (k + m))
+     → Σ (Stack (2 + k + n)) (λ s → get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s)
+     → Stack (k + n)
 \end{code}
 
 For convenience we define the wrapper function \AF{for′} that put together the
@@ -702,9 +702,9 @@ x≥₁y→s[x]≥₁y {x} {y} (≥-next x≥₁y) = ≥-next (x≥₁y→s[x]�
 ≥₁-trans {x} {y} {.y}  x≥y ≥-done        = x≥y
 ≥₁-trans {x} {y} {z}   x≥y (≥-next y≥z)  = x≥₁sy→x≥₁y (≥₁-trans x≥y y≥z)
 \end{code}
-We prove a simple fact that for any number \AB{x}, we have \AB{x} \AF{≥₁} \AN{0}.
+We prove a simple fact that for any number \AB{n}, we have \AB{n} \AF{≥₁} \AN{0}.
 \begin{code}
-x≥₁0 : ∀ {x} → x ≥₁ 0
+x≥₁0 : {n : ℕ} → n ≥₁ 0
 \end{code}
 \begin{code}[hide]
 x≥₁0 {zero} = ≥-done
@@ -713,7 +713,7 @@ x≥₁0 {suc x} = ≥₁-trans (≥-next ≥-done) x≥₁0
 
 \begin{code}[hide]
 -- 10 + 0 + 1 + ... + x
-sum-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+sum-for : Stack (1 + n) → Stack (1 + n)
 sum-for s@(_ # x) = (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
                     ▹ for′ {k = 1} add
 \end{code}
@@ -724,7 +724,7 @@ sum-for s@(_ # x) = (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
 
 Now we are ready to define our running fibonacci example using \AF{for′}:
 \begin{code}
-fib-for : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+fib-for : Stack (1 + n) → Stack (1 + n)
 fib-for s@(_ # x)
     = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
     ▹ for′ {k = 2} (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
@@ -757,10 +757,10 @@ we can simply refer to them.  We implement conditional drawing
 via the helper function \AF{draw-if}.
 \begin{code}
     postulate
-      draw-circ-xy : Stack ℕ (2 + n) → Stack ℕ n
-      bit-and : Stack ℕ (2 + n) → Stack ℕ (1 + n)
+      draw-circ-xy : Stack (2 + n) → Stack n
+      bit-and : Stack (2 + n) → Stack (1 + n)
 
-    draw-if : Stack ℕ (3 + n) → Stack ℕ (2 + n)
+    draw-if : Stack (3 + n) → Stack (2 + n)
     draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ≤-ok ▹ index 1 ≤-ok
                             ▹ draw-circ-xy
     draw-if s          = s  ▹ pop
@@ -769,7 +769,7 @@ The main function sets the boundaries for both for-loops, applies
 \AF{bit-and} to $i$ and $j$, and calls the drawing function, ensuring
 that no extra arguments are left on the stack.
 \begin{code}
-    sierp : Stack ℕ (1 + n) → Stack ℕ n
+    sierp : Stack (1 + n) → Stack n
     sierp s  = (s ▹ push 0 ▹ index 1 ≤-ok , x≥₁0)
              ▹ for′ {k = 1}
                (λ s → (s ▹ push 0 ▹ index 2 ≤-ok , x≥₁0)

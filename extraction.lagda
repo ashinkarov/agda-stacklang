@@ -369,15 +369,14 @@ pattern vArg0 x = arg (arg-info visible (modality _ quantity-0)) x
 pattern hArg0 x = arg (arg-info hidden (modality _ quantity-0)) x
 pattern erasedArg x = arg (arg-info _ (modality _ quantity-0)) x
 
-pattern `Stack X n  = def (quote Stack) (vArg X ∷ vArg0 n ∷ [])
-pattern _`#p_ x y   = con (quote Stack._#_) (_ ∷ vArg x ∷ vArg y ∷ [])
-pattern _`#_ x y    = con (quote Stack._#_) (_ ∷ _ ∷ vArg x ∷ vArg y ∷ [])
+pattern `Stack n    = def (quote Stack) (vArg0 n ∷ [])
+pattern _`#_ x y    = con (quote Stack._#_) (_ ∷ vArg x ∷ vArg y ∷ [])
 
-pattern `push n s  = def (quote push) (_ ∷ _ ∷ vArg n ∷ vArg s ∷ [])
-pattern `pop s     = def (quote pop) (_ ∷ _ ∷ vArg s ∷ [])
-pattern `dup s     = def (quote dup) (_ ∷ _ ∷ vArg s ∷ [])
-pattern `exch s    = def (quote exch) (_ ∷ _ ∷ vArg s ∷ [])
-pattern `rot3 s    = def (quote rot3) (_ ∷ _ ∷ vArg s ∷ [])
+pattern `push n s  = def (quote push) (_ ∷ vArg n ∷ vArg s ∷ [])
+pattern `pop s     = def (quote pop) (_ ∷ vArg s ∷ [])
+pattern `dup s     = def (quote dup) (_ ∷ vArg s ∷ [])
+pattern `exch s    = def (quote exch) (_ ∷ vArg s ∷ [])
+pattern `rot3 s    = def (quote rot3) (_ ∷ vArg s ∷ [])
 
 pattern `add s  = def (quote add) (_ ∷ vArg s ∷ [])
 pattern `sub s  = def (quote sub) (_ ∷ vArg s ∷ [])
@@ -385,8 +384,8 @@ pattern `mul s  = def (quote mul) (_ ∷ vArg s ∷ [])
 pattern `eq s   = def (quote eq) (_ ∷ vArg s ∷ [])
 pattern `gt s   = def (quote gt) (_ ∷ vArg s ∷ [])
 
-pattern `index k s = def (quote index) (_ ∷ _ ∷ vArg k ∷ _ ∷ vArg s ∷ [])
-pattern `subst-stack s = def (quote subst-stack) (_ ∷ _ ∷ _ ∷ _ ∷ vArg s ∷ [])
+pattern `index k s = def (quote index) (_ ∷ vArg k ∷ _ ∷ vArg s ∷ [])
+pattern `subst-stack s = def (quote subst-stack) (_ ∷ _ ∷ _ ∷ vArg s ∷ [])
 pattern `for x b = def (quote for) (_ ∷ _ ∷ vArg x ∷ _ ∷ b ∷ [])
 \end{code}
 
@@ -520,7 +519,7 @@ there are a few other cases for dealing with natural number literals
 \begin{AgdaSuppressSpace}
 \begin{code}
 -- stack-ok : Pattern → Term → ExtractM ⊤
-stack-ok p@(p₁ `#p p₂) t@(t₁ `# t₂) = do
+stack-ok p@(p₁ `# p₂) t@(t₁ `# t₂) = do
   ok₁ ← stack-ok p₁ t₁
   ok₂ ← stack-ok p₂ t₂
   return (ok₁ ∧ ok₂)
@@ -573,11 +572,11 @@ returns the position of the principal argument.
 extract-type x = go x false 0
   where
   go : Type → (st-arg : Bool) → (idx : ℕ) → ExtractM ℕ
-  go (Π[ s ∶ vArg (`Stack X n) ] ty) false i =
+  go (Π[ s ∶ vArg (`Stack n) ] ty) false i =
     go ty true i
   go (Π[ s ∶ erasedArg _ ] ty) b i =
     go ty b (if b then i else 1 + i)
-  go (`Stack X n) true i = return i
+  go (`Stack n) true i = return i
   go t _ _ =
     fail ("invalid type: " <> showTerm t)
 \end{code}
@@ -590,7 +589,7 @@ definition and the position of the principal argument (as computed by
 \AF{extract-type}) and translates the clauses to a list of PostScript
 commands. For example, consider the function \AF{non-zero}:
 \begin{code}
-non-zero : Stack ℕ (1 + n) → Stack ℕ (1 + n)
+non-zero : Stack (1 + n) → Stack (1 + n)
 non-zero s@(_ # 0) = s
 non-zero s@(_ # _) = s ▹ pop ▹ push 1
 \end{code}
@@ -658,7 +657,7 @@ extract-stackp : (hd-idx : ℕ) → Pattern
                → ExtractM (Maybe (List PsCmd))
 
 extract-stackp hd-idx  (var x)     = return nothing
-extract-stackp hd-idx  (ps `#p p)  =
+extract-stackp hd-idx  (ps `# p)  =
   extract-natp p 0 >>= λ where
     nothing   → extract-stackp (1 + hd-idx) ps
     (just cmp) → do
@@ -833,7 +832,7 @@ _ : lines (extract non-zero base base) ≡
   ∷ [] )
 _ = refl
 
-dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
+dblsuc : Stack (1 + n) → Stack (2 + n)
 dblsuc xs = add-1 (dup xs)
 
 _ : lines (extract dblsuc base (quote add-1 ∷ base)) ≡
@@ -847,7 +846,7 @@ _ : lines (extract dblsuc base (quote add-1 ∷ base)) ≡
   ∷ [] )
 _ = refl
 
-boo : Stack ℕ (1 + n) → @0 ℕ → Stack ℕ (1 + n)
+boo : Stack (1 + n) → @0 ℕ → Stack (1 + n)
 boo (s # x) n = s # (0 + x)
 --boo s n = add (push 1 s)
 --boo s = λ n → add (push 1) s
