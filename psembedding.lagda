@@ -267,7 +267,6 @@ is essential part of Agda, so there is no need to introduce any new
 operators.  Later we will demonstrate how can we add a for-loop to
 the embedding.
 
-\todo[inline]{Move this to section 4? Maybe ok here.}
 Note that nothing in this shallow embedding prevents us from doing
 operations that are illegal in PostScript, such as duplicating the
 whole stack or discarding it altogether. Such properties could be
