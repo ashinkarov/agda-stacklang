@@ -939,7 +939,9 @@ _ : lines (extract fib-for base base) ≡
    " pop" ∷
    "} def" ∷ [])
 _ = refl
+\end{code}
 
+\begin{code}[hide]
 base′ : Names
 base′ = quote Sierpinski.bit-and ∷ quote Sierpinski.draw-circ-xy ∷ base
 
