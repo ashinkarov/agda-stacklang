@@ -160,8 +160,7 @@ note that the length index of \AD{Stack} ensures that the body of the function
 respects the specification.  If the body of the function returns the stack that
 does not have the length prescribed by the type, such a function would not typecheck.
 
-\todo[inline]{We never use this function, and we have plenty of points about
-irrelevance, so maybe we should get rid of this definition?}
+\begin{comment}
 Consider the \AD{count} function that computes the length of the stack and stores
 it as the top element.  While it would be tempting to implement this function as
 \begin{code}
@@ -181,6 +180,7 @@ count xs = xs # go xs
     go []       = 0
     go (xs # _) = suc (go xs)
 \end{code}
+\end{comment}
 
 Finally, we define arithmetic operations for addition and multiplication:
 \begin{code}
