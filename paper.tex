@@ -397,12 +397,6 @@ Agda embedding.
 \input{latex/extraction}
 \input{latex/reduction}
 
-
-\section{Scaling to Bigger Languages} \label{sec:scaling}
-Not sure whether this deserves a separate section, but we need to explain
-that the proposed technology perfectly scales to the level of bigger (more complex)
-languages.
-
 \section{\label{sec:related}Related Work}
 
 \paragraph{Metaprogramming} There is a large body of
@@ -516,6 +510,29 @@ of the application to embed, and what constructs of the
 host language to extract.  Secondly, our extractors
 can use the full power of dependent types to guarantee
 safety of our embedded programs.
+
+\paragraph{Scaling to bigger languages}
+
+The main goal of this paper is to demonstrate how to define a
+embedding and extractor using dependent types and reflection on a
+small but complete example. In addition to the PostScript embedding
+discussed in this paper, we applied our approach to several other
+languages:
+\begin{itemize}
+\item Kaleidoscope, a minimalist imperative language used in the
+  documentation of LLVM.
+\item SaC (Single assignment C), a high-performance array language
+  that generates efficient code for various architectures.
+\item APL (Array Programming Language), another array language with
+  heavily overloaded syntax that pioneered the concept of rank- and
+  shape-polymorphic programming.
+\end{itemize}
+In addition, we used the embedding of APL to implement a Convolutional
+Neural Network, and ensure that all the array instructions operate on
+arrays of the correct dimensions. For more details on these examples,
+refer to \citet{DBLP:journals/corr/abs-2105-10819}.
+
+\paragraph{Future work}
 
 Right now we cannot yet guarantee that the
 extracted code preservers the semantics of the original
