@@ -687,13 +687,6 @@ pattern. This is a correct optimization because Agda enforces
 completeness of definitions by pattern matching, so if the final case
 is reached it is guaranteed to match.
 
-\todo[inline]{FIXME: absurd clauses are handled wrongly.  We must
-extract the conditional from the pattern list.  This is because our if-chain
-has to take this into account when extracting further clauses.  \Ie{}
-f (suc x) (); f x = e should be extracted to (if x ≥ 1 () else e) not (e).}
-\todo[inline]{TODO: we never give examples of absurd patterns, we also
-do not generate any code for that case.  There is a quit command in PostScript
-that we can insret for extra safety.  Maybe?}
 \todo[inline]{XXX: We do not deal with the case when the body of the clause
 is a lambda function, \eg{} f = add o pop.  This can be hacked away by extending
 the list of patterns with (var 0), however, it completely ignores the telescope.
@@ -714,11 +707,14 @@ extract-clauses (clause _ ps t ∷ ts) i = do
       t  ← extract-term t stackp
       ts ← extract-clauses ts i
       return (l ++ [ IfElse t ts ])
-extract-clauses (absurd-clause _ _ ∷ ts) i =
-  extract-clauses ts i
 extract-clauses [] i = return []
 \end{code}
+\begin{code}[hide]
+extract-clauses (absurd-clause _ _ ∷ cs) i =
+  fail "not supported: absurd clauses"
+\end{code}
 
+\begin{comment}
 Agda also has the notion of \emph{absurd clauses} that are guaranteed
 to be unreachable by the coverage checker. Since they define no
 run-time behaviour, we can safely skip them during
@@ -726,6 +722,7 @@ extraction. Alternatively, if we expect the extracted version of the
 code to be called directly with a possibly invalid stack, we could
 instead insert an assertion failure in case of an absurd clause is
 reached.
+\end{comment}
 
 \paragraph{Extracting definitions}
 Finally, \AF{extract-def} takes as input a (reflected) name of
