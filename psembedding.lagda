@@ -645,10 +645,9 @@ of the for-loop given by a function and the initial stack.
 \begin{code}
 for : (Stack (1 + n) → Stack n) → Stack (2 + n) → Stack n
 for {n} f (st # s # e) = if s ≤ᵇ e then loop (e - s) st else st
-  where
-  loop : ℕ → Stack n → Stack n
-  loop zero     st = st ▹ push s ▹ f
-  loop (suc i)  st = st ▹ loop i ▹ push (suc i + s) ▹ f
+  where  loop : ℕ → Stack n → Stack n
+         loop zero     st = st ▹ push s ▹ f
+         loop (suc i)  st = st ▹ loop i ▹ push (suc i + s) ▹ f
 \end{code}
 The initial stack contains 2 loop boundary elements and $n$ other
 elements. It computes the number of iterations \AB{i} and unrolls the
@@ -699,8 +698,7 @@ We implement conditional drawing via the helper function \AF{draw-if}.
       bit-and : Stack (2 + n) → Stack (1 + n)
 
     draw-if : Stack (3 + n) → Stack (2 + n)
-    draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ▹ index 1
-                            ▹ draw-circ-xy
+    draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ▹ index 1 ▹ draw-circ-xy
     draw-if s          = s  ▹ pop
 \end{code}
 The main function sets the boundaries for both for-loops, applies
