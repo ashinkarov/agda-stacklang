@@ -448,7 +448,7 @@ calling the \AF{fail} function.
     fail ("push non-literal: " <> showTerm k)
   go (`index (`num n) x) acc = go x (Index n ∷ acc)
   go (`index k x) acc =
-    fail ("index non-literal " <> showTerm k)
+    fail ("index non-literal: " <> showTerm k)
 \end{code}
 
 \begin{code}[hide]
@@ -471,6 +471,7 @@ using the stack pattern (\AC{var} \AN{0}) that refers to the stack
 variable bound by the lambda.  After the body of the loop function has
 been extracted, we construct the \AC{For} node and continue extraction
 with the expression for the initial stack $x$.
+\begin{AgdaSuppressSpace}
 \begin{code}
   go (`for (vLam _ b) x) acc = do
     proc ← extract-term b (var 0)
@@ -489,7 +490,7 @@ with the expression for the initial stack $x$.
   go (`for body x) acc =
     fail ("invalid body of for: " <> showTerm body)
 \end{code}
-
+\end{AgdaSuppressSpace}
 
 When it reaches a defined function that is not in the set of base
 functions, the extraction proceeds in three steps. First, it adds the
@@ -707,8 +708,7 @@ extract-clauses (clause _ ps t ∷ ts) i = do
   stackp  ← lookup-arg ps i
   ml      ← extract-stackp 0 stackp
   case ml of λ where
-    nothing  → do
-      extract-term t stackp
+    nothing  → extract-term t stackp
     (just l) → do
       t  ← extract-term t stackp
       ts ← extract-clauses ts i

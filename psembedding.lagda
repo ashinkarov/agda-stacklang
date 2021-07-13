@@ -21,8 +21,6 @@ import Data.List as L
 
 variable
   X Y Z : Set
-  S : Set
-  M : Set → Set
   @0 k l m n : ℕ
 
 \end{code}
@@ -161,7 +159,7 @@ push x s = s # x
 pop : Stack (1 + n) → Stack n
 pop (s # x) = s
 
-dup : Stack (suc n) → Stack (2 + n)
+dup : Stack (1 + n) → Stack (2 + n)
 dup (s # x) = s # x # x
 
 exch : Stack (2 + n) → Stack (2 + n)
@@ -181,7 +179,7 @@ eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
 gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
 
-As it can be seen, the nature of these operations is straight-forward.  However,
+As can be seen, the nature of these operations is straightforward.  However,
 note that the length index of \AD{Stack} ensures that the body of the function
 respects the specification.  If the body of the function returns the stack that
 does not have the length prescribed by the type, such a function would not typecheck.
@@ -519,7 +517,7 @@ module RepTerm where
     rep′ {k = 0}      s@(_ # _ # zero)         {refl}  = s ▹ pop ▹ pop
     rep′ {k = suc m}  s:x:m+1@(_ # _ # suc m)  {refl}  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index′ 1 
+             s:x:m:x  = s:x:m    ▹ index′ 1
              s:x:x:m  = s:x:m:x  ▹ exch
          in  subst-stack (+-suc _ _) (rep′ {k = m} s:x:x:m {refl})
 
