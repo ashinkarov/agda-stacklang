@@ -776,16 +776,15 @@ it replaces the call to the macro by the pretty-printed result, and
 otherwise it throws an error.
 
 \begin{code}
-macro
-  extract : Name → Names → Names → Term → TC ⊤
+macro extract : Name → Names → Names → Term → TC ⊤
 \end{code}
 \begin{code}[hide]
-  extract main base extern hole =
-    let initState =
-          mkExtractState extern [ main ] base in
-    runExtractM extract-defs initState R.>>= λ where
-      (_ , ok p)       → R.quoteTC (print-ps p) R.>>= R.unify hole
-      (_ , error err)  → R.typeError [ R.strErr err ]
+      extract main base extern hole =
+        let initState =
+              mkExtractState extern [ main ] base in
+        runExtractM extract-defs initState R.>>= λ where
+          (_ , ok p)       → R.quoteTC (print-ps p) R.>>= R.unify hole
+          (_ , error err)  → R.typeError [ R.strErr err ]
 \end{code}
 
 We provide a default list \AF{base} of functions that can be used as
