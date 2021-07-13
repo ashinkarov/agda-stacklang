@@ -85,36 +85,46 @@ can obtain the following picture using a PostScript interpreter:
 
 \epsfbox[0 0 200 100]{1.ps}
 
-While in principle PostScript has many more operators and drawing commands,
-in this paper we mostly consider it as a stack language that can define
-functions on natural numbers.  We do this to keep the extractor complexity as low
-as possible, yet exposing enough operators to demonstrate the
-verification.  Also, such a minimalist subset makes the example immediately
+\subsection{Assumptions}
+
+Before we proceed to the actual embedding, we would like to clarify our
+assumptions about the chosen subset of PostScript and explain what
+do we expect from the embedding.
+
+We consider a very small subset of PostScript that is sufficient to express
+functions on natural numbers.  While PostScript has many more commands,
+types, and drawing primitives, for presentational purposes, we chose the
+smallest subset that is sufficient to demonstrate verification problems.
+This keeps our extractor complexity very low, and makes the examples
 transferable to other stack-based languages such as Forth.
+
+The main focus of our Agda embedding is to track the number of elements
+on the stack.  On the one hand this helps to entirely avoid stack underflows
+--- an extremely often practical problem in stack-based programs.  On the
+other hand, by doing so, we almost immediately run into necessity to use
+dependent types in the embedded programs.  The other points that we
+want to demonstrate in the embedding are: i) attaching arbitrary properties
+to function arguments (see \AF{index} and \AF{for} functions);
+ii) guaranteeing function termination; and iii) using runtime-irrelevance
+annotations to guarantee that extra properties do not have any computational
+meaning.
 
 \subsection{Embedding in Agda}
 
 Our Agda embedding defines a stack type and a number of basic operators
-operating on it.  A typical error that happens when programming
-in stack languages directly is underflowing or overflowing the stack.  The
-former is when we expect more elements on the stack than we actually have,
-therefore indexing beyond the first element will cause a runtime error.
-The latter is when we put more elements on the stack than it is capable to
-store.  In the embedding one of our main goals is avoiding underflows,
-which occur extremely often.
+operating on it.
 
 \paragraph{Stack type}
 We define the type of our stack inductively, and we force the type to carry
-the length of the corresponding stack. The stack can store elements of type
+its length. Per our assumptions, the stack can only store elements of type
 \AD{ℕ}.
 \begin{code}
 data Stack : @0 ℕ → Set where
   []  : Stack 0
   _#_ : Stack n → ℕ → Stack (suc n)
-
-infixl 5 _#_
 \end{code}
 \begin{code}[hide]
+infixl 5 _#_
 variable s : Stack n
 \end{code}
 Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
