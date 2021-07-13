@@ -20,7 +20,6 @@ import Data.List as L
 variable
   X Y Z : Set
   @0 k l m n : ℕ
-
 \end{code}
 
 % PostScript Language and its embedding
@@ -89,7 +88,7 @@ can obtain the following picture using a PostScript interpreter:
 
 \epsfbox[0 0 200 100]{1.ps}
 
-\subsection{Assumptions}
+\paragraph{Assumptions}
 
 Before we proceed to the actual embedding, we would like to clarify our
 assumptions about the chosen subset of PostScript and explain what

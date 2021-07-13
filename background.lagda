@@ -146,14 +146,14 @@ hence safely be erased during extraction of PostScript code (see
 \secref{embedding} and \secref{extraction}).
 
 \paragraph{Generalizable variables} To avoid having to bind implicit
-arguments in type signatures, we make use of \emph{generalizable
+arguments in type signatures, we use \emph{generalizable
 variables}:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/generalization-of-declared-variables.html}}
 \begin{code}
   variable
     X Y Z : Set
     @0 k l m n : ℕ
 \end{code}
-This allows us for example to skip the binding of \AB{n} in the type of \AF{tail}:
+This allows us for example to skip \AB{n} in the type of \AF{tail}:
 \begin{code}
   tail'' : Vec ℕ (suc n) → Vec ℕ n
   tail'' (x ∷ xs) = xs
