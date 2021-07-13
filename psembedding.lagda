@@ -396,17 +396,13 @@ of such a program is a function \AF{rep} that replicates the $x$ value $n$ times
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
 
-\begin{code}
-hd : Stack (1 + n) → ℕ
-hd (_ # x) = x
-\end{code}
 \begin{code}[hide]
 module RepSimple where
     open import Data.Nat using (s≤s; z≤n)
 \end{code}
 \begin{code}
     {-# TERMINATING #-}
-    rep : (s : Stack (2 + n)) → Stack (hd s + n)
+    rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
     rep       s@(_ # _ # zero)   = s ▹ pop ▹ pop
     rep s:x:m+1@(_ # _ # suc m)  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
@@ -497,7 +493,7 @@ module RepTerm where
     open import Data.Nat using (s≤s; z≤n)
 \end{code}
 \begin{code}
-    rep′ : (s : Stack (2 + n)) → @0{hd s ≡ k} → Stack (hd s + n)
+    rep′ : (s : Stack (2 + n)) → @0{s ! 0 ≡ k} → Stack ((s ! 0) + n)
     rep′ {k = 0}      s@(_ # _ # zero)         {refl}  = s ▹ pop ▹ pop
     rep′ {k = suc m}  s:x:m+1@(_ # _ # suc m)  {refl}  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
@@ -505,7 +501,7 @@ module RepTerm where
              s:x:x:m  = s:x:m:x  ▹ exch
          in  subst-stack (+-suc _ _) (rep′ {k = m} s:x:x:m {refl})
 
-    rep : (s : Stack (2 + n)) → Stack (hd s + n)
+    rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
     rep s = rep′ s {refl}
 \end{code}
 As the function is pattern-matching on the top of the stack, and the
@@ -594,7 +590,7 @@ module Fib3 where
 \end{code}
 \begin{code}
     fib3 : (s : Stack (3 + n))
-         → @0{hd (index 2 s) ≡ k}
+         → @0{s ! 2 ≡ k}
          → Stack (3 + n)
     fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
     fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} =
