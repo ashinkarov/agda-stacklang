@@ -75,37 +75,32 @@ prettyName f = maybe id "" (L.last (S.wordsBy ('.' C.≟_) (showName f)))
 \section{Extraction} \label{sec:extraction}
 
 In this section, we show a concrete example of an extractor
-implemented using reflection in Agda. On a basic level, the extractor
-is a simple traversal of the syntax that maps basic stack operations
-such as \AF{dup} and \AF{add} to their
-corresponding syntax in PostScript, erases any arguments that are only
-present to satisfy the Agda typechecker, and rejects any Agda code
-that does not fall within the shallow embedding. However, there are a
-few requirements that make the extractor slightly more complex:
+implemented using reflection in Agda.  We start with basic assumptions
+that guide design and presentation in this section.
 
+\paragraph{Assumptions}
+Our extractor serves a dual purpose.  On the one hand, we traverse Agda
+terms and map basic stack operations such as \AF{dup} and \AF{add} to their
+PostScript counterparts.  On the other hand, extractor determines
+which terms are valid in the presented shallow embedding: these
+are the terms that are accepted by our extractor.
+
+Our criteria of acceptable embeddings are as follows: 
 \begin{itemize}
+    \item The function acts on a single stack argument and returns stack.
+    The function can accept arbitrary number of additional arguments
+    (for verification purposes) as long as these arguments are
+    computationally irrelevant.  In the implementation the type analysis
+    is achieved with \AF{extract-type}.
 
-\item In a stack language such as PostScript there is a unique stack
-on which all operations act. However, our shallow embedding in Agda
-does not enforce that the stack is not duplicated, discarded, or
-otherwise modified in arbitrary ways. The extractor thus needs to
-ensure that for each definition, the stack that is used in its body is
-the same as the input stack. This is done in the implementation of
-\AF{extract-term} and \AF{stack-ok}.
+    \item Within the function, the stack is never duplicated, discarded
+    or modified by any means but embedded stack operations.  This is
+    ensured by the functions \AF{extract-term} and \AF{stack-ok}.
 
-\item Operations on stacks can take arguments besides the `main' stack
-argument, as long as these other arguments are computationally
-irrelevant. The extractor thus needs to determine which argument of a
-given function corresponds to the input stack, and that the other
-arguments can indeed be erased. This is done by the implementation
-\AF{extract-type}.
-
-\item We allow functions on stacks to to make limited use of pattern
-matching on values on the stack, as for example in the definition of
-\AF{rep}. The extractor needs to translate these patterns to
-conditional statements. This is done in the implementation of
-\AF{extract-pattern} and \AF{extract-clauses}.
-
+    \item Conditionals for stack elements are implemented using
+    pattern-matching.  The extractor needs to translate these patterns to
+    conditional statements. This is done in the implementation of
+    \AF{extract-pattern} and \AF{extract-clauses}.
 \end{itemize}
 
 
