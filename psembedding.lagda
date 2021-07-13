@@ -651,8 +651,7 @@ We define for-loop as a function of two arguments: the body
 of the for-loop given by a function and the initial stack.
 \begin{code}
 for : (Stack (1 + n) → Stack n) → Stack (2 + n) → Stack n
-for {n} f (st # s # e) =
-  if s ≤ᵇ e then loop (e - s) st else st
+for {n} f (st # s # e) = if s ≤ᵇ e then loop (e - s) st else st
   where
   loop : ℕ → Stack n → Stack n
   loop zero     st = st ▹ push s ▹ f

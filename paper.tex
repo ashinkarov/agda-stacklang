@@ -240,14 +240,14 @@ certain class of errors does not occur in the given program.  These
 error classes may include: dereferencing the null pointer, division
 by zero, or out of bound indexing.  In most
 programming languages, the guarantees that can be checked
-statically are very limited.  Nevertheless, moving to a different
+statically are limited.  Nevertheless, moving to a different
 language is not always an option.  For example, these languages may
 come with great tooling, compilers and/or libraries.  In this paper, we
 investigate how to provide strong static guarantees for programs in a
 given language, while maintaining the ability to to use existing
 compilers and tools.
 
-One very powerful method for enforcing almost any functional property
+One powerful method for enforcing almost any functional property
 of a program statically is by using \emph{dependent types}.
 In a dependently typed language, properties can be encoded as types,
 and if the program typechecks, the property is guaranteed to hold.
@@ -257,8 +257,8 @@ compiler), then our goal is achieved.
 
 While it is possible to add dependent types to an existing language
 from scratch, doing so is time-consuming and error-prone.  Instead,
-one can also embed the language we want to use into existing
-dependently typed languages, which allows us to re-use the typechecker
+we can \emph{embed} the language we want to use into an existing
+dependently typed host language, which allows us to re-use the typechecker
 of the host language to typecheck the embedded language.
 
 There are two common approaches to language embedding: deep and shallow.
@@ -290,11 +290,11 @@ Our main objective of the paper is to demonstrate that the
 proposed approach works in practice.  Therefore, we guide the reader
 through the entire process of: i) shallow embedding of the target
 language;  ii) writing programs in this embedding; iii) using
-dependent types to statically enforce the properties of interest; 
-iv) extract a program in the syntax of the target language
+dependent types to statically enforce the properties of interest;
+iv) extracting a program in the syntax of the target language
 from it.  We run the extracted program using existing
-tools and libraries. Essentially, demonstrating that a
-shallow embedding in a host language with reflections
+tools and libraries. Essentially, we demonstrate that a
+shallow embedding in a host language with reflection
 suddenly becomes deep.
 
 In order to keep presentation as simple as possible, we have
@@ -304,15 +304,15 @@ language used in the corresponding document format.  While the embedding
 may look impractical, the simplicity of the language
 allows us to focus on the essence of the proposed approach and avoid unrelated
 technical details.  We ensure that many verification patterns found in bigger
-languages are covered, implying that the proposed approach scales.
-We use Agda as our host language, and the entire paper is Agda script.
-This means that the code presented in the snippets has been typechecked
-and presented examples ran.
+languages are covered, showing that the proposed approach scales.
+
+This entire paper is a literate Agda script: all Agda code is typechecked
+and all the examples are run while generating the paper.
 
 
 \paragraph{Contributions.}
 \begin{itemize}
-  
+
 \item We propose a novel approach that can be used to statically
   enforce almost any property of programs in an existing language, by
   embedding it in a host language that supports dependent types and
@@ -495,7 +495,7 @@ the development. And secondly, it allows you to reuse the typechecker
 and evaluator of the host language, saving you a lot of work.
 While we showcase a single example, the approach has been applied
 to several other languages: Kaleidoscope, a minimalist imperative language;
-Single assignment C, a high-performance array language;
+Single assignment C, a high-performance array language; and
 APL (Array Programming Language), another array language with
 heavily overloaded syntax.
 For more details on these examples,
@@ -534,7 +534,7 @@ this in principle.
 % be helpful. And finally, having access to more of
 % Agda's internals such as case trees would help to
 % generate more performant code.
-% 
+%
 % Overall, this work only scratches the surface of extraction-based
 % compilation.  We never considered alternative theories supported
 % by theorem provers, \eg{} cubical type theory in Agda; we did not
