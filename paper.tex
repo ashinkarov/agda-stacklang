@@ -477,56 +477,23 @@ code generators for them. We solve the well-known
 conundrum of choosing between deep and shallow
 embedding by leveraging the power of
 reflection.
-This allows us to enjoying the benefits
-of shallow embedding, while keeping full access to the internal
-structure of the embedded programs.
+This allows us to enjoy simplicity of writing progams
+in shallow embedding.  Yet we keep full access to the internal
+structure of the embedded programs, so that we could translate
+them into the original language.
 
 We apply this idea in the context of dependently-typed
-languages to create verified implementations that can
-be used in the context of an existing programming language.
-We embed the target language in a theorem-prover, using
-dependent types to encode the properties of interest.
-Using reflection we bring the verified implementation
-back into the original language.
-%
+language Agda.  We demonstrate the use of dependent types
+in order to enforce static propeties of the embedded programs.
 Concretely, we have demonstrated the approach by implementing
-an extractor for a fragment of the PostScript language, using
-Agda as our host.
+an extractor for a fragment of the PostScript language.
 
-The main advantages of our approach are twofold.  First,
-our solution is fine-grained --- we can chose what part
-of the application to embed, and what constructs of the
-host language to extract.  Secondly, our extractors
-can use the full power of dependent types to guarantee
-safety of our embedded programs.
-
-\paragraph{Limitations}
-\todo[inline]{This has moved from the intro, needs reflowing!}
-While we claim our approach is flexible and powerful, it is
-certainly not a magic bullet. There are still a lot of things that
-need to be implemented for each target language: the language
-embedding itself, the encoding of the properties under consideration
-as types in the host language, and the extractor that transforms
-embedded programs back into the syntax of the original language.  For
-enforcing more complex properties, it might also be necessary to write
-proofs to convince the typechecker of the host language that they are
-indeed satisfied.
-%
 The main advantage of our approach is twofold: first, it allows
 you to implement all these things --- as well as the embedded programs
 themselves --- \emph{side by side in a single language}, simplifying
 the development. And secondly, it allows you to reuse the typechecker
-and evaluator of the host language, saving you a lot of work.  In the
-end, our goal is not to showcase a single example but to empower you
-to apply this approach yourself to verify code in any language.
-
-
-\paragraph{Scaling to bigger languages}
-
-The main goal of this paper is to demonstrate how to define a
-embedding and extractor using dependent types and reflection on a
-small but complete example. In addition to the PostScript embedding
-discussed in this paper, we applied our approach to several other
+and evaluator of the host language, saving you a lot of work.
+While we showcase a single example, we applied our approach to several other
 languages:
 \begin{itemize}
 \item Kaleidoscope, a minimalist imperative language used in the
@@ -537,14 +504,22 @@ languages:
   heavily overloaded syntax that pioneered the concept of rank- and
   shape-polymorphic programming.
 \end{itemize}
-In addition, we used the embedding of APL to implement a Convolutional
-Neural Network, and ensure that all the array instructions operate on
-arrays of the correct dimensions. For more details on these examples,
-refer to \citet{DBLP:journals/corr/abs-2105-10819}.
+For more details on these examples,
+refer to~\citet{DBLP:journals/corr/abs-2105-10819}.
+This sugests that you are now empowered to apply the proposed
+technique tp verify code in any language.
+
+
 
 \paragraph{Future work}
+While our approach is flexible and powerful, it is
+certainly not a magic bullet. A lot of things
+need to be implemented for each target language: the embedding,
+the encoding of the properties under consideration as types,
+and the extractor.  For enforcing more complex properties, a number
+of proofs needs to be written explicitly.
 
-Right now we cannot yet guarantee that the
+Right now, we cannot yet guarantee that the
 extracted code preservers the semantics of the original
 implementation. While we rarely see
 fully-verified compiler backends in the real world,
@@ -554,25 +529,25 @@ and the proof that reflected programs respect it.
 While this is non-trivial, a system like Agda could do
 this in principle.
 
-There is a number of improvements that can be added to
-Agda and our extractors to make the resulting code more
-efficient.  Supporting \AK{let}s in the internal syntax
-would help to preserve sharing.  Recognising irrelevance
-annotations in the extractors would help to eliminate
-unused function arguments.  Introducing proper language
-primitives to specify what exactly is an embedding would
-be helpful. And finally, having access to more of
-Agda's internals such as case trees would help to
-generate more performant code.
-
-Overall, this work only scratches the surface of extraction-based
-compilation.  We never considered alternative theories supported
-by theorem provers, \eg{} cubical type theory in Agda; we did not
-consider recursive metaprogramming; we did not consider integrating
-optimisations of extracted programs other than what rewriting rules
-are capable to do.  All of these offer exciting research opportunities
-on the way to make verified software easily accessible.
-To paraphrase Jim Morrison: ``Safety and no surprise, The End''.
+% There is a number of improvements that can be added to
+% Agda and our extractors to make the resulting code more
+% efficient.  Supporting \AK{let}s in the internal syntax
+% would help to preserve sharing.  Recognising irrelevance
+% annotations in the extractors would help to eliminate
+% unused function arguments.  Introducing proper language
+% primitives to specify what exactly is an embedding would
+% be helpful. And finally, having access to more of
+% Agda's internals such as case trees would help to
+% generate more performant code.
+% 
+% Overall, this work only scratches the surface of extraction-based
+% compilation.  We never considered alternative theories supported
+% by theorem provers, \eg{} cubical type theory in Agda; we did not
+% consider recursive metaprogramming; we did not consider integrating
+% optimisations of extracted programs other than what rewriting rules
+% are capable to do.  All of these offer exciting research opportunities
+% on the way to make verified software easily accessible.
+% To paraphrase Jim Morrison: ``Safety and no surprise, The End''.
 
 
 %% Bibliography
