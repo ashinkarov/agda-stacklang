@@ -156,16 +156,16 @@ The type index makes it possible to capture precisely the effect of each
 operation.  For example:
 \begin{code}
 push : ℕ → Stack n → Stack (1 + n)
-push x xs = xs # x
+push x s = s # x
 
 pop : Stack (1 + n) → Stack n
-pop (xs # x) = xs
+pop (s # x) = s
 
 dup : Stack (suc n) → Stack (2 + n)
-dup (xs # x) = xs # x # x
+dup (s # x) = s # x # x
 
 exch : Stack (2 + n) → Stack (2 + n)
-exch (xs # x # y) = xs # y # x
+exch (s # x # y) = s # y # x
 
 add mul : Stack (2 + n) → Stack (1 + n)
 add (s # x # y) = s # x + y
@@ -200,11 +200,11 @@ separation between the variables that we use for verification and that we use fo
 computations.  One way to implement \AD{count} is:
 \begin{code}
 count : Stack n → Stack (1 + n)
-count xs = xs # go xs
+count s = s # go s
   where
     go : Stack n → ℕ
     go []       = 0
-    go (xs # _) = suc (go xs)
+    go (s # _) = suc (go s)
 \end{code}
 \end{comment}
 
@@ -235,7 +235,7 @@ stack of length $m$ into the stack of length $n$, given
 a proof that $m \equiv n$.
 \begin{code}
 subst-stack : @0 m ≡ n → Stack m → Stack n
-subst-stack refl xs = xs
+subst-stack refl s = s
 \end{code}
 In dependently typed langauges, $m$ and $n$ can be arbitrary
 expressions, and it is not always obvious to Agda that these are
@@ -258,26 +258,30 @@ than taking it from the stack.
 \begin{code}
 get-index : (k : ℕ) → @0 k < m → Stack m → ℕ
 index : (k : ℕ) → @0 k < m → Stack m → Stack (1 + m)
-index k k<m xs = xs # get-index k k<m xs
+index k k<m s = s # get-index k k<m s
 \end{code}
 \begin{code}[hide]
-get-index zero     (s≤s k<m) (xs # x) = x
-get-index (suc k)  (s≤s k<m) (xs # x) = get-index k k<m xs
+get-index zero     (s≤s k<m) (s # x) = x
+get-index (suc k)  (s≤s k<m) (s # x) = get-index k k<m s
 \end{code}
 
-Finally, we implement a convenience function \AF{≤-ok} that
-can automatically find simple proofs that some $x$ is less or
-equal than some $y$.
+Finally, we implement convenience functions \AF{get-index′} and
+\AF{index′} that can automatically find simple proofs that some $k$
+is less or equal than some $m$.
 \begin{code}
-≤-ok : {x y : ℕ} → {w : True (x ≤? y)} → x ≤ y
-≤-ok {w = w} = toWitness w
+get-index′  : (k : ℕ) → @0{True (k <? m)} → Stack m → ℕ
+index′      : (k : ℕ) → @0{True (k <? m)} → Stack m → Stack (1 + m)
+index′ k {w} s = index k (toWitness w) s
+\end{code}
+\begin{code}[hide]
+get-index′ k {w} s = get-index k (toWitness w) s
 \end{code}
 While this might look a bit like magic, the core idea is that
 \AF{≤?} is a decision procedure, and \AF{True} forces normalisation
-of \AB{x} \AF{≤?} \AB{y}.  In case normalisation is enough to compute the answer,
+of \AB{k} \AF{≤?} \AB{m}.  In case normalisation is enough to compute the answer,
 there is a standard way to turn \AB{w} into the proof of inequality.
-Practically, we often get away with using \AF{≤-ok} in places where
-a simple proof is needed.
+Practically, we often get away with using \AF{get-index′} and \AF{index′}
+instead of original functions.
 
 We explicitly forego the definition of conditionals and comparison
 operators in favour of using pattern-matching functions.  Recursion
@@ -424,7 +428,7 @@ module RepSimple where
     rep       s@(_ # _ # zero)   = s ▹ pop ▹ pop
     rep s:x:m+1@(_ # _ # suc m)  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index 1 ≤-ok
+             s:x:m:x  = s:x:m    ▹ index′ 1
              s:x:x:m  = s:x:m:x  ▹ exch
          in  subst-stack (+-suc _ _) (rep s:x:x:m)
 \end{code}
@@ -515,7 +519,7 @@ module RepTerm where
     rep′ {k = 0}      s@(_ # _ # zero)         {refl}  = s ▹ pop ▹ pop
     rep′ {k = suc m}  s:x:m+1@(_ # _ # suc m)  {refl}  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index 1 ≤-ok
+             s:x:m:x  = s:x:m    ▹ index′ 1 
              s:x:x:m  = s:x:m:x  ▹ exch
          in  subst-stack (+-suc _ _) (rep′ {k = m} s:x:x:m {refl})
 
@@ -608,12 +612,12 @@ module Fib3 where
 \end{code}
 \begin{code}
     fib3 : (s : Stack (3 + n))
-         → @0{get-index 2 ≤-ok s ≡ k}
+         → @0{get-index′ 2 s ≡ k}
          → Stack (3 + n)
     fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
     fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} =
       let s:1+m:a:b    = s
-          s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 ≤-ok ▹ add
+          s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index′ 1 ▹ add
           s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub
           s:m:b:a+b    = s:a+b:b:m   ▹ rot3
       in  fib3 {k = k} s:m:b:a+b {refl}
@@ -676,7 +680,7 @@ Now we are ready to define our running fibonacci example using \AF{for}:
 fib-for : Stack (1 + n) → Stack (1 + n)
 fib-for s@(_ # x)
     = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch)
-    ▹ for (λ s → s ▹ pop ▹ exch ▹ index 1 ≤-ok ▹ add)
+    ▹ for (λ s → s ▹ pop ▹ exch ▹ index′ 1 ▹ add)
     ▹ pop
 \end{code}
 Our initial stack contains the function argument $x$ at the top. We modify
@@ -706,7 +710,7 @@ We implement conditional drawing via the helper function \AF{draw-if}.
       bit-and : Stack (2 + n) → Stack (1 + n)
 
     draw-if : Stack (3 + n) → Stack (2 + n)
-    draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ≤-ok ▹ index 1 ≤-ok
+    draw-if s@(_ # 0)  = s  ▹ pop ▹ index′ 1 ▹ index′ 1
                             ▹ draw-circ-xy
     draw-if s          = s  ▹ pop
 \end{code}
@@ -716,10 +720,10 @@ that no extra arguments are left on the stack.
 \begin{code}
     sierp : Stack (1 + n) → Stack n
     sierp s  =
-      s ▹ push 0 ▹ index 1 ≤-ok
-        ▹ for (λ s → s ▹ push 0 ▹ index 2 ≤-ok
-                       ▹ for (λ s → s ▹ index 1 ≤-ok
-                                      ▹ index 1 ≤-ok
+      s ▹ push 0 ▹ index′ 1
+        ▹ for (λ s → s ▹ push 0 ▹ index′ 2
+                       ▹ for (λ s → s ▹ index′ 1
+                                      ▹ index′ 1
                                       ▹ bit-and ▹ draw-if ▹ pop)
                        ▹ pop)
         ▹ pop
