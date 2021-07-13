@@ -808,16 +808,20 @@ are run automatically during type checking, so if a change to the
 extractor causes one of them to fail it will not go unnoticed.
 
 As a simple example, here is a test that \AF{add-1} is extracted
-correctly:
+correctly. To improve readability, we use the \AF{lines} function to
+split the output of the extractor into individual lines.
 
 \begin{code}
-_ : lines (extract add-1 base base) ≡
-  ( "/add-1 {"
-  ∷ "  1 add"
-  ∷ "} def"
-  ∷ [] )
-_ = refl
+test-add₁ : lines (extract add-1 base base) ≡
+          ( "/add-1 {"
+          ∷ "  1 add"
+          ∷ "} def"
+          ∷ [] )
+test-add₁ = refl
 \end{code}
+
+We can test the output of the extractor on the other examples from the
+previous section in a similar fashion.
 
 \begin{code}[hide]
 _ : lines (extract non-zero base base) ≡
@@ -922,7 +926,7 @@ _ = refl
 \end{code}
 \end{comment}
 
-\begin{code}
+\begin{code}[hide]
 _ : lines (extract sum-for base base) ≡
   ("/sum-for {" ∷
    "  10 exch 0 exch " ∷
