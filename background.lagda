@@ -9,16 +9,15 @@ open import Function using (case_of_)
 module Basics where
 \end{code}
 \section{Background} \label{sec:background}
+Agda is an implementation of Martin-L{\"o}f's dependent type
+theory~\cite{Martin-Lof-1972} extended with many constructions such as
+records, modules, do-notation, \etc{}
 We start with a brief overview of key Agda constructions that
 are used in this paper.  We also present relevant parts of the
 reflection API.  For a more in-depth introduction to Agda refer
 to the Agda user manual~\cite{agda}.
 
-\subsection{Agda Basics}
-Agda is an implementation of Martin-L{\"o}f's dependent type
-theory~\cite{Martin-Lof-1972} extended with many constructions such as
-records, modules, do-notation, \etc{} Datatypes are defined using the
-following syntax:
+\paragraph{Datatypes} Datatypes are defined as follows:
 \begin{code}
   data ℕ : Set where
     zero  : ℕ
@@ -50,7 +49,7 @@ syntax:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/mixfix-oper
 we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
 \AB{xs}.
 
-Functions are defined in a pattern-matching style:
+\paragraph{Pattern matching} Functions are defined in a pattern-matching style:
 \begin{code}
   _+_ : ℕ → ℕ → ℕ
   zero     + y = y
@@ -64,11 +63,10 @@ cases.  In the definition of \AF{tail}, we can omit the case for the
 empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
 (\AC{suc}\ \AB{n}), so it can never be called with input \AC{[]}.
 
-\paragraph{Case analysis} To perform a local case analysis on a value,
-we can use the function \AF{case\_of\_} together with a
+We can do a local case analysis on a value by
+using the function \AF{case\_of\_} together with a
 pattern-matching
-lambda\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/lambda-abstraction.html}}
-indicated by `λ \AK{where}'. For example:
+lambda\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/lambda-abstraction.html}}:
 \begin{code}
   not : Bool → Bool
   not b = case b of λ where
