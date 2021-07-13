@@ -768,14 +768,16 @@ extractor.  This macro takes as inputs the name \AB{main} of the main
 function, a list \AB{base} of base functions that should not be
 extracted and a list \AB{extern} of externally defined functions that
 should not be extracted or inlined (see the next section for more
-details on inlining). When this macro is called, it runs
-\AF{extract-defs} on the initial state. If extraction succeeds, it
-replaces the call to the macro by the pretty-printed result, and
+details on inlining). The implementation of the macro (not shown here)
+runs \AF{extract-defs} on the initial state. If extraction succeeds,
+it replaces the call to the macro by the pretty-printed result, and
 otherwise it throws an error.
 
 \begin{code}
 macro
   extract : Name → Names → Names → Term → TC ⊤
+\end{code}
+\begin{code}[hide]
   extract main base extern hole =
     let initState =
           mkExtractState extern [ main ] base in
@@ -784,11 +786,11 @@ macro
       (_ , error err)  → R.typeError [ R.strErr err ]
 \end{code}
 
-We provide a default list of base functions that are ignored by the
-extractor, but this list can be tailored to a specific program by
-adding external library functions.
+We provide a default list \AF{base} of functions that can be used as
+input to the macro \AF{extract}, which can be further extended to
+tailor extraction to a specific program.
 
-\begin{code}
+\begin{code}[hide]
 base : List Name
 base = quote add ∷ quote sub ∷ quote mul
      ∷ quote eq ∷ quote gt
