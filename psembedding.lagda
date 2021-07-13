@@ -381,11 +381,11 @@ module FibNonTerm where
 \end{code}
 The only unusual thing here is that we match the structure of the stack
 and the structure of the element simultaneously.
-For now, it is an excercise to the reader to verify that \AC{fib}
+For now, it is an excercise to the reader to verify that \AF{fib}
 actually implements fibonacci numbers.  In a later section we will give
 a formal proof of that.
 
-Note that Agda does not see that the \AD{fib} function terminates.
+Note that Agda does not see that the \AF{fib} function terminates.
 For now, we add an explicit annotation, but in a later
 ection we will demonstrate how to deal with this formally.
 

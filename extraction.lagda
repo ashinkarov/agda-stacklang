@@ -368,6 +368,7 @@ these functions in detail.
 \begin{code}[hide]
 pattern `zero   = con (quote ℕ.zero) []
 pattern `suc n  = con (quote ℕ.suc) (vArg n ∷ [])
+pattern `num n  = lit (nat n)
 
 pattern vArg0 x = arg (arg-info visible (modality _ quantity-0)) x
 pattern hArg0 x = arg (arg-info hidden (modality _ quantity-0)) x
@@ -440,16 +441,16 @@ the argument. For any other argument the extraction is aborted by
 calling the \AF{fail} function.
 
 \begin{code}
-  go (`push (lit (nat n)) x) acc = go x (Push n ∷ acc)
+  go (`push (`num n) x) acc = go x (Push n ∷ acc)
   go (`push k x) acc =
     fail ("push non-literal: " <> showTerm k)
-  go (`index (lit (nat n)) x) acc = go x (Index n ∷ acc)
+  go (`index (`num n) x) acc = go x (Index n ∷ acc)
   go (`index k x) acc =
     fail ("index non-literal " <> showTerm k)
 \end{code}
 
 \begin{code}[hide]
-  go v@(s `# (lit (nat n))) acc = do
+  go v@(s `# `num n) acc = do
     b ← stack-ok stackp v
     if b then return acc else go s (Push n ∷ acc)
 \end{code}
@@ -535,9 +536,9 @@ stack-ok (`suc x)  (`suc y)  = stack-ok x y
 \end{code}
 
 \begin{code}[hide]
-stack-ok (lit (nat x)) (lit (nat y)) = return (x ℕ.≡ᵇ y)
+stack-ok (`num x) (`num y) = return (x ℕ.≡ᵇ y)
 
-stack-ok x (lit (nat y)) = do
+stack-ok x (`num y) = do
   x′ ← pattern-to-nat x
   return (x′ ℕ.≡ᵇ y)
   where
@@ -546,7 +547,7 @@ stack-ok x (lit (nat y)) = do
     pattern-to-nat (`suc x)  = suc <$> pattern-to-nat x
     pattern-to-nat _         = fail "not a suc/zero pattern"
 
-stack-ok (lit (nat x)) y = do
+stack-ok (`num x) y = do
   y′ ← term-to-nat y
   return (x ℕ.≡ᵇ y′)
   where
@@ -608,7 +609,7 @@ expression in PostScript that checks whether the top element is zero:
 The two helper functions \AF{extract-natp} and \AF{extract-stackp}
 extract a boolean condition from a given Agda pattern. First,
 \AF{extract-natp} compiles a pattern of type \AD{ℕ} to \AC{just} a
-condition on the top element of the stack, or \AC{nothing} if the
+condition on the given position on the stack, or \AC{nothing} if the
 pattern matches unconditionally. There are three cases:
 
 \begin{itemize}
@@ -625,53 +626,54 @@ In the implementation below, the argument \AB{c} keeps track of the
 number of successors encountered so far.
 
 \begin{code}
-extract-natp : Pattern → ℕ
-             → ExtractM (Maybe (List PsCmd))
-extract-natp (var _)        0 = return nothing
-extract-natp (var _)        c =
-  return (just (Push c ∷ Ge ∷ []))
-extract-natp `zero          c =
-  return (just (Push c ∷ Eq ∷ []))
-extract-natp (`suc p)       c =
-  extract-natp p (1 + c)
-extract-natp (lit (nat n))  c =
-  return (just (Push (c + n) ∷ Eq ∷ []))
-extract-natp p              c =
-  fail ("invalid nat pattern" <> showPattern p)
+extract-natp  : (hd-idx : ℕ) → Pattern
+              → ExtractM (Maybe (List PsCmd))
+extract-natp hd-idx p = go p 0
+  where
+  mk-cmp : PsCmd → ℕ → List PsCmd
+  mk-cmp cmp n = Index hd-idx ∷ Push n ∷ cmp ∷ []
+
+  go : Pattern → ℕ → ExtractM (Maybe (List PsCmd))
+  go (var _)   0 = return nothing
+  go (var _)   c = return (just (mk-cmp Ge c))
+  go `zero     c = return (just (mk-cmp Eq c))
+  go (`suc p)  c = go p (1 + c)
+  go (`num n)  c = return (just (mk-cmp Eq (c + n)))
+  go p         c = fail ("not a nat: " <> showPattern p)
 \end{code}
 
 Second, the function \AF{extract-stackp} compiles a pattern of type
 \AD{Stack} to \AC{just} the condition as a list of PostScript
 commands, or \AC{nothing} in case the pattern is guaranteed to match.
-There are four cases:
+There are two cases:
 \begin{itemize}
 \item A simple variable pattern \AB{s} matches any input, so
 \AC{nothing} is returned.
-\item If the top element \AB{p} of the stack pattern \AB{ps}\ \AC{\#}\
-\AB{p} always matches, we recursively generate the condition for the
-remainder of the stack.
-\item If the top element \AB{p} requires a non-trivial condition but
-the remainder \AB{ps} matches unconditionally, we return the condition
-on the top element.
-\item Finally, if both the top element \AB{p} and the remainder of the
-stack \AB{ps} require non-trivial conditions, we combine both using
-the \AC{And} instruction.
+\item A stack pattern \AB{ps} \AC{\#} \AB{p} matches if the top of the
+stack matches \AB{p} and the remainder matches \AB{ps}.  In case both
+patterns require non-trivial conditions, we combine both using the
+\AC{And} instruction.
 \end{itemize}
 
 \begin{code}
 extract-stackp : (hd-idx : ℕ) → Pattern
                → ExtractM (Maybe (List PsCmd))
+extract-stackp hd-idx  (var x)    = return nothing
+extract-stackp hd-idx  (ps `# p)  = do
+  ml₁  ← extract-natp hd-idx p
+  ml₂  ← extract-stackp (offset ml₁ + hd-idx) ps
+  return (combine ml₁ ml₂)
+  where
+  offset : Maybe X → ℕ
+  offset nothing   = 1
+  offset (just _)  = 2
 
-extract-stackp hd-idx  (var x)     = return nothing
-extract-stackp hd-idx  (ps `# p)  =
-  extract-natp p 0 >>= λ where
-    nothing   → extract-stackp (1 + hd-idx) ps
-    (just cmp) → do
-      let l₁ = Index hd-idx ∷ cmp
-      ml₂ ← extract-stackp (2 + hd-idx) ps
-      case ml₂ of λ where
-        nothing   → return (just l₁)
-        (just l₂) → return (just (l₁ ++ l₂ ++ [ And ]))
+  combine  : Maybe (List PsCmd) → Maybe (List PsCmd)
+           → Maybe (List PsCmd)
+  combine nothing    ml₂        = ml₂
+  combine ml₁        nothing    = ml₁
+  combine (just l₁)  (just l₂)  = just (l₁ ++ l₂ ++ [ And ])
+
 extract-stackp _       p =
   fail ("invalid stack pattern" <> showPattern p)
 \end{code}
