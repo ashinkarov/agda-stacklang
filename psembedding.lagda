@@ -252,18 +252,20 @@ Notice that \AF{index} requires a proof that the index is within
 bounds.  Also, we are not strictly following the semantics of
 PostScript, as the index must be passed explicitly, rather
 than taking it from the stack.
-\begin{code}
-index : (k : ℕ) → @0{True (k <? m)} → Stack m → Stack (1 + m)
-\end{code}
 \begin{code}[hide]
-get-index′ : (k : ℕ) → @0 k < m → Stack m → ℕ
-get-index′ zero     (s≤s k<m) (s # x) = x
-get-index′ (suc k)  (s≤s k<m) (s # x) = get-index′ k k<m s
-
-index′ : (k : ℕ) → @0 k < m → Stack m → Stack (1 + m)
-index′ k k<m s = s # get-index′ k k<m s
-
-index k {w} s = index′ k (toWitness w) s
+@0 <?-pred : True (suc k <? suc m) → True (k <? m)
+<?-pred {k} {m} sk<?sm = fromWitness (≤-pred (toWitness sk<?sm))
+\end{code}
+\begin{code}
+index :  (k : ℕ) → @0{True (k <? m)}
+      →  Stack m → Stack (1 + m)
+index k {k<m} s = s # get-index k {k<m} s
+  where
+  get-index :  (k : ℕ) → @0{True (k <? m)}
+            →  Stack m → ℕ
+  get-index zero            (s # x) = x
+  get-index (suc k) {sk<m}  (s # x) =
+    get-index k {<?-pred sk<m} s
 \end{code}
 The proof that \AB{k} is less than \AB{m} is marked as implicit,
 which means that Agda can automatically fill in the proof
