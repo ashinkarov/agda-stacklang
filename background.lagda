@@ -3,6 +3,9 @@ module _ where
 
 variable A : Set
 
+open import Data.Bool.Base using (Bool; true; false)
+open import Function using (case_of_)
+
 module Basics where
 \end{code}
 \section{Background} \label{sec:background}
@@ -61,6 +64,17 @@ cases.  In the definition of \AF{tail}, we can omit the case for the
 empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
 (\AC{suc}\ \AB{n}), so it can never be called with input \AC{[]}.
 
+\paragraph{Case analysis} To perform a local case analysis on a value,
+we can use the function \AF{case\_of\_} together with a
+pattern-matching
+lambda\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/lambda-abstraction.html}}
+indicated by `λ \AK{where}'. For example:
+\begin{code}
+  not : Bool → Bool
+  not b = case b of λ where
+    true   → false
+    false  → true
+\end{code}
 
 \paragraph{Termination checking}
 In order to ensure totality, Agda checks that all recursive functions
@@ -133,20 +147,28 @@ computationally depend on arguments that are not on the stack and can
 hence safely be erased during extraction of PostScript code (see
 \secref{embedding} and \secref{extraction}).
 
-\subsection{Reflection}
+\paragraph{Generalizable variables} To avoid having to bind implicit
+arguments in type signatures, we make use of \emph{generalizable
+variables}:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/generalization-of-declared-variables.html}}
+\begin{code}
+  variable
+    X Y Z : Set
+    @0 k l m n : ℕ
+\end{code}
+This allows us for example to skip the binding of \AB{n} in the type of \AF{tail}:
+\begin{code}
+  tail'' : Vec ℕ (suc n) → Vec ℕ n
+  tail'' (x ∷ xs) = xs
+\end{code}
+
+
+
+\paragraph{Reflection}
 
 The reflection API of Agda allows quoting and unquoting of expressions
 and declarations, and provides access to some of the internals of the
 Agda typechecker such as unification and
 normalisation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
-%
-Effectively using Agda's reflection API can be challenging because the
-syntax it uses matches the \emph{internal}
-representation of Agda terms, which differs significantly from the
-surface syntax.
-
-\paragraph{Reflected syntax}
-
 
 Expressions are represented by a constructor such as \AC{con} (for
 constructors), \AC{def} (for other defined symbols), or \AC{var} (for
@@ -206,10 +228,10 @@ of clauses. Each clause itself is represented by the constructor
 list of the names of variables and their types; ii) the list of
  patterns; and iii) the body of the clause.
 %
-The first clause does not have variables, so the telescope
-is empty. The second clause has one variable called \AB{x}.  The
-pattern list in the first clause has one argument.
-The actual pattern matches against the \AC{zero} constructor.
+%The first clause does not have variables, so the telescope
+%is empty. The second clause has one variable called \AB{x}.  The
+%pattern list in the first clause has one argument.
+%The actual pattern matches against the \AC{zero} constructor.
 %
 Variables (both in patterns and in terms) are given as de Bruijn indices
 relative to the telescope of the clause.  That is, in the second clause the
@@ -227,10 +249,9 @@ expressions, through the \AD{TC} monad. Agda terms can be converted to
 reflected syntax by using the \AF{quoteTC} primitive.
 
 Functions of return type \AD{Term} → \AD{TC} \AD{⊤} can be marked as a
-\AK{macro}. When the elaborator encounters a macro call, it creates a
-`hole' that it passes to the macro. The macro can `fill' the hole by
-calling the function \AF{unify}.
-%
+\AK{macro}. When the elaborator encounters a macro call, it runs the macro
+and replaces it with the result.
+\begin{comment}
 For example, the macro \AF{norm} below takes a term, quotes it,
 normalises the quoted term, and unifies the result with the hole.
 %
@@ -239,18 +260,17 @@ example, \AF{norm} (\AN{1} \AF{+} \AN{1}) will be statically replaced
 by \AN{2}.
 
 \begin{code}
-  macro
-    norm : A → (Term → TC ⊤)
-    norm x hole = do
-      `x ← quoteTC x
-      `x ← normalise `x
-      unify `x hole
+  macro norm : A → (Term → TC ⊤)
+        norm x hole = do
+          `x ← quoteTC x
+          `x ← normalise `x
+          unify `x hole
   test = norm (1 + 1) -- equivalent to 'test = 2'
 \end{code}
-
-In more realistic examples, a macro can perform arbitrary
-manipulations on the syntactic structure of Agda expressions as well
-as information obtained through operations in the \AF{TC} monad.
+\end{comment}
+A macro can perform arbitrary manipulations on the syntactic structure
+of Agda expressions as well as information obtained through operations
+in the \AF{TC} monad.
 
 
 
