@@ -103,11 +103,11 @@ transferable to other stack-based languages such as Forth.
 
 The main focus of our Agda embedding is to track the number of elements
 on the stack.  On the one hand this helps to entirely avoid stack underflows
---- an extremely often practical problem in stack-based programs.  On the
+--- an extremely frequent practical problem in stack-based programs.  On the
 other hand, by doing so, we almost immediately run into necessity to use
 dependent types in the embedded programs.  The other points that we
 want to demonstrate in the embedding are: i) attaching arbitrary properties
-to function arguments (see \AF{index} and \AF{for} functions);
+to function arguments (see for example the \AF{index} function);
 ii) guaranteeing function termination; and iii) using runtime-irrelevance
 annotations to guarantee that extra properties do not have any computational
 meaning.
@@ -632,10 +632,10 @@ We define for-loop as a function of two arguments: the body
 of the for-loop given by a function and the initial stack.
 \begin{code}
 for : (Stack (1 + n) → Stack n) → Stack (2 + n) → Stack n
+for {n} f (st # s # e) = if s ≤ e then loop (e - s) st else st
   where  loop : ℕ → Stack n → Stack n
          loop zero     st = st ▹ push s ▹ f
          loop (suc i)  st = st ▹ loop i ▹ push (suc i + s) ▹ f
-for {n} f (st # s # e) = if s ≤ e then loop (e - s) st else st
 \end{code}
 The initial stack contains 2 loop boundary elements and $n$ other
 elements. It computes the number of iterations \AB{i} and unrolls the

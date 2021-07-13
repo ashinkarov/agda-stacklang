@@ -200,8 +200,8 @@ record ExtractM (X : Set) : Set where -- ...
                 → TC (ExtractState × Err X)
 \end{code}
 
-The monad structure is given by the monadic operations \AR{>>=} and
-\AR{return}, which are used in the desugaring of \AK{do}-notation.
+The monad structure is given by the monadic operations \AF{>>=} and
+\AF{return}, which are used in the desugaring of \AK{do}-notation.
 
 \begin{code}
 return : X → ExtractM X
@@ -209,8 +209,7 @@ _>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y
 _<$>_ : (X → Y) → ExtractM X → ExtractM Y
 \end{code}
 
-The \AF{fail} function throws an error, aborting the extraction
-process.
+The \AF{fail} function aborts the extraction process.
 
 \begin{code}
 fail : String → ExtractM X
@@ -233,7 +232,7 @@ Finally, the monad provides two operations for getting normalized types
 and definitions of a given symbol. This can be used for example for
 inlining Agda functions that cannot be translated to PostScript, or
 for applying domain-specific optimizations through the use of rewrite
-rules (see Section \ref{TODO}).
+rules (\secref{partial-evaluation}).
 
 \begin{code}
 get-normalised-type : Name → ExtractM Type

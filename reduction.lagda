@@ -53,7 +53,7 @@ The function \AF{applyN} is a polymorphic and higher-order function,
 so it falls well outside the fragment of Agda that our extractor can
 deal with. Nevertheless, we can ask the extractor to inline the
 definition of \AF{applyN}, which then makes it possible to extract the
-definition of \AF{pow64}:
+definition of \AF{pow32}:
 
 \begin{code}
 _ : lines (extract pow32 base base) ≡
