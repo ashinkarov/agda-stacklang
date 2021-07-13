@@ -120,8 +120,8 @@ its length. Per our assumptions, the stack can only store elements of type
 \AD{ℕ}.
 \begin{code}
 data Stack : @0 ℕ → Set where
-  []  : Stack 0
-  _#_ : Stack n → ℕ → Stack (suc n)
+  []   : Stack 0
+  _#_  : Stack n → ℕ → Stack (suc n)
 \end{code}
 \begin{code}[hide]
 infixl 5 _#_
@@ -200,10 +200,10 @@ count xs = xs # go xs
 \end{code}
 \end{comment}
 
-For simplicity We do not define subtraction and division, as when operating
-strictly in natural numbers, these functions would require additional proofs.
-We will need a proof that $a > b$ when subtracting $a - b$, and we will need
-a proof that $b \not= 0$ when dividing $a / b$.
+%For simplicity we do not define subtraction and division, as when operating
+%strictly in natural numbers, these functions would require additional proofs.
+%We will need a proof that $a > b$ when subtracting $a - b$, and we will need
+%a proof that $b \not= 0$ when dividing $a / b$.
 
 %Finally, we define arithmetic operations using a helper function \AD{binop}
 %that always acts on the two topmost elements of the stack.
@@ -224,7 +224,7 @@ We define several operations that do not represent PostScript
 commands, but that will be useful in some of the examples.
 The \AF{subst-stack} command makes it possible to cast a
 stack of length $m$ into the stack of length $n$, given
-the proof that $m \equiv n$.
+a proof that $m \equiv n$.
 \begin{code}
 subst-stack : @0 m ≡ n → Stack m → Stack n
 subst-stack refl xs = xs
@@ -245,7 +245,7 @@ that does the actual indexing (we only give a signature), and then
 \AF{index} puts the element obtained by \AF{get-index} on the stack.
 Notice that both functions require a proof that the index is within
 bounds.  Also, we are not strictly following the semantics of
-PostScript, and we force to pass the index explicitly, rather
+PostScript, as the index must be passed explicitly, rather
 than taking it from the stack.
 \begin{code}
 get-index : (k : ℕ) → @0 k < m → Stack m → ℕ
@@ -261,12 +261,12 @@ Finally, we implement a convenience function \AF{≤-ok} that
 can automatically find simple proofs that some $x$ is less or
 equal than some $y$.
 \begin{code}
-≤-ok : {x y : ℕ} → {w : True (y ≥? x)} → x ≤ y
+≤-ok : {x y : ℕ} → {w : True (x ≤? y)} → x ≤ y
 ≤-ok {w = w} = toWitness w
 \end{code}
 While this might look a bit like magic, the core idea is that
-\AF{≥?} is a decision procedure, and \AF{True} forces normalisation
-of \AB{y} \AF{≥?} \AB{x}.  In case normalisation is enough to compute the answer,
+\AF{≤?} is a decision procedure, and \AF{True} forces normalisation
+of \AB{x} \AF{≤?} \AB{y}.  In case normalisation is enough to compute the answer,
 there is a standard way to turn \AB{w} into the proof of inequality.
 Practically, we often get away with using \AF{≤-ok} in places where
 a simple proof is needed.
@@ -459,7 +459,8 @@ module FibNonTermPf where
 \end{code}
 \begin{code}
   fib-spec : ℕ → ℕ
-  fib-spec 0 = 1 ; fib-spec 1 = 1
+  fib-spec 0 = 1
+  fib-spec 1 = 1
   fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x
 \end{code}
 This is an inductive proof where we consider two base cases, and the
@@ -468,10 +469,11 @@ smaller arguments, and after rewriting such cases, the statement becomes
 obvious.
 \begin{code}
   fib-thm : (s : Stack n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
-  fib-thm _ 0 = refl ; fib-thm _ 1 = refl
+  fib-thm _ 0 = refl
+  fib-thm _ 1 = refl
   fib-thm s (suc (suc x))
-          rewrite  (fib-thm (s # suc (suc x)) (suc x)) |
-                   (fib-thm (s # fib-spec (suc x)) x) = refl
+    rewrite  (fib-thm (s # suc (suc x)) (suc x))
+          |  (fib-thm (s # fib-spec (suc x)) x)  = refl
 \end{code}
 
 
@@ -502,20 +504,20 @@ module RepTerm where
 \end{code}
 \begin{code}
     rep′ : (s : Stack (2 + n)) → @0{hd s ≡ k} → Stack (hd s + n)
-    rep′ {k = .0}            s@(_ # _ # zero)  {refl}  = s ▹ pop ▹ pop
-    rep′ {k = .suc k}  s:x:m+1@(_ # _ # suc m) {refl}  =
+    rep′ {k = 0}      s@(_ # _ # zero)         {refl}  = s ▹ pop ▹ pop
+    rep′ {k = suc m}  s:x:m+1@(_ # _ # suc m)  {refl}  =
          let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
              s:x:m:x  = s:x:m    ▹ index 1 ≤-ok
              s:x:x:m  = s:x:m:x  ▹ exch
-         in  subst-stack (+-suc _ _) (rep′ {k = k} s:x:x:m {refl})
+         in  subst-stack (+-suc _ _) (rep′ {k = m} s:x:x:m {refl})
 
     rep : (s : Stack (2 + n)) → Stack (hd s + n)
     rep s = rep′ s {refl}
 \end{code}
 As the function is pattern-matching on the top of the stack, and the
 only value of the \AD{\_≡\_} type is \AC{refl}, the argument \AB{k}
-has to be \AN{0} in the first case, and some successor in the second
-case.  This trick creates ensures that \AB{k} is structurally decreasing,
+has to be \AN{0} in the first case, and \AC{suc} \AB{m} in the second
+case.  This ensures that \AF{rep′} is structurally decreasing in \AB{k},
 and the function is accepted by the termination checker.
 
 
@@ -633,9 +635,8 @@ that a stack returned by a for-loop contains enough elements, a
 potentially complex proof has to be given.  We can make our life
 easier by encoding a well-behaved subset that is easy to work with
 and that is sufficient for our examples.  The boundaries
-of the loop are given by two numbes $s$ and $e$, where $s \le e$.
-The loop iterations would go through indices $s, 1+s, \dots, e$
-inclusively.
+of the loop are given by two numbers $s$ and $e$, where $s \le e$.
+The loop iterations would go through indices $s, 1+s, \dots, e$.
 
 As we require the inequality proof anyway, we can use the proof
 object to run a well-founded recursion, and automatically increment
@@ -643,8 +644,8 @@ indices the way we need.  We define the (a two-argument) \AF{\_≥₁\_}
 type with two constructors:
 \begin{code}
 data _≥₁_ (l : ℕ) : ℕ → Set where
-  ≥-done : l ≥₁ l
-  ≥-next : l ≥₁ (suc m) → l ≥₁ m
+  ≥-done  : l ≥₁ l
+  ≥-next  : l ≥₁ (suc m) → l ≥₁ m
 \end{code}
 Reflexivity ($l \ge l$) is given by \AC{≥-done}, and \AC{≥-next} says
 that proving $l \ge m$ requires first proving that $l \ge 1+m$.  For
