@@ -257,15 +257,11 @@ than taking it from the stack.
 <?-pred sk<?sm = fromWitness (≤-pred (toWitness sk<?sm))
 \end{code}
 \begin{code}
-index :  (k : ℕ) → @0{True (k <? m)}
-      →  Stack m → Stack (1 + m)
-index k {k<m} s = s # get-index k {k<m} s
-  where
-  get-index :  (k : ℕ) → @0{True (k <? m)}
-            →  Stack m → ℕ
-  get-index zero            (s # x) = x
-  get-index (suc k) {sk<m}  (s # x) =
-    get-index k {<?-pred sk<m} s
+_!_ : Stack m → (k : ℕ) → @0{True (k <? m)} → ℕ
+_!_ (s # x)  zero            = x
+_!_ (s # x)  (suc k) {sk<m}  = (s ! k) {<?-pred sk<m}
+index :  (k : ℕ) → {_} →  Stack m → Stack (1 + m)
+index k {k<m} s = s # (s ! k) {k<m}
 \end{code}
 The proof that \AB{k} is less than \AB{m} is marked as implicit,
 which means that Agda can automatically fill in the proof
