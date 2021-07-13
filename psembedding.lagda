@@ -38,7 +38,6 @@ are argumentless operators, and a program is a chain of such commands.
 For example, consider a function that computes $a^2 + b^2$, where $a$ and
 $b$ are the top two stack values.
 \begin{lstlisting}[language=PostScript]
-% a b -- a*a+b*b
 dup   % a b b    duplicate top element
 mul   % a b*b    multiply top two numbers
 exch  % b*b a    excange top two elements
@@ -51,20 +50,29 @@ Commands use mnemonic names and typically implement
 a simple computation or element manipulation on the stack.  Recursive
 function definitions are written as follows:
 
+%  % n -- fib(n)
+%  dup dup      % n n n
+%  0 eq exch    % n n==0 n
+%  1 eq         % n n==0 n==1
+%  or           % n (n==0 || n==1)
+%  { pop 1 }    % 1
+%  {
+%    dup        % n n
+%    1 sub fib  % n fib(n-1)
+%    exch       % fib(n-1) n
+%    2 sub fib  % fib(n-1) fib(n-2)
+%    add        % fib(n-1)+fib(n-2)
+%  } ifelse
 \begin{lstlisting}[language=PostScript]
 /fib {
-  % n -- fib(n)
-  dup dup      % n n n
-  0 eq exch    % n n==0 n
-  1 eq         % n n==0 n==1
-  or           % n (n==0 || n==1)
-  { 1 }        % [return] 1 if (n==0||n==1)
-  {
-    dup        % n n
-    1 sub fib  % n fib(n-1)
-    exch       % fib(n-1) n
-    2 sub fib  % fib(n-1) fib(n-2)
-    add        % fib(n-1)+fib(n-2)
+  dup 0 eq           % n n==0
+  { pop 1 }          % 1
+  { dup 1 eq         % n n==1
+    { pop 1 }        % 1
+    { dup 1 sub fib  % n fib(n-1)
+      exch 2 sub fib % fib(n-1) fib(n-2)
+      add            % fib(n-1)+fib(n-2)
+    } ifelse
   } ifelse
 } def
 \end{lstlisting}
@@ -80,7 +88,7 @@ subtract one, make a recursive call, and multiply the result with the
 original argument.  Conditional are expressed with two code blocks
 followed by the \textbf{ifelse} command.
 
-By printing the results of the fib function (code not shown here), we
+By drawing the results of the fib function (code not shown here), we
 can obtain the following picture using a PostScript interpreter:
 
 \epsfbox[0 0 200 100]{1.ps}
