@@ -893,6 +893,7 @@ _ : lines (extract FibNonTerm.fib base base) ≡
 _ = refl
 \end{code}
 
+\begin{comment}
 As another example, we test that the implementation of \AF{fib} is
 extracted correctly:
 
@@ -916,6 +917,7 @@ _ : lines (extract Fib3.fib base base) ≡
   ∷ [] )
 _ = refl
 \end{code}
+\end{comment}
 
 \begin{code}
 _ : lines (extract sum-for base base) ≡

@@ -585,6 +585,8 @@ on the same stack.  The problem is that after the first recursive call \AF{fib}
 on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
 (to bring \AB{x} at the top).  However, we cannot prove that \AF{fib} only
 modified the top element of the stack and did not touch other elements.
+
+\begin{comment}
 There is a number of ways we can fix this, but for presentatoinal purposes
 we show the shortest one.  We adjust the structure of our recursion,
 so that we deal with three elements per iteration, implementing a simple
@@ -624,11 +626,12 @@ and cleans-up the stack.  We defined a new stack operation
 called \AF{rot3} that reverses the top three elements of the stack.
 Note that this is not a built-in operation of PostScript, but it is
 trvial to implement it in terms of \AF{roll} and \AF{exch}.
+\end{comment}
 
 \subsection{For Loop}
 The final part of our embedding is the for-loop construct.  Not only
 this is often found in practical PostScript documents, it also helps
-to avoid termination problems that we had before.  The difficulty with
+to avoid the problem with proving termination.  The difficulty with
 encoding the for-loop behaviour lies in its potential ability to
 arbitrarily modify stack at every iteration.  While there is no
 technical problem to encode such a behaviour in Agda, it would be
