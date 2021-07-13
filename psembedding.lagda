@@ -2,8 +2,8 @@
 
 module psembedding where
 
-open import Data.Bool using (Bool; true; false; if_then_else_; not)
-open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_; _≤_; _<_; s≤s; z≤n; _≤ᵇ_) renaming (_∸_ to _-_)
+open import Data.Bool using (Bool; true; false; if_then_else_; not; T)
+open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_) renaming (_∸_ to _-_; _≤ᵇ_ to _≤_; _<ᵇ_ to _<_)
 open import Data.Nat.Properties
 open import Data.Product
 open import Data.Unit using (⊤; tt)
@@ -11,8 +11,6 @@ open import Data.Unit using (⊤; tt)
 open import Function using (case_of_; flip)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; subst)
-open import Relation.Nullary
-open import Relation.Nullary.Decidable
 
 -- Debug
 open import ReflHelper
@@ -253,24 +251,19 @@ bounds.  Also, we are not strictly following the semantics of
 PostScript, as the index must be passed explicitly, rather
 than taking it from the stack.
 \begin{code}[hide]
-@0 <?-pred : True (suc k <? suc m) → True (k <? m)
-<?-pred sk<?sm = fromWitness (≤-pred (toWitness sk<?sm))
+infix 5 _!_
 \end{code}
 \begin{code}
-_!_ : Stack m → (k : ℕ) → @0{True (k <? m)} → ℕ
-_!_ (s # x)  zero            = x
-_!_ (s # x)  (suc k) {sk<m}  = (s ! k) {<?-pred sk<m}
-index :  (k : ℕ) → {_} →  Stack m → Stack (1 + m)
+_!_ : Stack m → (k : ℕ) → @0{T (k < m)} → ℕ
+_!_ (s # x) zero            = x
+_!_ (s # x) (suc k) {sk<m}  = (s ! k) {sk<m}
+
+index : (k : ℕ) → @0{T (k < m)} → Stack m → Stack (1 + m)
 index k {k<m} s = s # (s ! k) {k<m}
 \end{code}
 The proof that \AB{k} is less than \AB{m} is marked as implicit,
 which means that Agda can automatically fill in the proof
 (at least in the simple cases that we have in this paper).
-%
-While this might look a bit like magic, the core idea is that
-\AF{≤?} is a decision procedure, and \AF{True} forces normalisation
-of \AB{k} \AF{≤?} \AB{m}.  In case normalisation is enough to compute the answer,
-there is a standard way to turn \AB{w} into the proof of inequality.
 
 We explicitly forego the definition of conditionals and comparison
 operators in favour of using pattern-matching functions.  Recursion
@@ -644,10 +637,10 @@ We define for-loop as a function of two arguments: the body
 of the for-loop given by a function and the initial stack.
 \begin{code}
 for : (Stack (1 + n) → Stack n) → Stack (2 + n) → Stack n
-for {n} f (st # s # e) = if s ≤ᵇ e then loop (e - s) st else st
   where  loop : ℕ → Stack n → Stack n
          loop zero     st = st ▹ push s ▹ f
          loop (suc i)  st = st ▹ loop i ▹ push (suc i + s) ▹ f
+for {n} f (st # s # e) = if s ≤ e then loop (e - s) st else st
 \end{code}
 The initial stack contains 2 loop boundary elements and $n$ other
 elements. It computes the number of iterations \AB{i} and unrolls the
