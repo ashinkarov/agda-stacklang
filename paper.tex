@@ -493,20 +493,15 @@ you to implement all these things --- as well as the embedded programs
 themselves --- \emph{side by side in a single language}, simplifying
 the development. And secondly, it allows you to reuse the typechecker
 and evaluator of the host language, saving you a lot of work.
-While we showcase a single example, we applied our approach to several other
-languages:
-\begin{itemize}
-\item Kaleidoscope, a minimalist imperative language used in the
-  documentation of LLVM.
-\item SaC (Single assignment C), a high-performance array language
-  that generates efficient code for various architectures.
-\item APL (Array Programming Language), another array language with
-  heavily overloaded syntax that pioneered the concept of rank- and
-  shape-polymorphic programming.
-\end{itemize}
+While we showcase a single example, the approach has been applied
+to several other languages: Kaleidoscope, a minimalist imperative language;
+Single assignment C, a high-performance array language;
+APL (Array Programming Language), another array language with
+heavily overloaded syntax.
 For more details on these examples,
 refer to~\citet{DBLP:journals/corr/abs-2105-10819}.
-This suggests that you are now empowered to apply the proposed
+
+We believe that the reader is now empowered to apply the proposed
 technique to verify code in any language.
 
 
