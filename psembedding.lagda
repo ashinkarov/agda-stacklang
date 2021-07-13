@@ -298,37 +298,30 @@ add-1 : Stack (1 + n) → Stack (1 + n)
 add-1 s = add (push 1 s)
 \end{code}
 
-We are required to define the type, which in turn forces us to
-specify how does the operation change the length of the stack.
-Stack operators are regular functions, so the chain of applications
-would be written in reverse, when comparing to the corresponding
-PostScript program.  While this does not affect functionality,
-it may be aesthetically pleasing to maintain the original order
-of operators.  This can be achieved by defining two
-operations that reverse arguments in application and
-composition.  We call these operations \AF{\_▹\_} and \AF{\_∘\textasciitilde{}\_}
-correspondingly:
+We are required to define the type, which in turn forces us to specify
+how does the operation change the length of the stack.  Stack
+operators are regular functions, so the chain of applications would be
+written in reverse, when comparing to the corresponding PostScript
+program.  While this does not affect functionality, it may be
+aesthetically pleasing to maintain the original order of operators.
+This can be achieved by defining an operation \AF{\_▹\_} that reverses
+the arguments in application (this is Haskell's \$ operator):
 
 \begin{code}[hide]
 infixl 5 _▹_
-infixr 9 _∘~_
-_▹_ : X → (X → Y) → Y
-_∘~_ : (X → Y) → (Y → Z) → (X → Z)
 \end{code}
 \begin{code}
-x ▹  f  = f x
-f ∘~ g  = λ x → g (f x)
+_▹_ : X → (X → Y) → Y
+x ▹ f  = f x
 \end{code}
 \begin{code}[hide]
 -- not sure if we need to expose this in the text
 {-# INLINE _▹_ #-}
-{-# INLINE _∘~_ #-}
 add-1′ : Stack (1 + n) → Stack (1 + n)
-add-1′′ : Stack (1 + n) → Stack (1 + n)
 \end{code}
 Now we can rewrite the above example as:
 \begin{code}
-add-1′ s = s ▹ push 1 ▹ add;  {- or -} add-1′′ = push 1 ∘~ add
+add-1′ s = s ▹ push 1 ▹ add
 \end{code}
 
 % This function does nothing to the stack but it introduces
@@ -355,7 +348,7 @@ Consider now a slightly more complicated function that computes
 $a^2 + b^2$ where $a$ and $b$ are top two elements of the stack:
 \begin{code}
 sqsum : Stack (2 + n) → Stack (1 + n)
-sqsum = dup ∘~ mul ∘~ exch ∘~ dup ∘~ mul ∘~ exch ∘~ add
+sqsum s = s ▹ dup ▹ mul ▹ exch ▹ dup ▹ mul ▹ exch ▹ add
 \end{code}
 It can be easier to understand the code if we introduce internal
 stack states in variables names of let:
@@ -735,13 +728,13 @@ Now we are ready to define our running fibonacci example using \AF{for′}:
 fib-for : Stack (1 + n) → Stack (1 + n)
 fib-for s@(_ # x)
     = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
-    ▹ for′ {k = 2} (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
+    ▹ for′ {k = 2} (λ s → s ▹ pop ▹ exch ▹ index 1 ≤-ok ▹ add)
     ▹ pop
 \end{code}
 % This is an alternative version of the code we used before introducing for′
 % for {k = 2}
 %     (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
-%     (pop ∘~ exch ∘~ index 1 ≤-ok ∘~ add)
+%     (λ s → s ▹ pop ▹ exch ▹ index 1 ≤-ok ▹ add)
 % ▹ pop
 Our initial stack contains the function argument $x$ at the top. We modify
 the stack by inserting $0 1$ (inital fibonacci seeds) and $0$ (for-loop lower
@@ -781,8 +774,8 @@ that no extra arguments are left on the stack.
     sierp s  = (s ▹ push 0 ▹ index 1 ≤-ok , x≥₁0)
              ▹ for′ {k = 1}
                (λ s → (s ▹ push 0 ▹ index 2 ≤-ok , x≥₁0)
-                      ▹ for′ {k = 1} (index 1 ≤-ok ∘~ index 1 ≤-ok
-                                      ∘~ bit-and ∘~ draw-if ∘~ pop)
+                      ▹ for′ {k = 1} (λ s → s ▹ index 1 ≤-ok ▹ index 1 ≤-ok
+                                              ▹ bit-and ▹ draw-if ▹ pop)
                       ▹ pop)
              ▹ pop
 \end{code}
