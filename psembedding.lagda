@@ -3,7 +3,7 @@
 module psembedding where
 
 open import Data.Bool using (Bool; true; false; if_then_else_; not)
-open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_; _≤_; _<_; s≤s; z≤n) renaming (_∸_ to _-_)
+open import Data.Nat as ℕ using (ℕ; zero; suc; _+_; _*_; _≤_; _<_; s≤s; z≤n; _≤ᵇ_) renaming (_∸_ to _-_)
 open import Data.Nat.Properties
 open import Data.Product
 open import Data.Unit using (⊤; tt)
@@ -651,7 +651,8 @@ We define for-loop as a function of two arguments: the body
 of the for-loop given by a function and the initial stack.
 \begin{code}
 for : (Stack (1 + n) → Stack n) → Stack (2 + n) → Stack n
-for {n} f (st # s # e) = loop (e - s) st
+for {n} f (st # s # e) =
+  if s ≤ᵇ e then loop (e - s) st else st
   where
   loop : ℕ → Stack n → Stack n
   loop zero     st = st ▹ push s ▹ f
@@ -661,7 +662,8 @@ The initial stack contains 2 loop boundary elements and $n$ other
 elements. It computes the number of iterations \AB{i} and unrolls the
 loop that many times, each time pushing the current value of the loop
 variable to the top of the stack. In the end, it finishes with a stack
-with \AB{n} elements.
+with \AB{n} elements. If the lower boundary is already above the upper
+boundary initially, it removes both of them and returns immediately.
 
 \begin{code}[hide]
 -- 10 + 0 + 1 + ... + x
