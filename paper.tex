@@ -235,15 +235,14 @@
 
 \section{Introduction}\label{sec:introduction}
 
-
-When writing a program, it is often desirable to guarantee that a
-certain class of errors does not occur in the given program.  For
-example, the program can never dereference a null pointer; or division
-by zero never occurs; or indexing is always within bounds.  In most
-programming languages, the class of guarantees that can be checked
-statically is very limited.  Nevertheless, moving to a different
+It is often desirable to guarantee that a
+certain class of errors does not occur in the given program.  These
+error classes may include: dereferencing the null pointer, division
+by zero, or out of bound indexing.  In most
+programming languages, the guarantees that can be checked
+statically are very limited.  Nevertheless, moving to a different
 language is not always an option.  For example, these languages may
-come with great tooling, compilers and libraries.  In this paper, we
+come with great tooling, compilers and/or libraries.  In this paper, we
 investigate how to provide strong static guarantees for programs in a
 given language, while maintaining the ability to to use existing
 compilers and tools.
@@ -258,8 +257,8 @@ compiler), then our goal is achieved.
 
 While it is possible to add dependent types to an existing language
 from scratch, doing so is time-consuming and error-prone.  Instead,
-one can also embed the language we want to use into an existing
-dependently typed language, which allows us to re-use the typechecker
+one can also embed the language we want to use into existing
+dependently typed languages, which allows us to re-use the typechecker
 of the host language to typecheck the embedded language.
 
 There are two common approaches to language embedding: deep and shallow.
@@ -268,7 +267,7 @@ of the host language.  Programs in a shallowly-embedded language are programs
 in the host language, so they are immediately runnable; types of the embedded
 language are types of the host language, so the host typechecker is used for
 checking embedded programs.  The downside of this approach is that we cannot
-easily get the representation of the embedded program.
+easily get the representation of embedded programs.
 
 Meanwhile, a deep embedding defines a data type to represent the AST
 of the embedded language.  This requires us to define a type system
@@ -279,48 +278,36 @@ interpreter~\cite{}.  The benefit of deep embedding is that we get
 full access to the syntactic structure of the embedded program.  This
 approach works beautifully for embedded languages with simple type
 systems. However, for embedded languages with dependent types,
-defining a tagless interpreter is technically possible~\cite{}, but
-extremely challenging to define and use in practice.
+tagless interpreters are technically possible~\cite{}, but
+are extremely challenging to define and use in practice.
 
-We propose a novel approach that combines the best parts of shallow
-and deep embeddings through the use of reflection in a
+The key insight of this paper lies in proposing a novel approach that
+combines the best parts of shallow and deep embeddings through the use
+of reflection in a
 dependently-typed host language such as Coq, Agda, Idris, or Lean.
-Concretely, we start by defining a shallow embedding of the target
-language while making use of dependent types to statically enforce the
-properties of interest, and write a program in this embedding. We then
-make use of reflection to obtain a syntactic representation of the
-program, and extract a program in the syntax of the target language
-from it.  Finally, we compile the extracted program using existing
-tools and libraries. Essentially, a shallow embedding in a host
-language with reflections suddenly becomes deep.
 
-In this paper we demonstrate that the proposed approach is actually possible
-by example.  We embed a subset of PostScript~\cite{}, which is a stack-based
-language used in the corresponding document format.  The simplicity of the language
+Our main objective of the paper is to demonstrate that the
+proposed approach works in practice.  Therefore, we guide the reader
+through the entire process of: i) shallow embedding of the target
+language;  ii) writing programs in this embedding; iii) using
+dependent types to statically enforce the properties of interest; 
+iv) extract a program in the syntax of the target language
+from it.  We run the extracted program using existing
+tools and libraries. Essentially, demonstrating that a
+shallow embedding in a host language with reflections
+suddenly becomes deep.
+
+In order to keep presentation as simple as possible, we have
+chosen a very simple target language to embed --- we use a subset
+of PostScript~\cite{}, which is a stack-based
+language used in the corresponding document format.  While the embedding
+may look impractical, the simplicity of the language
 allows us to focus on the essence of the proposed approach and avoid unrelated
-technical details.  We use Agda as our host language, and we demonstrate the
-embedding, how to specify a program, and most importantly, program extraction.
-
-
-\paragraph{Limitations}
-
-While we claim our approach is flexible and powerful, it is
-certainly not a magic bullet. There are still a lot of things that
-need to be implemented for each target language: the language
-embedding itself, the encoding of the properties under consideration
-as types in the host language, and the extractor that transforms
-embedded programs back into the syntax of the original language.  For
-enforcing more complex properties, it might also be necessary to write
-proofs to convince the typechecker of the host language that they are
-indeed satisfied.
-%
-The main advantage of our approach is twofold: first, it allows
-you to implement all these things --- as well as the embedded programs
-themselves --- \emph{side by side in a single language}, simplifying
-the development. And secondly, it allows you to reuse the typechecker
-and evaluator of the host language, saving you a lot of work.  In the
-end, our goal is not to showcase a single example but to empower you
-to apply this approach yourself to verify code in any language.
+technical details.  We ensure that many verification patterns found in bigger
+languages are covered, implying that the proposed approach scales.
+We use Agda as our host language, and the entire paper is Agda script.
+This means that the code presented in the snippets has been typechecked
+and presented examples ran.
 
 
 \paragraph{Contributions.}
@@ -331,7 +318,7 @@ to apply this approach yourself to verify code in any language.
   embedding it in a host language that supports dependent types and
   reflection.
 
-\item We demonstate this approach by a concrete example: an embedding
+\item We demonstrate this approach by a concrete example: an embedding
   of (a subset of the) PostScript language into Agda.
 
 \item We give several examples of PostScript programs written in our
@@ -512,6 +499,27 @@ of the application to embed, and what constructs of the
 host language to extract.  Secondly, our extractors
 can use the full power of dependent types to guarantee
 safety of our embedded programs.
+
+\paragraph{Limitations}
+\todo[inline]{This has moved from the intro, needs reflowing!}
+While we claim our approach is flexible and powerful, it is
+certainly not a magic bullet. There are still a lot of things that
+need to be implemented for each target language: the language
+embedding itself, the encoding of the properties under consideration
+as types in the host language, and the extractor that transforms
+embedded programs back into the syntax of the original language.  For
+enforcing more complex properties, it might also be necessary to write
+proofs to convince the typechecker of the host language that they are
+indeed satisfied.
+%
+The main advantage of our approach is twofold: first, it allows
+you to implement all these things --- as well as the embedded programs
+themselves --- \emph{side by side in a single language}, simplifying
+the development. And secondly, it allows you to reuse the typechecker
+and evaluator of the host language, saving you a lot of work.  In the
+end, our goal is not to showcase a single example but to empower you
+to apply this approach yourself to verify code in any language.
+
 
 \paragraph{Scaling to bigger languages}
 
