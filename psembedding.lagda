@@ -641,130 +641,64 @@ technical problem to encode such a behaviour in Agda, it would be
 quite inconvenient to work with.  Every time one needs to ensure
 that a stack returned by a for-loop contains enough elements, a
 potentially complex proof has to be given.  We can make our life
-easier by encoding a well-behaved subset that is easy to work with
-and that is sufficient for our examples.  The boundaries
-of the loop are given by two numbers $s$ and $e$, where $s \le e$.
-The loop iterations would go through indices $s, 1+s, \dots, e$.
+easier by working with a simpler version of the for loop that assumes
+the same stack size at each iteration, which is sufficient for our
+examples. Concretely, the boundaries
+of the loop are given by two numbers $s$ and $e$, where
+the loop iterates through indices $s, 1+s, \dots, e$.
 
-As we require the inequality proof anyway, we can use the proof
-object to run a well-founded recursion, and automatically increment
-indices the way we need.  We define the (a two-argument) \AF{\_≥₁\_}
-type with two constructors:
+We define for-loop as a function of two arguments: the body
+of the for-loop given by a function and the initial stack.
 \begin{code}
-data _≥₁_ (l : ℕ) : ℕ → Set where
-  ≥-done  : l ≥₁ l
-  ≥-next  : l ≥₁ (suc m) → l ≥₁ m
+for : (Stack (1 + n) → Stack n) → Stack (2 + n) → Stack n
+for {n} f (st # s # e) = loop (e - s) st
+  where
+  loop : ℕ → Stack n → Stack n
+  loop zero     st = st ▹ push s ▹ f
+  loop (suc i)  st = st ▹ loop i ▹ push (suc i + s) ▹ f
 \end{code}
-Reflexivity ($l \ge l$) is given by \AC{≥-done}, and \AC{≥-next} says
-that proving $l \ge m$ requires first proving that $l \ge 1+m$.  For
-example, 3 \AD{≥₁} 1 is given by:
-\begin{code}
-_ : 3 ≥₁ 1
-_ = let 3≥₁3 = ≥-done ; 3≥₁2 = ≥-next 3≥₁3
-        3≥₁1 = ≥-next 3≥₁2 in 3≥₁1
-\end{code}
-and the second argument will grow every time we ``unpeel'' the \AC{≥-next}
-constructor.
-
-
-We define for-loop as a function of three arguments: the initial stack,
-the proof that two top elements are related by \AC{\_≥₁\_}, and the body
-of the for-loop given by a function.
-\begin{code}
-for : (s : Stack (2 + k + n))
-      → {e≥₁s : get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s}
-      → ({@0 m : ℕ} → Stack (1 + k + m) → Stack (k + m))
-      → Stack (k + n)
-for {k}{n} (st # s # .s) {≥-done} f = f {n} (st # s)
-for {k}{n} (st # s #  e) {≥-next e≥₁1+s}  f =
-    for {k}{n} (f (st # s) # suc s # e) {e≥₁1+s} f
-\end{code}
-Our assumption here is that we have $k$ top elements of the stack that
-are accessible to the body of the loop, and that it does not add more
-elements after the iteration is over.  Initial stack contains 2 loop boundary
-elements, then $k$ inital elements that the body of the loop can read and/or
-modify and the rest $n$ elements.  The loop function gets the the iteration
-element at the top of the stack, $k$ elements and the rest $m$ elements.
-It has to return $k+m$-long stack.  We recurse over the \AB{e≥₁s} proof
-object, and no matter how many iterations we will do, it is guaranteed that
-the stack lenght would stay $k+n$ elements long.
-\begin{code}[hide]
-for′ : ({@0 m : ℕ} → Stack (1 + k + m) → Stack (k + m))
-     → Σ (Stack (2 + k + n)) (λ s → get-index 0 ≤-ok s ≥₁ get-index 1 ≤-ok s)
-     → Stack (k + n)
-\end{code}
-
-For convenience we define the wrapper function \AF{for′} that put together the
-stack and the proof, allowing for a nice use of \AD{\_▹\_}.
-\begin{code}
-for′ f (s , ≥-ok) = for s {≥-ok} f
-\end{code}
-\begin{code}[hide]
-x≥₁sy→x≥₁y : ∀ {x y} → x ≥₁ suc y → x ≥₁ y
-x≥₁sy→x≥₁y ≥-done = ≥-next ≥-done
-x≥₁sy→x≥₁y (≥-next x≥sy) = ≥-next (x≥₁sy→x≥₁y x≥sy)
-
-x≥₁y→s[x]≥₁y : ∀ {x y} → x ≥₁ y → suc x ≥₁ y
-x≥₁y→s[x]≥₁y {x} {.x} ≥-done = ≥-next ≥-done
-x≥₁y→s[x]≥₁y {x} {y} (≥-next x≥₁y) = ≥-next (x≥₁y→s[x]≥₁y x≥₁y)
-
-≥₁-trans : ∀ {x y z} → x ≥₁ y → y ≥₁ z → x ≥₁ z
-≥₁-trans {x} {y} {.y}  x≥y ≥-done        = x≥y
-≥₁-trans {x} {y} {z}   x≥y (≥-next y≥z)  = x≥₁sy→x≥₁y (≥₁-trans x≥y y≥z)
-\end{code}
-We prove a simple fact that for any number \AB{n}, we have \AB{n} \AF{≥₁} \AN{0}.
-\begin{code}
-x≥₁0 : {n : ℕ} → n ≥₁ 0
-\end{code}
-\begin{code}[hide]
-x≥₁0 {zero} = ≥-done
-x≥₁0 {suc x} = ≥₁-trans (≥-next ≥-done) x≥₁0
-\end{code}
+The initial stack contains 2 loop boundary elements and $n$ other
+elements. It computes the number of iterations \AB{i} and unrolls the
+loop that many times, each time pushing the current value of the loop
+variable to the top of the stack. In the end, it finishes with a stack
+with \AB{n} elements.
 
 \begin{code}[hide]
 -- 10 + 0 + 1 + ... + x
 sum-for : Stack (1 + n) → Stack (1 + n)
-sum-for s@(_ # x) = (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
-                    ▹ for′ {k = 1} add
+sum-for s@(_ # x) = s ▹ push 10 ▹ exch ▹ push 0 ▹ exch
+                      ▹ for add
 \end{code}
-% This is an alternative version of the code we used before introducing for′
-% for {k = 1}
-%     (s ▹ push 10 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
-%     add
 
-Now we are ready to define our running fibonacci example using \AF{for′}:
+Now we are ready to define our running fibonacci example using \AF{for}:
 \begin{code}
 fib-for : Stack (1 + n) → Stack (1 + n)
 fib-for s@(_ # x)
-    = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch , x≥₁0)
-    ▹ for′ {k = 2} (λ s → s ▹ pop ▹ exch ▹ index 1 ≤-ok ▹ add)
+    = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch)
+    ▹ for (λ s → s ▹ pop ▹ exch ▹ index 1 ≤-ok ▹ add)
     ▹ pop
 \end{code}
-% This is an alternative version of the code we used before introducing for′
-% for {k = 2}
-%     (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch) {x≥₁0}
-%     (λ s → s ▹ pop ▹ exch ▹ index 1 ≤-ok ▹ add)
-% ▹ pop
 Our initial stack contains the function argument $x$ at the top. We modify
-the stack by inserting $0 1$ (inital fibonacci seeds) and $0$ (for-loop lower
-bound) before $x$.  In the function body, we remove the iteration value,
+the stack by inserting $0$ and $1$ (inital fibonacci seeds) and $0$ (the lower bound for the for loop) before $x$.  In the function body, we remove the iteration value,
 and modify $\langle a , b\rangle$ into $\langle b , a+b\rangle$.
-Note that we start from 0 1 and not 1 1, as the loop goes from 0 to $x$
-inclusively.  Alternatively, we could have conditionalise on $x$.
+%Note that we start from 0 1 and not 1 1, as the loop goes from 0 to $x$
+%inclusively.  Alternatively, we could have conditionalise on $x$.
 \begin{code}[hide]
 module Sierpinski where
 \end{code}
 
-Consider now an example that demonstates a realistic PostScript
-example that generates a version of Sierpinski fractal.  The
-structure of the code is straight-forward: have a double-nested
-for-loop, and we draw a dot at the coordinate $i j$ given that
-bit-wise and of $i$ and $j$ is not zero.  First, we define drawing
-and bit-wise and as postualtes.  This means that we only provide
-a type signature of the functions, but not the implementaiton.
-We assume that these are already implemented in PostScript, and
-we can simply refer to them.  We implement conditional drawing
-via the helper function \AF{draw-if}.
+We now consider a more realistic PostScript example that generates an
+image of Sierpinski fractal.  The structure of the code is
+straightforward: it consists of a doubly-nested for loop, which draws
+a dot at each coordinate $(i,j)$ where the bit-wise `and' of $i$ and
+$j$ is not zero.
+%
+For this example we assume that a drawing function and bit-wise `and'
+are already defined in PostScript, so we postulate them in Agda.  This
+means that we only provide a type signature of the functions, but not
+the implementaiton.
+%
+We implement conditional drawing via the helper function \AF{draw-if}.
 \begin{code}
     postulate
       draw-circ-xy : Stack (2 + n) → Stack n
@@ -780,26 +714,16 @@ The main function sets the boundaries for both for-loops, applies
 that no extra arguments are left on the stack.
 \begin{code}
     sierp : Stack (1 + n) → Stack n
-    sierp s  = (s ▹ push 0 ▹ index 1 ≤-ok , x≥₁0)
-             ▹ for′ {k = 1}
-               (λ s → (s ▹ push 0 ▹ index 2 ≤-ok , x≥₁0)
-                      ▹ for′ {k = 1} (λ s → s ▹ index 1 ≤-ok ▹ index 1 ≤-ok
-                                              ▹ bit-and ▹ draw-if ▹ pop)
-                      ▹ pop)
-             ▹ pop
+    sierp s  =
+      s ▹ push 0 ▹ index 1 ≤-ok
+        ▹ for (λ s → s ▹ push 0 ▹ index 2 ≤-ok
+                       ▹ for (λ s → s ▹ index 1 ≤-ok
+                                      ▹ index 1 ≤-ok
+                                      ▹ bit-and ▹ draw-if ▹ pop)
+                       ▹ pop)
+        ▹ pop
 \end{code}
-While the algorithm is straight-forward, it is very easy to forget to
+While the algorithm is straightforward, it is very easy to forget to
 remove or copy an element within for-loops when implementing such
 a code manually.  Strict stack size discipline that we have in Agda
 comes very helpful here, and eliminates an entire class of errors.
-
-
-% This is an alternative version of the code we used before introducing for′
-% for {k = 1}
-%     (s ▹ push 0 ▹ index 1 ≤-ok) {x≥₁0}
-%     (λ s → for {k = 1}
-%                (s ▹ push 0 ▹ index 2 ≤-ok) {x≥₁0}
-%                (index 1 ≤-ok ∘~ index 1 ≤-ok ∘~
-%                 bit-and ∘~ draw-if ∘~ pop)
-%            ▹ pop)
-% ▹ pop

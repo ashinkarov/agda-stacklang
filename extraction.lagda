@@ -85,7 +85,7 @@ PostScript counterparts.  On the other hand, extractor determines
 which terms are valid in the presented shallow embedding: these
 are the terms that are accepted by our extractor.
 
-Our criteria of acceptable embeddings are as follows: 
+Our criteria of acceptable embeddings are as follows:
 \begin{itemize}
     \item The function acts on a single stack argument and returns stack.
     The function can accept arbitrary number of additional arguments
@@ -386,7 +386,14 @@ pattern `gt s   = def (quote gt) (_ ∷ vArg s ∷ [])
 
 pattern `index k s = def (quote index) (_ ∷ vArg k ∷ _ ∷ vArg s ∷ [])
 pattern `subst-stack s = def (quote subst-stack) (_ ∷ _ ∷ _ ∷ vArg s ∷ [])
-pattern `for x b = def (quote for) (_ ∷ _ ∷ vArg x ∷ _ ∷ b ∷ [])
+pattern `for x y = def (quote for) (_ ∷ vArg x ∷ vArg y ∷ [])
+\end{code}
+
+\begin{code}[hide]
+check-all-erased : List (Arg X) → ExtractM ⊤
+check-all-erased [] = return _
+check-all-erased (hArg0 _ ∷ args) = check-all-erased args
+check-all-erased (_ ∷ _) = fail "..."
 \end{code}
 
 \begin{code}[hide]
@@ -458,25 +465,29 @@ erased during extraction.
   go (`subst-stack x) acc = go x acc
 \end{code}
 
-Extraction of \AF{for} falls into two cases, depending on the form
-of the loop function.  In  case the function is inlined, we end-up with
-a nested lambda term.  From the type we know that the stack variable
-will be bound to the inner lambda.  Therefore, we can extract the body
-\AB{b} with the pattern (\AC{var} \AN{0}) that refers to that very variable.
-After the body of the loop function has been extracted, we construct the
-\AC{For} node and recurse into the inital stack $x$.  Alternatively,
-the function can be referred by name, in which case we annote it with
-\AF{mark-todo} and call this function within the loop body.
+To extract a \AF{for} loop, we first check that the body of the loop
+is a lambda term. If that is the case, we extract the body \AB{b},
+using the stack pattern (\AC{var} \AN{0}) that refers to the stack
+variable bound by the lambda.  After the body of the loop function has
+been extracted, we construct the \AC{For} node and continue extraction
+with the expression for the initial stack $x$.
 \begin{code}
-  go (`for x (vArg (hLam _ body))) acc = do
-    case body of λ where
-      (vLam _ b) → do
-        proc ← extract-term b (var 0)
-        go x (For proc ∷ acc)
-      (def f (hArg0 (var 0 []) ∷ [])) → do
-        mark-todo f
-        go x (For [ FunCall (prettyName f) ] ∷ acc)
-      _ → fail "invalid body of for loop"
+  go (`for (vLam _ b) x) acc = do
+    proc ← extract-term b (var 0)
+    go x (For proc ∷ acc)
+\end{code}
+\begin{code}[hide]
+  -- Note: this case is currently only needed for extraction of the
+  -- `sum-for` example, which is not shown in the paper.
+  -- So we also do not show this case of the extractor.
+  go (`for (def f args) x) acc = do
+    check-all-erased args
+    mark-todo f
+    go x (For [ FunCall (prettyName f) ] ∷ acc)
+\end{code}
+\begin{code}
+  go (`for body x) acc =
+    fail ("invalid body of for: " <> showTerm body)
 \end{code}
 
 
