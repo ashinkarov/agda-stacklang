@@ -254,7 +254,7 @@ PostScript, as the index must be passed explicitly, rather
 than taking it from the stack.
 \begin{code}[hide]
 @0 <?-pred : True (suc k <? suc m) → True (k <? m)
-<?-pred {k} {m} sk<?sm = fromWitness (≤-pred (toWitness sk<?sm))
+<?-pred sk<?sm = fromWitness (≤-pred (toWitness sk<?sm))
 \end{code}
 \begin{code}
 index :  (k : ℕ) → @0{True (k <? m)}
@@ -711,12 +711,11 @@ The main function sets the boundaries for both for-loops, applies
 \AF{bit-and} to $i$ and $j$, and calls the drawing function, ensuring
 that no extra arguments are left on the stack.
 \begin{code}
-    sierp : Stack (1 + n) → Stack n
-    sierp s  =
+    sierpinski : Stack (1 + n) → Stack n
+    sierpinski s  =
       s ▹ push 0 ▹ index 1
         ▹ for (λ s → s ▹ push 0 ▹ index 2
-                       ▹ for (λ s → s ▹ index 1
-                                      ▹ index 1
+                       ▹ for (λ s → s ▹ index 1 ▹ index 1
                                       ▹ bit-and ▹ draw-if ▹ pop)
                        ▹ pop)
         ▹ pop

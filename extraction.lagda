@@ -960,7 +960,7 @@ _ = refl
 base′ : Names
 base′ = quote Sierpinski.bit-and ∷ quote Sierpinski.draw-circ-xy ∷ base
 
-_ : lines (extract Sierpinski.sierp base′ base′) ≡
+_ : lines (extract Sierpinski.sierpinski base′ base′) ≡
   ("/draw-if {" ∷
    "  0 index 0 eq " ∷
    "  {" ∷
@@ -972,7 +972,7 @@ _ : lines (extract Sierpinski.sierp base′ base′) ≡
    "" ∷
    "} def" ∷
    "" ∷
-   "/sierp {" ∷
+   "/sierpinski {" ∷
    "  0 1 index " ∷
    "  1 exch" ∷
    "  {" ∷
