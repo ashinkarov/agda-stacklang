@@ -63,17 +63,6 @@ cases.  In the definition of \AF{tail}, we omit the case for the
 empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
 (\AC{suc}\ \AB{n}), so it can never be called with input \AC{[]}.
 
-We can do a local case analysis on a value by
-using the function \AF{case\_of\_} together with a
-pattern-matching
-lambda\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/lambda-abstraction.html}}:
-\begin{code}
-  not : Bool → Bool
-  not b = case b of λ where
-    true   → false
-    false  → true
-\end{code}
-
 \paragraph{Termination checking}
 To ensure totality, Agda checks that all recursive functions
 are terminating on all

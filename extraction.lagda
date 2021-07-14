@@ -703,13 +703,11 @@ extract-clauses (clause _ ps t ∷ []) i = do
   extract-term t stackp
 extract-clauses (clause _ ps t ∷ ts) i = do
   stackp  ← lookup-arg ps i
-  ml      ← extract-stackp 0 stackp
-  case ml of λ where
-    nothing  → extract-term t stackp
-    (just l) → do
-      t  ← extract-term t stackp
-      ts ← extract-clauses ts i
-      return (l ++ [ IfElse t ts ])
+  just l  ← extract-stackp 0 stackp
+    where nothing → extract-term t stackp
+  t  ← extract-term t stackp
+  ts ← extract-clauses ts i
+  return (l ++ [ IfElse t ts ])
 extract-clauses [] i = return []
 \end{code}
 \begin{code}[hide]
@@ -737,13 +735,11 @@ of PostScript commands.
 -- extract-def : Name → ExtractM PsCmd
 extract-def f = do
   ty   ← get-normalised-type f
-  deff ← get-normalised-def f
-  case deff of λ where
-    (function cs) → do
-      i ← extract-type ty
-      b ← extract-clauses cs i
-      return (FunDef (prettyName f) b)
-    _ → fail ("not a function: " <> prettyName f)
+  function cs ← get-normalised-def f
+    where _ → fail ("not a function: " <> prettyName f)
+  i ← extract-type ty
+  b ← extract-clauses cs i
+  return (FunDef (prettyName f) b)
 \end{code}
 
 \paragraph{Extracting whole programs}
@@ -760,12 +756,12 @@ this, so we mark it as terminating manually using a pragma.
 \begin{code}
 {-# TERMINATING #-}
 extract-defs : ExtractM (List PsCmd)
-extract-defs = get-next-todo >>= λ where
-  nothing  → return []
-  (just f) → do
-    x  ← extract-def f
-    xs ← extract-defs
-    return (x ∷ xs)
+extract-defs = do
+  just f ← get-next-todo
+    where nothing → return []
+  x  ← extract-def f
+  xs ← extract-defs
+  return (x ∷ xs)
 \end{code}
 
 We define a macro \AF{extract} as the main entry point of the
