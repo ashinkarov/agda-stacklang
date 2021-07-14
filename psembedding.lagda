@@ -482,16 +482,16 @@ module RepTerm where
     open import Data.Nat using (s≤s; z≤n)
 \end{code}
 \begin{code}
-    rep′ : (s : Stack (2 + n)) → @0{s ! 0 ≡ k} → Stack ((s ! 0) + n)
-    rep′ {k = 0}      s@(_ # _ # zero)         {refl}  = s ▹ pop ▹ pop
-    rep′ {k = suc m}  s#x#m+1@(_ # _ # suc m)  {refl}  =
+    rep′ : (s : Stack (2 + n)) → @0 (s ! 0 ≡ k) → Stack ((s ! 0) + n)
+    rep′ {k = 0}      s@(_ # _ # zero)         refl  = s ▹ pop ▹ pop
+    rep′ {k = suc m}  s#x#m+1@(_ # _ # suc m)  refl  =
          let s#x#m    = s#x#m+1  ▹ push 1 ▹ sub
              s#x#m#x  = s#x#m    ▹ index 1
              s#x#x#m  = s#x#m#x  ▹ exch
-         in  subst-stack (+-suc _ _) (rep′ {k = m} s#x#x#m {refl})
+         in  subst-stack (+-suc _ _) (rep′ {k = m} s#x#x#m refl)
 
     rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
-    rep s = rep′ s {refl}
+    rep s = rep′ s refl
 \end{code}
 As the function is pattern-matching on the top of the stack, and the
 only value of the \AD{\_≡\_} type is \AC{refl}, the argument \AB{k}
