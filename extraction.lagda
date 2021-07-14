@@ -75,8 +75,7 @@ prettyName f = maybe id "" (L.last (S.wordsBy ('.' C.≟_) (showName f)))
 \section{Extraction} \label{sec:extraction}
 
 In this section, we show a concrete example of an extractor
-implemented using reflection in Agda.  We start with basic assumptions
-that guide design and presentation in this section.
+implemented using reflection in Agda.
 
 \paragraph{Assumptions}
 Our extractor serves a dual purpose.  On the one hand, we traverse Agda
@@ -403,8 +402,7 @@ stack-ok : Pattern → Term → ExtractM Bool
 
 \paragraph{Extracting terms}
 \AF{extract-term} traverses an Agda term and translates it to a
-list of PostScript commands. For example, it translates the expression
-$\AF{add}\ (\AF{push}\ \AN{1}\ \AB{s})$ to $\AC{Push}\ \AN{1}\ \AC{∷}\
+list of PostScript commands. For example, $\AF{add}\ (\AF{push}\ \AN{1}\ \AB{s})$ is translated to $\AC{Push}\ \AN{1}\ \AC{∷}\
 \AF{Add}\ \AC{∷}\ \AC{[]}$. It takes an additional argument of type
 \AD{Pattern} in order to check that the stack used in the expression
 (in this case \AB{s}) is identical to the input stack. In this way it
@@ -591,8 +589,7 @@ extract-type x = go x false 0
   go (Π[ s ∶ erasedArg _ ] ty) b i =
     go ty b (if b then i else 1 + i)
   go (`Stack n) true i = return i
-  go t _ _ =
-    fail ("invalid type: " <> showTerm t)
+  go t _ _ = fail ("invalid type: " <> showTerm t)
 \end{code}
 
 
@@ -779,7 +776,7 @@ should not be extracted or inlined (see the next section for more
 details on inlining). The implementation of the macro (not shown here)
 runs \AF{extract-defs} on the initial state. If extraction succeeds,
 it replaces the call to the macro by the pretty-printed result, and
-otherwise it throws an error.
+otherwise throws an error.
 
 \begin{code}
 macro extract : Name → Names → Names → Term → TC ⊤
@@ -818,12 +815,12 @@ correctly. To improve readability, we use the \AF{lines} function to
 split the output of the extractor into individual lines.
 
 \begin{code}
-test-add₁ : lines (extract add-1 base base) ≡
-          ( "/add-1 {"
-          ∷ "  1 add"
-          ∷ "} def"
-          ∷ [] )
-test-add₁ = refl
+test-add-1 : lines (extract add-1 base base) ≡
+           ( "/add-1 {"
+           ∷ "  1 add"
+           ∷ "} def"
+           ∷ [] )
+test-add-1 = refl
 \end{code}
 
 We can test the output of the extractor on the other examples from the
@@ -863,12 +860,12 @@ boo (s # x) n = s # (0 + x)
 --boo s n = add (push 1 s)
 --boo s = λ n → add (push 1) s
 
--- _ : lines (extract sqsum base base) ≡
---   ( "/sqsum {"
---   ∷ "  dup mul exch dup mul exch add"
---   ∷ "} def"
---   ∷ [] )
--- _ = refl
+_ : lines (extract sqsum base base) ≡
+  ( "/sqsum {"
+  ∷ "  dup mul exch dup mul exch add"
+  ∷ "} def"
+  ∷ [] )
+_ = refl
 
 _ : lines (extract RepSimple.rep base base) ≡
   ( "/rep {"

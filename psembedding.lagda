@@ -83,23 +83,19 @@ subtract one, make a recursive call, and multiply the result with the
 original argument.  Conditional are expressed with two code blocks
 followed by the \textbf{ifelse} command.
 
-By drawing the results of the fib function (code not shown here), we
-can obtain the following picture using a PostScript interpreter:
+By drawing the results of the fib function (code not shown here) using
+a PostScript interpreter, we get the following picture:
 
 \epsfbox[0 0 200 100]{1.ps}
 
 \paragraph{Assumptions}
 
-Before we proceed to the actual embedding, we would like to clarify our
-assumptions about the chosen subset of PostScript and explain what
-do we expect from the embedding.
-
-We consider a very small subset of PostScript that is sufficient to express
+We consider a small subset of PostScript that is sufficient to express
 functions on natural numbers.  While PostScript has many more commands,
-types, and drawing primitives, for presentational purposes, we chose the
-smallest subset that is sufficient to demonstrate verification problems.
-This keeps our extractor complexity very low, and makes the examples
-transferable to other stack-based languages such as Forth.
+types, and drawing primitives, this subset is sufficient to demonstrate
+the main challenges with verification and extraction.
+This keeps our extractor complexity low, and makes the examples
+transferable to other stack languages such as Forth.
 
 The main focus of our Agda embedding is to track the number of elements
 on the stack.  On the one hand this helps to entirely avoid stack underflows
@@ -114,7 +110,7 @@ meaning.
 
 \subsection{Embedding in Agda}
 
-Our Agda embedding defines a stack type and a number of basic operators
+Our Agda embedding consists of a type for stacks and a number of basic operators
 operating on it.
 
 \paragraph{Stack type}
@@ -134,10 +130,10 @@ Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stac
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
 a stack of three natural numbers can be built as follows:
 \begin{code}
-ex₁ : Stack 3
-ex₁ = [] # 1 # 2 # 3
+stack123 : Stack 3
+stack123 = [] # 1 # 2 # 3
 \end{code}
-We defined \AC{\_\#\_} to be left-associative, therefore we do not put any parenthesis.
+We defined \AC{\_\#\_} to be left-associative, therefore we do not need any parenthesis.
 
 \paragraph{Basic Operations}
 
@@ -148,7 +144,7 @@ tl (xs # _) = xs
 
 The basic stack operations are defined as functions from \AD{Stack} to \AD{Stack}.
 The type index makes it possible to capture precisely the effect of each
-operation.  For example:
+operation.
 \begin{code}
 push : ℕ → Stack n → Stack (1 + n)
 push x s = s # x
@@ -348,8 +344,8 @@ sqsum s#a#b = let s#a#b*b    = s#a#b      ▹ dup   ▹ mul
                   s#a*a#b*b  = s#b*b#a*a  ▹ exch
               in  s#a*a#b*b ▹ add
 \end{code}
-Notice that in Agda, variable/function names are chains of almost
-arbitrary symbols with no spaces.
+Agda identifiers can be chains of almost arbitrary symbols with no
+spaces, so \AB{s\#a*a\#b*b} is a valid variable name.
 
 \paragraph{Pattern Matching}
 The only way to express conditional in the proposed embedding is
@@ -383,8 +379,8 @@ ection we will demonstrate how to deal with this formally.
 \paragraph{Dependent Stack Length}
 So far all the specifications within the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
-type system such as Haskell or OCaml.  However, it becomes very clear
-that even simplest programs in stack languages may expose a dependency
+type system such as Haskell or OCaml.  However, it quickly becomes clear
+that even simple programs in stack languages may expose a dependency
 between the stack argument and the stack length.  Those cases cannot
 be expressed in non-dependently-typed host languages.  A simple example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
@@ -399,11 +395,11 @@ module RepSimple where
     {-# TERMINATING #-}
     rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
     rep       s@(_ # _ # zero)   = s ▹ pop ▹ pop
-    rep s:x:m+1@(_ # _ # suc m)  =
-         let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index 1
-             s:x:x:m  = s:x:m:x  ▹ exch
-         in  subst-stack (+-suc _ _) (rep s:x:x:m)
+    rep s#x#m+1@(_ # _ # suc m)  =
+         let s#x#m    = s#x#m+1  ▹ push 1 ▹ sub
+             s#x#m#x  = s#x#m    ▹ index 1
+             s#x#x#m  = s#x#m#x  ▹ exch
+         in  subst-stack (+-suc _ _) (rep s#x#x#m)
 \end{code}
 
 First, we define the \AD{hd} helper function that returns the top element
@@ -416,7 +412,7 @@ copy the argument we are replicating, and put them in the expected position
 to make the next recursive call.  The second argument to \AF{index} is a
 proof that $1 < 2 + n$, which Agda can compute automatically using \AF{≤-ok}.
 At the end we apply
-\AF{subst-stack} to fit the type definition.  The length of \AF{rep} \AB{s:x:x:m}
+\AF{subst-stack} to fit the type definition.  The length of \AF{rep} \AB{s\#x\#x\#m}
 is $(m + (1 + n))$ whereas we need the length
 $(1 + (m + n))$.  Such an equality is not obvious to Agda, we
 apply the \AD{+-suc} function from the standard library that translates
@@ -479,9 +475,9 @@ Therefore, this argument is not strictly smaller, and there are no other
 decreasing arguments, so the termination checker fails to accept this
 definition.  A standard way to fix this is to add an extra argument to
 the function, and define a relation that depends on that argument in a
-such a way that the argument decreases.  In \AF{rep} case we add the
-new argument \AB{k}, and we define a relation that the top of the stack
-is definitionally equal to \AB{k}:
+such a way that the argument decreases.  For \AF{rep} we add an
+implicit argument \AB{k}, as well as a proof that the top of the stack
+is equal to \AB{k}:
 
 \begin{code}[hide]
 module RepTerm where
@@ -490,11 +486,11 @@ module RepTerm where
 \begin{code}
     rep′ : (s : Stack (2 + n)) → @0{s ! 0 ≡ k} → Stack ((s ! 0) + n)
     rep′ {k = 0}      s@(_ # _ # zero)         {refl}  = s ▹ pop ▹ pop
-    rep′ {k = suc m}  s:x:m+1@(_ # _ # suc m)  {refl}  =
-         let s:x:m    = s:x:m+1  ▹ push 1 ▹ sub
-             s:x:m:x  = s:x:m    ▹ index 1
-             s:x:x:m  = s:x:m:x  ▹ exch
-         in  subst-stack (+-suc _ _) (rep′ {k = m} s:x:x:m {refl})
+    rep′ {k = suc m}  s#x#m+1@(_ # _ # suc m)  {refl}  =
+         let s#x#m    = s#x#m+1  ▹ push 1 ▹ sub
+             s#x#m#x  = s#x#m    ▹ index 1
+             s#x#x#m  = s#x#m#x  ▹ exch
+         in  subst-stack (+-suc _ _) (rep′ {k = m} s#x#x#m {refl})
 
     rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
     rep s = rep′ s {refl}
@@ -561,7 +557,7 @@ as in case of \AF{rep} --- it is unclear whether any argument decreases when
 calling \AF{fib} recursively.  Unfortunately, we cannot use the above trick
 with relation as is, because we make two recursive calls, but we keep results
 on the same stack.  The problem is that after the first recursive call \AF{fib}
-\AB{s:x:x-1} we obtain (conceptually) a new stack.  In order to call \AF{fib}
+\AB{s\#x\#x-1} we obtain (conceptually) a new stack.  In order to call \AF{fib}
 on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
 (to bring \AB{x} at the top).  However, we cannot prove that \AF{fib} only
 modified the top element of the stack and did not touch other elements.
@@ -589,17 +585,17 @@ module Fib3 where
          → Stack (3 + n)
     fib3 {k = .0}     s@(_ # 0        # a # b) {refl} = s
     fib3 {k = .suc k} s@(_ # (suc m)  # a # b) {refl} =
-      let s:1+m:a:b    = s
-          s:1+m:b:a+b  = s:1+m:a:b   ▹ exch ▹ index 1 ▹ add
-          s:a+b:b:m    = s:1+m:b:a+b ▹ rot3 ▹ push 1 ▹ sub
-          s:m:b:a+b    = s:a+b:b:m   ▹ rot3
-      in  fib3 {k = k} s:m:b:a+b {refl}
+      let s#1+m#a#b    = s
+          s#1+m#b#a+b  = s#1+m#a#b   ▹ exch ▹ index 1 ▹ add
+          s#a+b#b#m    = s#1+m#b#a+b ▹ rot3 ▹ push 1 ▹ sub
+          s#m#b#a+b    = s#a+b#b#m   ▹ rot3
+      in  fib3 {k = k} s#m#b#a+b {refl}
 
     fib : Stack (1 + n) → Stack (1 + n)
     fib s =
-      let s:m:1:1              = s ▹ push 1 ▹ push 1
-          s:0:fib[m]:fib[1+m]  = fib3 s:m:1:1 {refl}
-      in  s:0:fib[m]:fib[1+m] ▹ pop ▹ exch ▹ pop
+      let s#m#1#1              = s ▹ push 1 ▹ push 1
+          s#0#fib[m]#fib[1+m]  = fib3 s#m#1#1 {refl}
+      in  s#0#fib[m]#fib[1+m] ▹ pop ▹ exch ▹ pop
 \end{code}
 Then \AF{fib3} is doing the iteration; \AF{fib} sets the inital seed
 and cleans-up the stack.  We defined a new stack operation
@@ -650,10 +646,9 @@ sum-for s@(_ # x) = s ▹ push 10 ▹ exch ▹ push 0 ▹ exch
 Now we are ready to define our running fibonacci example using \AF{for}:
 \begin{code}
 fib-for : Stack (1 + n) → Stack (1 + n)
-fib-for s@(_ # x)
-    = (s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch)
-    ▹ for (λ s → s ▹ pop ▹ exch ▹ index 1 ▹ add)
-    ▹ pop
+fib-for s@(_ # x) =
+  s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch
+    ▹ for (λ s → s ▹ pop ▹ exch ▹ index 1 ▹ add) ▹ pop
 \end{code}
 Our initial stack contains the function argument $x$ at the top. We modify
 the stack by inserting $0$ and $1$ (inital fibonacci seeds) and $0$ (the lower bound for the for loop) before $x$.  In the function body, we remove the iteration value,
@@ -698,7 +693,7 @@ that no extra arguments are left on the stack.
                        ▹ pop)
         ▹ pop
 \end{code}
-While the algorithm is straightforward, it is very easy to forget to
+While the algorithm is straightforward, it is easy to forget to
 remove or copy an element within for-loops when implementing such
-a code manually.  Strict stack size discipline that we have in Agda
-comes very helpful here, and eliminates an entire class of errors.
+a code manually.  The strict stack size discipline that we have in Agda
+is helpful here, as it eliminates this entire class of errors.

@@ -85,8 +85,8 @@ cases.  The main idea behind the check is that the argument to the
 recursive call has to be structurally smaller than the input argument.
 This means that we have to remove at least one constructor from at
 least one argument.  For example, in the recursive call to \AF{\_+\_},
-the first argument is \AB{x}, which is structurally smaller than the
-input \AC{suc} \AB{x}.
+the first argument is \AB{x}, which is structurally smaller than
+\AC{suc} \AB{x}.
 
 \paragraph{Proving equalities}
 Agda can be used both as a programming language and a proof assistant.
@@ -149,16 +149,14 @@ hence safely be erased during extraction of PostScript code (see
 arguments in type signatures, we use \emph{generalizable
 variables}:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/generalization-of-declared-variables.html}}
 \begin{code}
-  variable
-    X Y Z : Set
-    @0 k l m n : ℕ
+  variable @0 n : ℕ
 \end{code}
-This allows us for example to skip \AB{n} in the type of \AF{tail}:
+This allows us for example to avoid having to bind \AB{n} explicitly
+in the type of \AF{tail}:
 \begin{code}
   tail'' : Vec ℕ (suc n) → Vec ℕ n
   tail'' (x ∷ xs) = xs
 \end{code}
-
 
 
 \paragraph{Reflection}
@@ -172,7 +170,7 @@ Expressions are represented by a constructor such as \AC{con} (for
 constructors), \AC{def} (for other defined symbols), or \AC{var} (for
 variables) applied to a quoted name and a list of arguments.
 \AC{vArg} denotes a visible argument, while \AC{hArg} is used for
-hidden arguments).  For example, the full reflected form of the
+hidden arguments.  For example, the full reflected form of the
 expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
 
 To make reflected syntax more readable, we use \emph{pattern synonyms}

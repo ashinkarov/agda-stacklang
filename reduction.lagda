@@ -55,7 +55,7 @@ deal with. Nevertheless, we can ask the extractor to inline the
 definition of \AF{applyN}, which then makes it possible to extract the
 definition of \AF{pow32}:
 
-\begin{code}
+\begin{code}[hide]
 _ : lines (extract pow32 base base) ≡
   ( "/pow32 {"
   ∷ "  dup mul dup mul dup mul dup mul dup mul"
@@ -63,6 +63,12 @@ _ : lines (extract pow32 base base) ≡
   ∷ [] )
 _ = refl
 \end{code}
+
+\begin{lstlisting}[language=PostScript]
+/pow32 {
+  dup mul dup mul dup mul dup mul dup mul
+} def
+\end{lstlisting}
 
 In essence, this allows us to write macros using arbitrary Agda
 functions, as long as the end result falls within the fragment that
@@ -80,7 +86,9 @@ values that are first pushed and then popped again without being used:
 \begin{code}
 push-pop : Stack n → Stack n
 push-pop s = s ▹ push 42 ▹ pop
+\end{code}
 
+\begin{code}[hide]
 _ : lines (extract push-pop base []) ≡
   ( "/push-pop {"
   ∷ "  "
@@ -89,9 +97,11 @@ _ : lines (extract push-pop base []) ≡
 _ = refl
 \end{code}
 
+\begin{lstlisting}[language=PostScript]
+/push-pop {
 
-
-
+} def
+\end{lstlisting}
 
 
 \paragraph{Domain-specific optimizations as rewrite rules}
@@ -110,31 +120,33 @@ To achieve this, we could define our own representation of verified
 rewrite rules and integrate them into the extractor.
 %
 However, we can avoid the effort of doing so since Agda already has a
-built-in concept of rewrite rules.
+built-in concept of rewrite rules~\cite{Cockx19}.
 
-Rewrite rules were originally introduced to Agda to work around the
-limitations of definitional equality in intentional type theory.
+%Rewrite rules were originally introduced to Agda to work around the
+%limitations of definitional equality in intentional type theory.
 %
-For example, it can be used to make $0 + x$ definitionally equal to
-$x + 0$.
+%For example, it can be used to make $0 + x$ definitionally equal to
+%$x + 0$.
 %
-Since we work with a shallow embedding, these rewrite rules are
-equally well suited to optimize the embedded programs we write before
-they are extracted.
+%Since we work with a shallow embedding, these rewrite rules are
+%equally well suited to optimize the embedded programs we write before
+%they are extracted.
 
-As an example, we can prove that first pushing \AN{0} to the stack and
-then calling \AF{add} does not have any effect.
+As an example, we can prove that pushing and then adding two numbers
+in sequence is equivalent to pushing and adding the sum of these
+numbers.
 
 \begin{code}
-add-0-cancel : (s : Stack (1 + n)) → s ▹ push 0 ▹ add ≡ s
-add-0-cancel (s # x) = cong (s #_) (+-identityʳ x)
+add-add-join : (s : Stack (1 + n)) (k l : ℕ)
+  → s ▹ push k ▹ add ▹ push l ▹ add ≡ s ▹ push (k + l) ▹ add
+add-add-join (s # x) k l = cong (s #_) (+-assoc x k l)
 \end{code}
 
 Next, we can register this equality as a rule to be applied
 automatically during evaluation by using a \AK{REWRITE} pragma:
 
 \begin{code}
-{-# REWRITE add-0-cancel #-}
+{-# REWRITE add-add-join #-}
 \end{code}
 
 From now on the rule will be applied automatically by the extractor
@@ -142,26 +154,11 @@ whenever it can:
 
 \begin{code}
 add-some-numbers : Stack (1 + n) → Stack (1 + n)
-add-some-numbers s = s  ▹ push 0 ▹ add  ▹ push 2 ▹ add
-                        ▹ push 7 ▹ add  ▹ push 0 ▹ add
-
-_ : lines (extract add-some-numbers base []) ≡
-  ( "/add-some-numbers {"
-  ∷ "  2 add 7 add"
-  ∷ "} def"
-  ∷ [] )
-_ = refl
+add-some-numbers s = s  ▹ push 1 ▹ add  ▹ push 2 ▹ add
+                        ▹ push 4 ▹ add  ▹ push 2 ▹ add
 \end{code}
 
-We can further optimize the example by adding another rule
-that joins together two adjacent additions:
-
-\begin{code}
-add-add-join : (s : Stack (1 + n)) (k l : ℕ)
-  → s ▹ push k ▹ add ▹ push l ▹ add ≡ s ▹ push (k + l) ▹ add
-add-add-join (s # x) k l = cong (s #_) (+-assoc x k l)
-{-# REWRITE add-add-join #-}
-
+\begin{code}[hide]
 _ : lines (extract add-some-numbers base []) ≡
   ( "/add-some-numbers {"
   ∷ "  9 add"
@@ -169,6 +166,12 @@ _ : lines (extract add-some-numbers base []) ≡
   ∷ [] )
 _ = refl
 \end{code}
+
+\begin{lstlisting}[language=PostScript]
+/add-some-numbers {
+  9 add
+} def
+\end{lstlisting}
 
 \begin{code}[hide]
 -- Another example, pretty similar to the previous one.
@@ -196,7 +199,7 @@ applying reduction rules to (sub)terms until they turn into values or
 neutral terms.
 %
 Agda's reflection API offers a function \AF{normalise} for this
-purpose. However, using this function directly runs into two problems:
+purpose. However, using this function we ran into two problems:
 
 \begin{itemize}
 
