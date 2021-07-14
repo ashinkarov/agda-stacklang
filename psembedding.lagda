@@ -218,23 +218,20 @@ count s = s # go s
 %gt   = binop (λ x y → if x ℕ.≤ᵇ y then 0 else 1)
 %\end{code}
 
-
-We define several operations that do not represent PostScript
-commands, but that will be useful in some of the examples.
-The \AF{subst-stack} command makes it possible to cast a
-stack of length $m$ into the stack of length $n$, given
-a (run-time irrelevant) proof that $m \equiv n$.
+Since the size of the stack is an expression that can contain free
+variables as well as concrete numbers, it is not always possible for
+Agda to see automatically that two stack sizes are equal. For example,
+if we require a stack of length $m + n$, but we have a stack of length
+$n + m$, we cannot blindly use it, as this would not typecheck.  To
+deal with situations like this, we provide an operation
+\AF{subst-stack} that cast a stack of length $m$ into the stack of
+length $n$, given a (run-time irrelevant) proof that $m \equiv n$.
 \begin{code}
 subst-stack : @0 m ≡ n → Stack m → Stack n
 subst-stack refl s = s
 \end{code}
-In dependently typed langauges, $m$ and $n$ can be arbitrary
-expressions, and it is not always obvious to Agda that these are
-equal.  For example, if we require a stack of length $m + n$, but
-we have a stack of length $n + m$, we cannot blindly use it, as
-this would not typecheck.  However, we can solve the problem by
-using \AF{subst-stack} and providing a proof that
-$m + n \equiv n + m$.
+This operation does not have any run-time behaviour and is erased by
+the extractor.
 
 We also define the PostScript command \AF{index} that
 makes it possible to access any element of the stack by providing
