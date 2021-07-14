@@ -374,7 +374,7 @@ with this in \secref{for-loop}.
 
 
 \paragraph{Dependent Stack Length}
-So far all the specifications within the embedded language did not
+So far, all the specifications in the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it quickly becomes clear
 that even simple programs in stack languages may expose a dependency
@@ -468,7 +468,7 @@ We demonstrate a way to prove termination of the functions from previous
 sections.
 %
 The problem with \AF{rep} is that the recursive call happens on the stack
-that is became one element bigger, yet the top element decreased by one.
+that became one element bigger, yet the top element decreased by one.
 Therefore, this argument is not strictly smaller, and there are no other
 decreasing arguments, so the termination checker fails to accept this
 definition.  A standard way to fix this is to add an extra argument to

@@ -155,16 +155,16 @@ and declarations, and provides access to some of the internals of the
 Agda typechecker such as unification and
 normalisation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
 
-Expressions are represented by a constructor such as \AC{con} (for
-constructors), \AC{def} (for other defined symbols), or \AC{var} (for
-variables) applied to a quoted name and a list of arguments.
-\AC{vArg} denotes a visible argument, while \AC{hArg} is used for
-hidden arguments.  For example, the full reflected form of the
-expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
+Expressions (of type \AD{Term}) are represented by a constructor such
+as \AC{con} (for constructors), \AC{def} (for other defined symbols),
+or \AC{var} (for variables) applied to a quoted name and a list of
+arguments.  \AC{vArg} denotes a visible argument, while \AC{hArg} is
+used for hidden arguments.  For example, the full reflected form of
+the expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
 
 To make reflected syntax more readable, we use \emph{pattern synonyms}
 for commonly used pieces of syntax. As a convention, the names of
-these pattern synonyms start with a backtick \` followed by the name
+these pattern synonyms start with a backtick followed by the name
 of the represented Agda construct, for example:
 
 \begin{code}[hide]
@@ -208,10 +208,10 @@ and its reflected syntax \AF{`foo}:
 
 
 The reflected syntax of \AF{foo} is represented by the constructor \AC{function} applied to a list
-of clauses. Each clause itself is represented by the constructor
+of clauses. Each clause (of type \AD{Clause}) itself is represented by the constructor
 \AC{clause} applied to three arguments: i) the telescope, i.e.~a
 list of the names of variables and their types; ii) the list of
- patterns; and iii) the body of the clause.
+ patterns (of type \AD{List} (\AD{Arg} \AD{Pattern})); and iii) the body of the clause (of type \AD{Term}).
 %
 %The first clause does not have variables, so the telescope
 %is empty. The second clause has one variable called \AB{x}.  The
