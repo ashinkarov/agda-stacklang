@@ -50,14 +50,19 @@ we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
 \AB{xs}.
 
 \paragraph{Pattern matching} Functions are defined in a pattern-matching style:
-\begin{code}
+\begin{mathpar}
+\codeblock{\begin{code}
   _+_ : ℕ → ℕ → ℕ
   zero     + y = y
   (suc x)  + y = suc (x + y)
-
-  tail : {n : ℕ} → Vec ℕ (suc n) → Vec ℕ n
+\end{code}}
+\and
+\codeblock{\begin{code}
+  tail : {n : ℕ} → Vec ℕ (suc n) 
+       → Vec ℕ n
   tail (x ∷ xs) = xs
-\end{code}
+\end{code}}
+\end{mathpar}
 Agda requires that all definitions by pattern matching cover all
 cases.  In the definition of \AF{tail}, we omit the case for the
 empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}

@@ -86,7 +86,7 @@ followed by the \textbf{ifelse} command.
 By drawing the results of the fib function (code not shown here) using
 a PostScript interpreter, we get the following picture:
 
-\epsfbox[0 0 200 100]{1.ps}
+\epsfbox[0 0 200 70]{1.ps}
 
 \paragraph{Assumptions}
 
@@ -145,22 +145,20 @@ tl (xs # _) = xs
 The basic stack operations are defined as functions from \AD{Stack} to \AD{Stack}.
 The type index makes it possible to capture precisely the effect of each
 operation.
-\begin{code}
+\begin{code}[hide]
 push : ℕ → Stack n → Stack (1 + n)
-push x s = s # x
-
 pop : Stack (1 + n) → Stack n
-pop (s # x) = s
-
 dup : Stack (1 + n) → Stack (2 + n)
-dup (s # x) = s # x # x
-
-exch : Stack (2 + n) → Stack (2 + n)
-exch (s # x # y) = s # y # x
-
 add mul : Stack (2 + n) → Stack (1 + n)
-add (s # x # y) = s # x + y
-mul (s # x # y) = s # x * y
+exch : Stack (2 + n) → Stack (2 + n)
+\end{code}
+\begin{code}
+push x s = s # x                --: ℕ → Stack n → Stack (1 + n)
+pop (s # x) = s                 --: Stack (1 + n) → Stack n
+dup (s # x) = s # x # x         --: Stack (1 + n) → Stack (2 + n)
+exch (s # x # y) = s # y # x    --: Stack (2 + n) → Stack (2 + n)
+add (s # x # y) = s # x + y     --: Stack (2 + n) → Stack (1 + n)
+mul (s # x # y) = s # x * y     --: Stack (2 + n) → Stack (1 + n)
 \end{code}
 \begin{code}[hide]
 clear : Stack n → Stack 0
@@ -291,25 +289,25 @@ written in reverse, when comparing to the corresponding PostScript
 program.  While this does not affect functionality, it may be
 aesthetically pleasing to maintain the original order of operators.
 For this purpose we define an operation \AF{\_▹\_} that reverses
-the arguments in application (this is Haskell's \$ operator):
-
+the arguments in applications.  So we can rewrite the above example as:
+%
 \begin{code}[hide]
 infixl 5 _▹_
-\end{code}
-\begin{code}
-_▹_ : X → (X → Y) → Y
-x ▹ f  = f x
-\end{code}
-\begin{code}[hide]
--- not sure if we need to expose this in the text
-{-# INLINE _▹_ #-}
 add-1′ : Stack (1 + n) → Stack (1 + n)
 \end{code}
-Now we can rewrite the above example as:
-\begin{code}
+\begin{mathpar}
+\codeblock{\begin{code}
+_▹_ : X → (X → Y) → Y
+x ▹ f  = f x
+\end{code}}
+\and
+\codeblock{\begin{code}
 add-1′ s = s ▹ push 1 ▹ add
+\end{code}}
+\end{mathpar}
+\begin{code}[hide]
+{-# INLINE _▹_ #-}
 \end{code}
-
 % This function does nothing to the stack but it introduces
 % a bunch of runtime irrelevant argumetns.
 %
@@ -431,29 +429,36 @@ from the way we constructed the basic operations, this fact is obvious to Agda.
 So the proof is simply the \AC{refl}exivity constructor.
 
 On the other hand, proving that \AF{fib} matches a simpler specification that
-we call \AF{fib-spec} requires a bit more work.
-\begin{code}[hide]
-module FibNonTermPf where
-  open FibNonTerm
-\end{code}
-\begin{code}
-  fib-spec : ℕ → ℕ
-  fib-spec 0 = 1
-  fib-spec 1 = 1
-  fib-spec (suc (suc x)) = fib-spec (suc x) + fib-spec x
-\end{code}
+we call \AF{fspec} requires a bit more work.
 This is an inductive proof where we consider two base cases, and the
 step case.  In the latter we refer to the theorem with a structurally
 smaller arguments, and after rewriting such cases, the statement becomes
 obvious.
-\begin{code}
-  fib-thm : (s : Stack n) (x : ℕ) → fib (s # x) ≡ s # fib-spec x
-  fib-thm _ 0 = refl
-  fib-thm _ 1 = refl
-  fib-thm s (suc (suc x))
-    rewrite  (fib-thm (s # suc (suc x)) (suc x))
-          |  (fib-thm (s # fib-spec (suc x)) x)  = refl
+\begin{code}[hide]
+module FibNonTermPf where
+  open FibNonTerm
 \end{code}
+\begin{mathpar}
+\codeblock{\begin{code}
+  fspec : ℕ
+        → ℕ
+  fspec 0 = 1
+  fspec 1 = 1
+  fspec (suc (suc x)) =
+       fspec (suc x) 
+    +  fspec x
+\end{code}}
+\and
+\codeblock{\begin{code}
+  ✔ : (s : Stack n) (x : ℕ) 
+    → fib (s # x) ≡ s # fspec x
+  ✔ _ 0 = refl
+  ✔ _ 1 = refl
+  ✔ s (suc (suc x)) rewrite
+    ✔ (s # suc (suc x)) (suc x) |
+    ✔ (s # fspec (suc x)) x = refl
+\end{code}}
+\end{mathpar}
 
 
 \paragraph{Proving Termination}
@@ -483,12 +488,10 @@ module RepTerm where
 \end{code}
 \begin{code}
     rep′ : (s : Stack (2 + n)) → @0 (s ! 0 ≡ k) → Stack ((s ! 0) + n)
-    rep′ {k = 0}      s@(_ # _ # zero)         refl  = s ▹ pop ▹ pop
-    rep′ {k = suc m}  s#x#m+1@(_ # _ # suc m)  refl  =
-         let s#x#m    = s#x#m+1  ▹ push 1 ▹ sub
-             s#x#m#x  = s#x#m    ▹ index 1
-             s#x#x#m  = s#x#m#x  ▹ exch
-         in  subst-stack (+-suc _ _) (rep′ {k = m} s#x#x#m refl)
+    rep′ {k = 0}      s@(_ # _ # zero)   refl  = s ▹ pop ▹ pop
+    rep′ {k = suc m}  s@(_ # _ # suc m)  refl  =
+         let  s′ = s ▹ push 1 ▹ sub ▹ index 1 ▹ exch
+         in   subst-stack (+-suc _ _) (rep′ {k = m} s′ refl)
 
     rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
     rep s = rep′ s refl
@@ -670,9 +673,8 @@ the implementaiton.
 %
 We implement conditional drawing via the helper function \AF{draw-if}.
 \begin{code}
-    postulate
-      draw-circ-xy : Stack (2 + n) → Stack n
-      bit-and : Stack (2 + n) → Stack (1 + n)
+    postulate draw-circ-xy : Stack (2 + n) → Stack n
+              bit-and : Stack (2 + n) → Stack (1 + n)
 
     draw-if : Stack (3 + n) → Stack (2 + n)
     draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ▹ index 1 ▹ draw-circ-xy

@@ -59,6 +59,9 @@ infixr 10 _<>_
 _<>_ : String → String → String
 _<>_ = S._++_
 
+_<t>_ : String → Term → String
+s <t> t = s <> showTerm t
+
 intercalate : (delim : String) → List String → String
 intercalate d [] = ""
 intercalate d (x ∷ []) = x
@@ -111,12 +114,15 @@ representation as an intermediate stage:
 
 \begin{code}
 data PsCmd : Set where
-  Pop Dup Exch Add Mul Eq Ge And Rot3 : PsCmd
+  Pop Dup Exch Add Mul Eq Ge And : PsCmd
   Push Index : ℕ → PsCmd
   FunCall    : String → PsCmd
   For        : List PsCmd → PsCmd
   IfElse     : List PsCmd → List PsCmd → PsCmd
   FunDef     : String → List PsCmd → PsCmd
+\end{code}
+\begin{code}[hide]
+  Rot3 : PsCmd
 \end{code}
 
 We implement a basic pretty-printer for sequences of PostScript
@@ -201,17 +207,10 @@ record ExtractM (X : Set) : Set where -- ...
 
 The monad structure is given by the monadic operations \AF{>>=} and
 \AF{return}, which are used in the desugaring of
-\AK{do}-notation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}
-
+\AK{do}-no\-ta\-ti\-on\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.  The \AF{fail} function aborts the extraction process.
 \begin{code}
 return : X → ExtractM X
 _>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y
-_<$>_ : (X → Y) → ExtractM X → ExtractM Y
-\end{code}
-
-The \AF{fail} function aborts the extraction process.
-
-\begin{code}
 fail : String → ExtractM X
 \end{code}
 
@@ -253,6 +252,7 @@ _>>=_ m f .runExtractM s =
 _>>_ : ExtractM X → ExtractM Y → ExtractM Y
 m1 >> m2 = m1 >>= λ _ → m2
 
+_<$>_ : (X → Y) → ExtractM X → ExtractM Y
 f <$> m = m >>= λ x → return (f x)
 
 fail err .runExtractM s = R.return (s , error err)
@@ -345,19 +345,16 @@ get-normalised-def f = do
 
 The extractor itself consists of four functions that traverse the
 different parts of the reflected Agda syntax and translate it to
-PostScript commands:
-
-\begin{code}
+PostScript commands.
+In the remainder of this section, we explain the implementation of
+these functions in detail.
+\begin{code}[hide]
 {-# TERMINATING #-}
 extract-term     : Term → Pattern → ExtractM (List PsCmd)
 extract-type     : Type → ExtractM ℕ
 extract-clauses  : Clauses → ℕ → ExtractM (List PsCmd)
 extract-def      : Name → ExtractM PsCmd
 \end{code}
-
-In the remainder of this section, we explain the implementation of
-these functions in detail.
-
 
 \begin{code}[hide]
 pattern `zero   = con (quote ℕ.zero) []
@@ -415,8 +412,7 @@ PostScript commands in an accumulator.
 
 \begin{AgdaAlign}
 \begin{code}
--- extract-term : Term → Pattern
---              → ExtractM (List PsCmd)
+-- : Term → Pattern → ExtractM (List PsCmd)
 extract-term v stackp = go v []
   where
   go : Term → List PsCmd → ExtractM (List PsCmd)
@@ -428,10 +424,13 @@ The cases for basic instructions are as follows:
   go (`pop   x) acc = go x (Pop   ∷ acc)
   go (`dup   x) acc = go x (Dup   ∷ acc)
   go (`exch  x) acc = go x (Exch  ∷ acc)
-  go (`rot3  x) acc = go x (Rot3  ∷ acc)
   go (`add   x) acc = go x (Add   ∷ acc)
   go (`mul   x) acc = go x (Mul   ∷ acc)
+\end{code}
+\begin{code}[hide]
+  go (`rot3  x) acc = go x (Rot3  ∷ acc)
   go (`eq    x) acc = go x (Eq    ∷ acc)
+  -- XXX why do we call pattern `gt` and generate `Ge`?
   go (`gt    x) acc = go x (Ge    ∷ acc)
 \end{code}
 
@@ -442,11 +441,9 @@ calling the \AF{fail} function.
 
 \begin{code}
   go (`push (`num n) x) acc = go x (Push n ∷ acc)
-  go (`push k x) acc =
-    fail ("push non-literal: " <> showTerm k)
+  go (`push k _) acc = fail ("push non-literal: " <t> k)
   go (`index (`num n) x) acc = go x (Index n ∷ acc)
-  go (`index k x) acc =
-    fail ("index non-literal: " <> showTerm k)
+  go (`index k _) acc = fail ("index non-literal: " <t> k)
 \end{code}
 
 \begin{code}[hide]
@@ -485,8 +482,7 @@ with the expression for the initial stack $x$.
     go x (For [ FunCall (prettyName f) ] ∷ acc)
 \end{code}
 \begin{code}
-  go (`for body x) acc =
-    fail ("invalid body of for: " <> showTerm body)
+  go (`for b _) acc = fail ("invalid for body: " <t> b)
 \end{code}
 \end{AgdaSuppressSpace}
 
@@ -514,11 +510,11 @@ If the check succeeds, we return the list of commands collected in
 \AB{acc}.
 
 \begin{code}
-  go v acc = do
+  go v acc = do 
     b ← stack-ok stackp v
-    if b then (return acc) else
-      (fail ("stack mismatch: "  <> showPattern stackp
-                     <> " and "  <> showTerm v))
+    if b then (return acc) 
+         else (fail ("stack mismatch: " <> showPattern stackp 
+                     <> " and " <> showTerm v))
 \end{code}
 
 The function \AF{stack-ok} ensures that when we use the stack (of type
@@ -530,12 +526,12 @@ there are a few other cases for dealing with natural number literals
 
 \begin{AgdaSuppressSpace}
 \begin{code}
--- stack-ok : Pattern → Term → ExtractM ⊤
+-- : Pattern → Term → ExtractM ⊤
 stack-ok p@(p₁ `# p₂) t@(t₁ `# t₂) = do
   ok₁ ← stack-ok p₁ t₁
   ok₂ ← stack-ok p₂ t₂
   return (ok₁ ∧ ok₂)
-stack-ok (var x) (var y []) = return (x ℕ.≡ᵇ y)
+stack-ok (var x) (var y [])  = return (x ℕ.≡ᵇ y)
 stack-ok `zero     `zero     = return true
 stack-ok (`suc x)  (`suc y)  = stack-ok x y
 \end{code}
@@ -580,16 +576,14 @@ thus safely be erased during extraction. If these checks succeed, it
 returns the position of the principal argument.
 
 \begin{code}
--- extract-type : Type → ExtractM ℕ
+-- : Type → ExtractM ℕ
 extract-type x = go x false 0
   where
   go : Type → (st-arg : Bool) → (idx : ℕ) → ExtractM ℕ
-  go (Π[ s ∶ vArg (`Stack n) ] ty) false i =
-    go ty true i
-  go (Π[ s ∶ erasedArg _ ] ty) b i =
-    go ty b (if b then i else 1 + i)
+  go (Π[ s ∶ vArg (`Stack n) ] ty) false i = go ty true i
+  go (Π[ s ∶ erasedArg _ ] ty) b i = go ty b (if b then i else 1 + i)
   go (`Stack n) true i = return i
-  go t _ _ = fail ("invalid type: " <> showTerm t)
+  go t _ _ = fail ("invalid type: " <t> t)
 \end{code}
 
 
@@ -629,9 +623,14 @@ return an inequality check.
 In the implementation below, the argument \AB{c} keeps track of the
 number of successors encountered so far.
 
-\begin{code}
+\begin{code}[hide]
 extract-natp  : (hd-idx : ℕ) → Pattern
               → ExtractM (Maybe (List PsCmd))
+extract-stackp : (hd-idx : ℕ) → Pattern
+               → ExtractM (Maybe (List PsCmd))
+\end{code}
+\begin{code}
+-- : ℕ → Pattern → ExtractM (Maybe (List PsCmd))
 extract-natp hd-idx p = go p 0
   where
   mk-cmp : PsCmd → ℕ → List PsCmd
@@ -659,28 +658,31 @@ patterns require non-trivial conditions, we combine both using the
 \AC{And} instruction.
 \end{itemize}
 
+\begin{AgdaSuppressSpace}
 \begin{code}
-extract-stackp : (hd-idx : ℕ) → Pattern
-               → ExtractM (Maybe (List PsCmd))
+-- : ℕ → Pattern → ExtractM (Maybe (List PsCmd))
 extract-stackp hd-idx  (var x)    = return nothing
 extract-stackp hd-idx  (ps `# p)  = do
   ml₁  ← extract-natp hd-idx p
   ml₂  ← extract-stackp (offset ml₁ + hd-idx) ps
   return (combine ml₁ ml₂)
   where
-  offset : Maybe X → ℕ
-  offset nothing   = 1
-  offset (just _)  = 2
-
-  combine  : Maybe (List PsCmd) → Maybe (List PsCmd)
-           → Maybe (List PsCmd)
-  combine nothing    ml₂        = ml₂
-  combine ml₁        nothing    = ml₁
-  combine (just l₁)  (just l₂)  = just (l₁ ++ l₂ ++ [ And ])
-
+\end{code}
+\begin{code}[hide]
+    offset : Maybe X → ℕ
+    combine  : Maybe (List PsCmd) → Maybe (List PsCmd)
+             → Maybe (List PsCmd)
+\end{code}
+\begin{code}
+    offset nothing   = 1
+    offset (just _)  = 2
+    combine nothing    ml₂        = ml₂
+    combine ml₁        nothing    = ml₁
+    combine (just l₁)  (just l₂)  = just (l₁ ++ l₂ ++ [ And ])
 extract-stackp _       p =
   fail ("invalid stack pattern" <> showPattern p)
 \end{code}
+\end{AgdaSuppressSpace}
 
 We are now ready to implement extraction of function clauses. The
 extraction of a clause \AC{clause}\ \_ \ \AB{ps}\ \AB{t} with patterns
@@ -696,8 +698,7 @@ completeness of definitions by pattern matching, so if the final case
 is reached it is guaranteed to match.
 
 \begin{code}
--- extract-clauses : Clauses → ℕ
---                 → ExtractM (List PsCmd)
+-- : Clauses → ℕ → ExtractM (List PsCmd)
 extract-clauses (clause _ ps t ∷ []) i = do
   stackp ← lookup-arg ps i
   extract-term t stackp
@@ -732,7 +733,7 @@ an Agda function, gets its type and definition, and calls
 of PostScript commands.
 
 \begin{code}
--- extract-def : Name → ExtractM PsCmd
+-- : Name → ExtractM PsCmd
 extract-def f = do
   ty   ← get-normalised-type f
   function cs ← get-normalised-def f
@@ -811,11 +812,10 @@ correctly. To improve readability, we use the \AF{lines} function to
 split the output of the extractor into individual lines.
 
 \begin{code}
-test-add-1 : lines (extract add-1 base base) ≡
-           ( "/add-1 {"
-           ∷ "  1 add"
-           ∷ "} def"
-           ∷ [] )
+test-add-1 : lines (extract add-1 base base) ≡  ( "/add-1 {"
+                                                ∷ "  1 add"
+                                                ∷ "} def"
+                                                ∷ [] )
 test-add-1 = refl
 \end{code}
 

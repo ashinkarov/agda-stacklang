@@ -82,12 +82,19 @@ and \AF{pop}. To achieve this, we pass an empty list as the
 third argument to the \AF{extract} macro (which is the list of
 functions that should not be inlined). For example, it can eliminate
 values that are first pushed and then popped again without being used:
-
-\begin{code}
+\begin{mathpar}
+\codeblock{\begin{code}
 push-pop : Stack n → Stack n
 push-pop s = s ▹ push 42 ▹ pop
-\end{code}
-
+\end{code}}
+\and
+\begin{minipage}{.3\columnwidth}
+\begin{lstlisting}[language=PostScript]
+/push-pop {  } def
+\end{lstlisting}
+\end{minipage}
+\end{mathpar}
+%
 \begin{code}[hide]
 _ : lines (extract push-pop base []) ≡
   ( "/push-pop {"
@@ -96,14 +103,8 @@ _ : lines (extract push-pop base []) ≡
   ∷ [] )
 _ = refl
 \end{code}
-
-\begin{lstlisting}[language=PostScript]
-/push-pop {
-
-} def
-\end{lstlisting}
-
-
+%
+%
 \paragraph{Domain-specific optimizations as rewrite rules}
 
 A common way to define domain-specific compiler optimizations is through
@@ -157,6 +158,9 @@ add-some-numbers : Stack (1 + n) → Stack (1 + n)
 add-some-numbers s = s  ▹ push 1 ▹ add  ▹ push 2 ▹ add
                         ▹ push 4 ▹ add  ▹ push 2 ▹ add
 \end{code}
+\begin{lstlisting}[language=PostScript]
+/add-some-numbers { 9 add } def
+\end{lstlisting}
 
 \begin{code}[hide]
 _ : lines (extract add-some-numbers base []) ≡
@@ -166,12 +170,6 @@ _ : lines (extract add-some-numbers base []) ≡
   ∷ [] )
 _ = refl
 \end{code}
-
-\begin{lstlisting}[language=PostScript]
-/add-some-numbers {
-  9 add
-} def
-\end{lstlisting}
 
 \begin{code}[hide]
 -- Another example, pretty similar to the previous one.

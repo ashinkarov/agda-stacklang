@@ -31,6 +31,9 @@
 \usepackage{agda}
 \usepackage{newunicodechar}
 \usepackage[final]{listings}
+\lstset{
+    basicstyle=\small,
+}
 
 %\usepackage[T1]{fontenc}
 
@@ -84,7 +87,7 @@
 \newunicodechar{ℕ}{\ensuremath{\mathbb{N}}}
 \newunicodechar{∸}{̣\ensuremath{-}}
 \newunicodechar{ᵇ}{\ensuremath{{}^{b}}}
-
+\newunicodechar{✔}{\checkmark}
 
 % Some shortcut commands for agda symbols
 \newcommand{\AD}[1]{\AgdaDatatype{#1}}
@@ -101,6 +104,8 @@
   %{\fbox{\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}}
   {\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}
 }
+
+\renewcommand{\AgdaCommentFontStyle}[1]{\textsf{#1}}
 
 
 \newcommand{\myref}[2]{\hyperref[#2]{#1~\ref*{#2}}}
@@ -345,6 +350,7 @@ while generating the paper.
   rules.
 \end{itemize}
 
+\begin{comment}
 The rest of this paper is structured as follows. \secref{background}
 provides background information on Agda and its reflection
 capabilities. \secref{embedding} describes our embedding of PostScript
@@ -355,6 +361,7 @@ demonstrates how to apply partial evaluation to programs prior to
 extraction by using Agda's normalisation procedure. Finally,
 \secref{related} discusses related work and \secref{conclusion}
 concludes.
+\end{comment}
 
 \begin{comment}
 \todo[inline]{Move it somewhere}
