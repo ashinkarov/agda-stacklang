@@ -247,13 +247,14 @@ investigate how to provide strong static guarantees for programs in a
 given language, while maintaining the ability to to use existing
 compilers and tools.
 
-One powerful method for enforcing almost any functional property
-of a program statically is by using \emph{dependent types}.
-In a dependently typed language, properties can be encoded as types,
-and if the program typechecks, the property is guaranteed to hold.
-If we can extend our existing language with dependent types
-(for verification part) and then eliminate them (for using the original
-compiler), then our goal is achieved.
+One powerful method for enforcing almost any functional property of a
+program statically is by using \emph{dependent types}, as used for
+example in Coq~\cite{Coq-8-13-2} or Agda~\cite{agda-2-6-2}.  In a
+dependently typed language, properties can be encoded as types, and if
+the program typechecks, the property is guaranteed to hold.  If we can
+extend our existing language with dependent types (for verification
+part) and then eliminate them (for using the original compiler), then
+our goal is achieved.
 
 While it is possible to add dependent types to an existing language
 from scratch, doing so is time-consuming and error-prone.  Instead,
@@ -274,12 +275,13 @@ of the embedded language.  This requires us to define a type system
 and evaluator for the language separately.  With a dependently typed
 host language the AST and the type system can be defined as a single
 data structure, which is typically referred to as a tagless
-interpreter~\cite{}.  The benefit of deep embedding is that we get
+interpreter~\citep{PasalicTS02}.  The benefit of deep embedding is that we get
 full access to the syntactic structure of the embedded program.  This
 approach works beautifully for embedded languages with simple type
-systems. However, for embedded languages with dependent types,
-tagless interpreters are technically possible~\cite{}, but
-are extremely challenging to define and use in practice.
+systems. However, for embedded languages with dependent types, tagless
+interpreters are technically
+possible~\citep{CHAPMAN200921,10.1007/978-3-540-74464-1_7}, but are
+extremely challenging to define and use in practice.
 
 The key insight of this paper lies in proposing a novel approach that
 combines the best parts of shallow and deep embeddings through the use

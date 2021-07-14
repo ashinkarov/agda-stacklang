@@ -201,7 +201,8 @@ record ExtractM (X : Set) : Set where -- ...
 \end{code}
 
 The monad structure is given by the monadic operations \AF{>>=} and
-\AF{return}, which are used in the desugaring of \AK{do}-notation.
+\AF{return}, which are used in the desugaring of
+\AK{do}-notation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}
 
 \begin{code}
 return : X → ExtractM X

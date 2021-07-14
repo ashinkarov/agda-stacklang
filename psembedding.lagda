@@ -274,7 +274,7 @@ Note that nothing in this shallow embedding prevents us from doing
 operations that are illegal in PostScript, such as duplicating the
 whole stack or discarding it altogether. Such properties could be
 enforced by using an (indexed) monad for stack operations, or by
-working in a quantitative type theory such as Idris 2~\cite{TODO}.
+working in a quantitative type theory such as Idris 2~\cite{Brady21-1}.
 Here we take a more straightforward approach by simply rejecting these
 illegal programs in our extractor.
 
