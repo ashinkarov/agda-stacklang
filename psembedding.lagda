@@ -337,20 +337,16 @@ add-1′ s = s ▹ push 1 ▹ add
 % \end{code}
 
 
-Consider now a slightly more complicated function that computes
-$a^2 + b^2$ where $a$ and $b$ are top two elements of the stack:
+Consider now the example from \figref{sqsum} that computes
+$a^2 + b^2$ where $a$ and $b$ are top two elements of the stack.
+It can be easier to understand the code if we introduce names
+for the intermediate states of the stack using \AK{let}:
 \begin{code}
 sqsum : Stack (2 + n) → Stack (1 + n)
-sqsum s = s ▹ dup ▹ mul ▹ exch ▹ dup ▹ mul ▹ exch ▹ add
-\end{code}
-It can be easier to understand the code if we introduce internal
-stack states in variables names of let:
-\begin{code}
-sqsum′ : Stack (2 + n) → Stack (1 + n)
-sqsum′ s:a:b = let s:a:b*b    = s:a:b      ▹ dup   ▹ mul
-                   s:b*b:a*a  = s:a:b*b    ▹ exch  ▹ dup ▹ mul
-                   s:a*a:b*b  = s:b*b:a*a  ▹ exch
-               in  s:a*a:b*b ▹ add
+sqsum s#a#b = let s#a#b*b    = s#a#b      ▹ dup   ▹ mul
+                  s#b*b#a*a  = s#a#b*b    ▹ exch  ▹ dup ▹ mul
+                  s#a*a#b*b  = s#b*b#a*a  ▹ exch
+              in  s#a*a#b*b ▹ add
 \end{code}
 Notice that in Agda, variable/function names are chains of almost
 arbitrary symbols with no spaces.

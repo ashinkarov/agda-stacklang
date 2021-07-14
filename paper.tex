@@ -297,11 +297,18 @@ tools and libraries. Essentially, we demonstrate that a
 shallow embedding in a host language with reflection
 suddenly becomes deep.
 
-In order to keep presentation as simple as possible, we have
+\input{latex/intro-example}
+
+To keep presentation as simple as possible, we have
 chosen a very simple target language to embed --- we use a subset
-of PostScript~\cite{}, which is a stack-based
-language used in the corresponding document format.  While the embedding
-may look impractical, the simplicity of the language
+of PostScript~\citep{postscript1999language}, a stack-based
+language used in the corresponding document format.
+%
+\figref{sqsum} shows an example of a program
+written in our embedding and the PostScript code produced by
+our extractor.
+%
+While the embedding may look simplistic, this simplicity
 allows us to focus on the essence of the proposed approach and avoid unrelated
 technical details.  We ensure that many verification patterns found in bigger
 languages are covered, showing that the proposed approach scales.
