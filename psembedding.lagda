@@ -27,7 +27,7 @@ variable
 
 PostScript is a document description language, and besides the usual markup,
 it is possible to define arbitrary computations.  The language is dynamically typed
-and stack-based.  That is, there is a notion of a global stack, which
+and stack-based.  That is, there is a notion of a global stack that
 is used for both, passing values and storing results.  All the commands
 are argumentless operators, and a program is a chain of such commands.
 For example, consider a function that computes $a^2 + b^2$, where $a$ and
@@ -128,7 +128,7 @@ variable s : Stack n
 \end{code}
 Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
-a stack of three natural numbers can be built as follows:
+a stack of three natural numbers is defined as follows:
 \begin{code}
 stack123 : Stack 3
 stack123 = [] # 1 # 2 # 3
@@ -172,10 +172,10 @@ eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
 gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
 
-As can be seen, the nature of these operations is straightforward.  However,
-note that the length index of \AD{Stack} ensures that the body of the function
-respects the specification.  If the body of the function returns the stack that
-does not have the length prescribed by the type, such a function would not typecheck.
+In the types of these operations, the length index of \AD{Stack}
+ensures that the body of the function respects the specification.  If
+the body of the function returns the stack that does not have the
+length prescribed by the type, such a function would not typecheck.
 
 \begin{comment}
 Consider the \AD{count} function that computes the length of the stack and stores
@@ -238,9 +238,9 @@ makes it possible to access any element of the stack by providing
 its offset.  This can be seen as a more general version of the
 \AF{dup} command.
 %
-Notice that \AF{index} requires a proof that the index is within
+The function \AF{index} requires a proof that the index is within
 bounds.  Also, we are not strictly following the semantics of
-PostScript, as the index must be passed explicitly, rather
+PostScript, as the index is passed explicitly, rather
 than taking it from the stack.
 \begin{code}[hide]
 infix 5 _!_
@@ -254,21 +254,21 @@ index : (k : ℕ) → @0{T (k < m)} → Stack m → Stack (1 + m)
 index k {k<m} s = s # (s ! k) {k<m}
 \end{code}
 The proof that \AB{k} is less than \AB{m} is marked as implicit,
-which means that Agda can automatically fill in the proof
+which means that Agda will automatically fill in the proof
 (at least in the simple cases that we have in this paper).
 
 We explicitly forego the definition of conditionals and comparison
 operators in favour of using pattern-matching functions.  Recursion
 is essential part of Agda, so there is no need to introduce any new
-operators.  Later we will demonstrate how can we add a for-loop to
+operators.  In \secref{for-loop} we demonstrate how to add a for-loop to
 the embedding.
 
-Note that nothing in this shallow embedding prevents us from doing
+Nothing in this shallow embedding prevents us from doing
 operations that are illegal in PostScript, such as duplicating the
 whole stack or discarding it altogether. Such properties could be
 enforced by using an (indexed) monad for stack operations, or by
 working in a quantitative type theory such as Idris 2~\cite{Brady21-1}.
-Here we take a more straightforward approach by simply rejecting these
+Here we take a more straightforward approach by rejecting these
 illegal programs in our extractor.
 
 \subsection{Examples}
@@ -290,7 +290,7 @@ operators are regular functions, so the chain of applications would be
 written in reverse, when comparing to the corresponding PostScript
 program.  While this does not affect functionality, it may be
 aesthetically pleasing to maintain the original order of operators.
-This can be achieved by defining an operation \AF{\_▹\_} that reverses
+For this purpose we define an operation \AF{\_▹\_} that reverses
 the arguments in application (this is Haskell's \$ operator):
 
 \begin{code}[hide]
@@ -341,7 +341,7 @@ sqsum s#a#b = let s#a#b*b    = s#a#b      ▹ dup   ▹ mul
                   s#a*a#b*b  = s#b*b#a*a  ▹ exch
               in  s#a*a#b*b ▹ add
 \end{code}
-Agda identifiers can be chains of almost arbitrary symbols with no
+Agda identifiers are chains of almost arbitrary symbols with no
 spaces, so \AB{s\#a*a\#b*b} is a valid variable name.
 
 \paragraph{Pattern Matching}
@@ -364,12 +364,12 @@ module FibNonTerm where
 The only unusual thing here is that we match the structure of the stack
 and the structure of the element simultaneously.
 For now, it is an excercise to the reader to verify that \AF{fib}
-actually implements fibonacci numbers.  In a later section we will give
-a formal proof of that.
+actually implements fibonacci numbers. We will soon give a formal proof of
+this fact (see the definition of \AF{fib-thm} below).
 
 Note that Agda does not see that the \AF{fib} function terminates.
-For now, we add an explicit annotation, but in a later
-ection we will demonstrate how to deal with this formally.
+For now, we add an explicit annotation, but we demonstrate how to deal
+with this in \secref{for-loop}.
 
 
 
@@ -379,7 +379,7 @@ require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it quickly becomes clear
 that even simple programs in stack languages may expose a dependency
 between the stack argument and the stack length.  Those cases cannot
-be expressed in non-dependently-typed host languages.  A simple example
+be expressed in non-dependently-typed host languages.  An example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
@@ -419,7 +419,7 @@ between these expressions.
 The nature of dependently-typed systems makes it possible not only to
 specify functions with intrinsic constraints, such as length of the stack,
 but also to prove some properties about existing functions as theorems.  For
-example, we can prove that \AF{sqsum} actually implements the sum of squares:
+example, we prove that \AF{sqsum} actually implements the sum of squares:
 \begin{code}
 sqsum-thm : sqsum (s # k # l) ≡ s # k * k + l * l
 sqsum-thm = refl
@@ -554,7 +554,7 @@ as in case of \AF{rep} --- it is unclear whether any argument decreases when
 calling \AF{fib} recursively.  Unfortunately, we cannot use the above trick
 with relation as is, because we make two recursive calls, but we keep results
 on the same stack.  The problem is that after the first recursive call \AF{fib}
-\AB{s\#x\#x-1} we obtain (conceptually) a new stack.  In order to call \AF{fib}
+\AB{s\#x\#x-1} we obtain (conceptually) a new stack.  To call \AF{fib}
 on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
 (to bring \AB{x} at the top).  However, we cannot prove that \AF{fib} only
 modified the top element of the stack and did not touch other elements.
@@ -562,7 +562,7 @@ modified the top element of the stack and did not touch other elements.
 \begin{comment}
 There is a number of ways we can fix this, but for presentatoinal purposes
 we show the shortest one.  We adjust the structure of our recursion,
-so that we deal with three elements per iteration, implementing a simple
+so that we deal with three elements per iteration, implementing a
 scheme $\langle 1+x, a, b \rangle \leadsto \langle x, b, a+b \rangle$.
 Where $x$ is the number in the sequence that we want to find, and $a = b = 1$
 in the initial call:
@@ -601,7 +601,7 @@ Note that this is not a built-in operation of PostScript, but it is
 trvial to implement it in terms of \AF{roll} and \AF{exch}.
 \end{comment}
 
-\subsection{For Loop}
+\subsection{For Loop} \label{sec:for-loop}
 The final part of our embedding is the for-loop construct.  Not only
 this is often found in practical PostScript documents, it also helps
 to avoid the problem with proving termination.  The difficulty with
@@ -610,7 +610,7 @@ arbitrarily modify stack at every iteration.  While there is no
 technical problem to encode such a behaviour in Agda, it would be
 quite inconvenient to work with.  Every time one needs to ensure
 that a stack returned by a for-loop contains enough elements, a
-potentially complex proof has to be given.  We can make our life
+potentially complex proof has to be given.  We make our life
 easier by working with a simpler version of the for loop that assumes
 the same stack size at each iteration, which is sufficient for our
 examples. Concretely, the boundaries
@@ -657,8 +657,8 @@ module Sierpinski where
 \end{code}
 
 We now consider a more realistic PostScript example that generates an
-image of Sierpinski fractal.  The structure of the code is
-straightforward: it consists of a doubly-nested for loop, which draws
+image of Sierpinski fractal.  The structure of the code
+consists of a doubly-nested for loop that draws
 a dot at each coordinate $(i,j)$ where the bit-wise `and' of $i$ and
 $j$ is not zero.
 %
@@ -690,7 +690,7 @@ that no extra arguments are left on the stack.
                        ▹ pop)
         ▹ pop
 \end{code}
-While the algorithm is straightforward, it is easy to forget to
+In the implementation of algorithms like this one, it is easy to forget to
 remove or copy an element within for-loops when implementing such
 a code manually.  The strict stack size discipline that we have in Agda
 is helpful here, as it eliminates this entire class of errors.

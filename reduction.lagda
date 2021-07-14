@@ -28,7 +28,7 @@ open import extraction
 Working with a shallow embedding brings us gives us an important
 benefit: we can use the existing evaluator of Agda to partially
 evaluate programs prior to extraction. In this section, we give a
-couple of examples of how this can be useful. We also demonstrate how
+couple of examples of how this is useful. We also demonstrate how
 to extend Agda's evaluator with domain-specific optimizations through
 the use of \emph{rewrite rules}.
 
@@ -36,7 +36,7 @@ the use of \emph{rewrite rules}.
 
 By reducing Agda expressions prior to extraction, we may use any host
 language constructs that are not present in the embedding, as long as
-they can be eliminated prior to extraction. For example, we can make
+they are eliminated prior to extraction. For example, we can
 use of the Agda function \AF{applyN} to apply a certain postscript
 operator \AB{n} times:
 
@@ -78,7 +78,7 @@ the extractor knows how to deal with.
 
 In addition to inlining external functions, the extractor can also
 simplify expressions that involve basic operations such as \AF{push}
-and \AF{pop}. To achieve this, we simply pass an empty list as the
+and \AF{pop}. To achieve this, we pass an empty list as the
 third argument to the \AF{extract} macro (which is the list of
 functions that should not be inlined). For example, it can eliminate
 values that are first pushed and then popped again without being used:
@@ -132,7 +132,7 @@ built-in concept of rewrite rules~\cite{Cockx19}.
 %equally well suited to optimize the embedded programs we write before
 %they are extracted.
 
-As an example, we can prove that pushing and then adding two numbers
+As an example, we prove that pushing and then adding two numbers
 in sequence is equivalent to pushing and adding the sum of these
 numbers.
 
@@ -142,15 +142,15 @@ add-add-join : (s : Stack (1 + n)) (k l : ℕ)
 add-add-join (s # x) k l = cong (s #_) (+-assoc x k l)
 \end{code}
 
-Next, we can register this equality as a rule to be applied
+Next, we register this equality as a rule to be applied
 automatically during evaluation by using a \AK{REWRITE} pragma:
 
 \begin{code}
 {-# REWRITE add-add-join #-}
 \end{code}
 
-From now on the rule will be applied automatically by the extractor
-whenever it can:
+From now on the rule is applied automatically by the extractor
+whenever possible:
 
 \begin{code}
 add-some-numbers : Stack (1 + n) → Stack (1 + n)
@@ -204,7 +204,7 @@ purpose. However, using this function we ran into two problems:
 \begin{itemize}
 
 \item The \AF{normalise} function only works on terms and not on
-entire function definitions. Hence we need to manually traverse the
+entire function definitions. Hence we manually traverse the
 function definition and call \AF{normalise} on the body of each
 individual clause. During the implementation of this traversal, we
 were faced with the challenge of reconstructing the right typing

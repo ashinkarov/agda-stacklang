@@ -24,7 +24,7 @@ to the Agda user manual~\cite{agda}.
     suc   : ℕ → ℕ
 \end{code}
 The type \AD{ℕ} of unary natural numbers is a datatype with two constructors:
-\AC{zero} and \AC{suc}.  Note that \AD{ℕ} itself belongs to
+\AC{zero} and \AC{suc}.  The type \AD{ℕ} itself belongs to
 the type \AF{Set}, Agda's builtin type of all (small) types.
 
 Agda allows the declaration of indexed
@@ -39,7 +39,7 @@ The type \AD{Vec} \AB{A} \AB{n} represents vectors holding \AB{n}
 values of type \AB{A}.  It has two constructors: \AC{[]} for the empty
 vector of length \AC{zero} and \AC{\_∷\_} for adding an element to a
 vector, increasing the length by 1.  Curly braces indicate hidden
-arguments, which can be left out at function
+arguments that can be left out at function
 applications.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/implicit-arguments.html}}
 %Hidden arguments can be passed explicitly using the syntax \AC{\_∷\_}
 %\{\AB{n}\} \AB{x} \AB{xs}.
@@ -59,7 +59,7 @@ we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
   tail (x ∷ xs) = xs
 \end{code}
 Agda requires that all definitions by pattern matching cover all
-cases.  In the definition of \AF{tail}, we can omit the case for the
+cases.  In the definition of \AF{tail}, we omit the case for the
 empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
 (\AC{suc}\ \AB{n}), so it can never be called with input \AC{[]}.
 
@@ -75,7 +75,7 @@ lambda\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/lambda-abstr
 \end{code}
 
 \paragraph{Termination checking}
-In order to ensure totality, Agda checks that all recursive functions
+To ensure totality, Agda checks that all recursive functions
 are terminating on all
 inputs.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}}
 %
@@ -90,7 +90,7 @@ the first argument is \AB{x}, which is structurally smaller than
 
 \paragraph{Proving equalities}
 Agda can be used both as a programming language and a proof assistant.
-One very common example of this is the equality type \AF{\_≡\_}, which
+One common example of this is the equality type \AF{\_≡\_} that
 expresses equality of its two arguments. It has a single constructor
 \AC{refl} : \AB{x} \AD{≡} \AB{x} stating that any value \AB{x} is
 equal to itself.
@@ -220,7 +220,7 @@ and its reflected syntax \AF{`foo}:
 
 The reflected syntax of \AF{foo} is represented by the constructor \AC{function} applied to a list
 of clauses. Each clause itself is represented by the constructor
-\AC{clause} applied to three arguments: i) the telescope, which is a
+\AC{clause} applied to three arguments: i) the telescope, i.e.~a
 list of the names of variables and their types; ii) the list of
  patterns; and iii) the body of the clause.
 %
@@ -252,7 +252,7 @@ For example, the macro \AF{norm} below takes a term, quotes it,
 normalises the quoted term, and unifies the result with the hole.
 %
 Effectively, this macro is a partial evaluator for Agda programs.  For
-example, \AF{norm} (\AN{1} \AF{+} \AN{1}) will be statically replaced
+example, \AF{norm} (\AN{1} \AF{+} \AN{1}) is statically replaced
 by \AN{2}.
 
 \begin{code}

@@ -251,8 +251,8 @@ One powerful method for enforcing almost any functional property of a
 program statically is by using \emph{dependent types}, as used for
 example in Coq~\cite{Coq-8-13-2} or Agda~\cite{agda-2-6-2}.  In a
 dependently typed language, properties can be encoded as types, and if
-the program typechecks, the property is guaranteed to hold.  If we can
-extend our existing language with dependent types (for verification
+the program typechecks, the property is guaranteed to hold.  If we
+extend our existing language with dependent types (for the verification
 part) and then eliminate them (for using the original compiler), then
 our goal is achieved.
 
@@ -302,7 +302,7 @@ suddenly becomes deep.
 \input{latex/intro-example}
 
 To keep presentation as simple as possible, we have
-chosen a very simple target language to embed --- we use a subset
+chosen a simple target language to embed --- we use a subset
 of PostScript~\citep{postscript1999language}, a stack-based
 language used in the corresponding document format.
 %
@@ -464,7 +464,7 @@ implement a similar API as described in this paper.  This is
 reassuring, as it means our proposed approach is immediately portable
 into many other contexts.
 \citet{10.1145/3371071} introduce the Turnstile+ framework for
-building dependently typed embedded DSLs and very much
+building dependently typed embedded DSLs and
 shares the ideas advocated in this paper, suggesting that
 our approach could work there as well.
 \citet{10.1145/3371076} use MetaCoq to formally verify
@@ -474,7 +474,7 @@ as a basis to verify our custom extractors.
 \citet{10.1145/3372885.3373829} use MetaCoq to implement
 a DSL combining deep and shallow approaches, in a way that
 is quite similar to our own. While they are able to formally
-reason about preservation of semantics (which we can't do yet), it is unclear
+reason about preservation of semantics (which we cannot do yet), it is unclear
 whether their approach scales to dependently-typed embedded languages.
 
 \section{Conclusions and Future Work} \label{sec:conclusion}
@@ -493,7 +493,7 @@ them into the original language.
 
 We apply this idea in the context of dependently-typed
 language Agda.  We demonstrate the use of dependent types
-in order to enforce static properties of the embedded programs.
+to enforce static properties of the embedded programs.
 Concretely, we have demonstrated the approach by implementing
 an extractor for a fragment of the PostScript language.
 

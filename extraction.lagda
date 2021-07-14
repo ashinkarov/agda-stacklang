@@ -120,7 +120,7 @@ data PsCmd : Set where
 \end{code}
 
 We implement a basic pretty-printer for sequences of PostScript
-commands, which we omit here.
+commands that we omit here.
 
 \begin{code}
 print-ps : List PsCmd → String
@@ -404,7 +404,7 @@ stack-ok : Pattern → Term → ExtractM Bool
 \AF{extract-term} traverses an Agda term and translates it to a
 list of PostScript commands. For example, $\AF{add}\ (\AF{push}\ \AN{1}\ \AB{s})$ is translated to $\AC{Push}\ \AN{1}\ \AC{∷}\
 \AF{Add}\ \AC{∷}\ \AC{[]}$. It takes an additional argument of type
-\AD{Pattern} in order to check that the stack used in the expression
+\AD{Pattern} to check that the stack used in the expression
 (in this case \AB{s}) is identical to the input stack. In this way it
 ensures that we do not manipulate the stack in arbitrary ways, but
 only through the primitive stack operations of PostScript.
@@ -422,7 +422,7 @@ extract-term v stackp = go v []
   go : Term → List PsCmd → ExtractM (List PsCmd)
 \end{code}
 
-The cases for basic instructions are completely straightforward.
+The cases for basic instructions are as follows:
 
 \begin{code}
   go (`pop   x) acc = go x (Pop   ∷ acc)
@@ -508,7 +508,7 @@ extraction with that argument.
 \end{code}
 
 After traversing through the stack operations, we reach the stack
-itself. Here we need to check that the stack that is used is the same
+itself. Here we check that the stack that is used is the same
 as the input stack, which is done by \AF{stack-ok} (explained below).
 If the check succeeds, we return the list of commands collected in
 \AB{acc}.
@@ -617,7 +617,7 @@ condition on the given position on the stack, or \AC{nothing} if the
 pattern matches unconditionally. There are three cases:
 
 \begin{itemize}
-\item A simple variable pattern \AB{n} matches any input, so \AC{nothing} is returned.
+\item A variable pattern \AB{n} matches any input, so \AC{nothing} is returned.
 \item A closed pattern \AC{suc}\ (\AC{suc}\ (\ldots \AC{zero})) only
 matches the single value equal to the number of successors, so we
 return an equality check.
@@ -651,7 +651,7 @@ Second, the function \AF{extract-stackp} compiles a pattern of type
 commands, or \AC{nothing} in case the pattern is guaranteed to match.
 There are two cases:
 \begin{itemize}
-\item A simple variable pattern \AB{s} matches any input, so
+\item A variable pattern \AB{s} matches any input, so
 \AC{nothing} is returned.
 \item A stack pattern \AB{ps} \AC{\#} \AB{p} matches if the top of the
 stack matches \AB{p} and the remainder matches \AB{ps}.  In case both
@@ -806,11 +806,11 @@ base = quote add ∷ quote sub ∷ quote mul
 \paragraph{Testing the extractor}
 
 Thanks to the theorem-proving capabilities of Agda, we can embed test
-cases for the extractor as simple equality proofs. These test cases
+cases for the extractor as equality proofs. These test cases
 are run automatically during type checking, so if a change to the
 extractor causes one of them to fail it will not go unnoticed.
 
-As a simple example, here is a test that \AF{add-1} is extracted
+As an example, here is a test that \AF{add-1} is extracted
 correctly. To improve readability, we use the \AF{lines} function to
 split the output of the extractor into individual lines.
 
