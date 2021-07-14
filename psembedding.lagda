@@ -378,8 +378,8 @@ So far all the specifications within the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it quickly becomes clear
 that even simple programs in stack languages may expose a dependency
-between the stack argument and the stack length.  Those cases cannot
-be expressed in non-dependently-typed host languages.  An example
+between the input stack and the size of the output stack.  Those cases
+require dependent types to express statically.  An example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
@@ -399,21 +399,22 @@ module RepSimple where
          in  subst-stack (+-suc _ _) (rep s#x#x#m)
 \end{code}
 
-First, we define the \AD{hd} helper function that returns the top element
-of the stack.  We use this function to specify the length of the stack
-returned by \AD{rep}.  This length is the value of the top element of the
-stack when entering the function the first time.  In case this argument
+
+The length of the stack returned by \AD{rep} is given by the topmost
+element of the input stack \AB{s} plus \AB{n}. Hence the size of the
+output stack depends on the value of the input stack.
+%
+In case this argument
 is zero, we remove two elements from the stack: the argument we were
 replicating, and the count argument.  Otherwise, we decrease the count,
 copy the argument we are replicating, and put them in the expected position
-to make the next recursive call.  The second argument to \AF{index} is a
-proof that $1 < 2 + n$, which Agda can compute automatically using \AF{≤-ok}.
-At the end we apply
-\AF{subst-stack} to fit the type definition.  The length of \AF{rep} \AB{s\#x\#x\#m}
-is $(m + (1 + n))$ whereas we need the length
-$(1 + (m + n))$.  Such an equality is not obvious to Agda, we
-apply the \AD{+-suc} function from the standard library that translates
-between these expressions.
+to make the next recursive call.
+%
+This results in the stack \AF{rep} \AB{s\#x\#x\#m} of size $(m + (1 +
+n))$ while the expected size is $(1 + (m + n))$. It is not obvious to
+Agda that these two sized are equal, so we apply
+\AF{subst-stack} with the proof \AD{+-suc} from the standard library
+to convert between these two sizes.
 
 \paragraph{Extrinsic Verification}
 The nature of dependently-typed systems makes it possible not only to
