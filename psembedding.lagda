@@ -78,15 +78,18 @@ body of the function) followed by the \textbf{def} command.  Definitions may be
 used as regular commands, including recursive calls.
 In the body of the function, we check whether the argument
 (the top stack element) is zero, in which case we remove it
-from the stack and put the value one.  Otherwise, we duplicate the argument,
+from the stack and put the value one.
+
+\begin{wrapfigure}{r}{.33\columnwidth}
+\epsfbox[17 10 80 65]{1.ps}
+\caption{\label{fig:fib}Draw \AF{fib}.}
+\end{wrapfigure}
+Otherwise, we duplicate the argument,
 subtract one, make a recursive call, and multiply the result with the
 original argument.  Conditional are expressed with two code blocks
 followed by the \textbf{ifelse} command.
-
-By drawing the results of the fib function (code not shown here) using
-a PostScript interpreter, we get the following picture:
-
-\epsfbox[0 0 200 70]{1.ps}
+In~\figref{fib} we draw the results of the fib function (code not shown here) using
+a PostScript interpreter.
 
 \paragraph{Assumptions}
 
