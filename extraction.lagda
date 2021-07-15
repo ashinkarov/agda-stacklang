@@ -802,14 +802,12 @@ specific program.
 
 \paragraph{Testing the extractor}
 
-Thanks to the theorem-proving capabilities of Agda, we can embed test
-cases for the extractor 
-\begin{wrapfigure}{l}{.3\columnwidth}
+\begin{wrapfigure}{r}{.3\columnwidth}
 \epsfbox[0 0 66 66]{sierp.ps}
 \caption{\label{fig:sierpinski}Draw \AF{sierpinski}.}
 \end{wrapfigure}
-\noindent
-as equality proofs. These test cases
+Thanks to the theorem-proving capabilities of Agda, we can embed test
+cases for the extractor as equality proofs. These test cases
 are run automatically during type checking, so if a change to the
 extractor causes one of them to fail it will not go unnoticed.
 
