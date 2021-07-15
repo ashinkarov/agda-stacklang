@@ -59,8 +59,8 @@ infixr 10 _<>_
 _<>_ : String → String → String
 _<>_ = S._++_
 
-_<t>_ : String → Term → String
-s <t> t = s <> showTerm t
+_<>ₜ_ : String → Term → String
+s <>ₜ t = s <> showTerm t
 
 intercalate : (delim : String) → List String → String
 intercalate d [] = ""
@@ -441,9 +441,9 @@ calling the \AF{fail} function.
 
 \begin{code}
   go (`push (`num n) x) acc = go x (Push n ∷ acc)
-  go (`push k _) acc = fail ("push non-literal: " <t> k)
+  go (`push k _) acc = fail ("push non-literal: " <>ₜ k)
   go (`index (`num n) x) acc = go x (Index n ∷ acc)
-  go (`index k _) acc = fail ("index non-literal: " <t> k)
+  go (`index k _) acc = fail ("index non-literal: " <>ₜ k)
 \end{code}
 
 \begin{code}[hide]
@@ -482,7 +482,7 @@ with the expression for the initial stack $x$.
     go x (For [ FunCall (prettyName f) ] ∷ acc)
 \end{code}
 \begin{code}
-  go (`for b _) acc = fail ("invalid for body: " <t> b)
+  go (`for b _) acc = fail ("invalid for body: " <>ₜ b)
 \end{code}
 \end{AgdaSuppressSpace}
 
@@ -514,7 +514,7 @@ If the check succeeds, we return the list of commands collected in
     b ← stack-ok stackp v
     if b then (return acc)
          else (fail ("stack mismatch: " <> showPattern stackp
-                     <> " and " <> showTerm v))
+                     <> " and " <>ₜ v))
 \end{code}
 
 The function \AF{stack-ok} ensures that when we use the stack (of type
@@ -583,7 +583,7 @@ extract-type x = go x false 0
   go (Π[ s ∶ vArg (`Stack n) ] ty) false i = go ty true i
   go (Π[ s ∶ erasedArg _ ] ty) b i = go ty b (if b then i else 1 + i)
   go (`Stack n) true i = return i
-  go t _ _ = fail ("invalid type: " <t> t)
+  go t _ _ = fail ("invalid type: " <>ₜ t)
 \end{code}
 
 
