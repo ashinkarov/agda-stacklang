@@ -52,7 +52,7 @@ pow32 s = applyN 5 (λ s → s ▹ dup ▹ mul) s
 The function \AF{applyN} is a polymorphic and higher-order function,
 so it falls well outside the fragment of Agda that our extractor can
 deal with. Nevertheless, the extractor can inline the
-definition of \AF{applyN}: running \AF{extract} \AF{pow32} \AF{base}
+definition of \AF{applyN}: running \AMA{extract} \AF{pow32} \AF{base}
 produces the following code:
 
 \begin{code}[hide]
@@ -79,7 +79,7 @@ the extractor knows how to deal with.
 In addition to inlining external functions, the extractor can also
 simplify expressions that involve basic operations such as \AF{push}
 and \AF{pop}. To achieve this, we pass an empty list as the
-second argument to the \AF{extract} macro (which is the list of
+second argument to the \AMA{extract} macro (which is the list of
 functions that should not be inlined). For example, it can eliminate
 values that are first pushed and then popped again without being used:
 \begin{mathpar}
@@ -168,7 +168,7 @@ _ : lines (extract add-some-numbers []) ≡
 _ = refl
 \end{code}
 
-Running \AF{extract} \AF{add-some-numbers} \AF{[]} produces
+Running \AMA{extract} \AF{add-some-numbers} \AF{[]} produces
 the following code:
 
 \begin{lstlisting}[language=PostScript]

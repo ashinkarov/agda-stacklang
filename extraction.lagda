@@ -765,7 +765,7 @@ extract-defs = do
   return (xs ++ ys)
 \end{code}
 
-We define a macro \AF{extract} as the main entry point of the
+We define a macro \AMA{extract} as the main entry point of the
 extractor.  This macro takes as inputs the name \AB{main} of the main
 function and a list \AB{noinline} of functions that
 should not be inlined (see the next section for more
