@@ -664,7 +664,7 @@ We now consider a more realistic PostScript example that generates an
 image of Sierpinski fractal.  The structure of the code
 consists of a doubly-nested for loop that draws
 a dot at each coordinate $(i,j)$ where the bit-wise `and' of $i$ and
-$j$ is not zero.
+$j$ is zero.
 %
 For this example we assume that a drawing function and bit-wise `and'
 are already defined in PostScript, so we postulate them in Agda.  This
