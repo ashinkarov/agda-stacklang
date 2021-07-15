@@ -765,8 +765,8 @@ extract-defs = do
 \end{code}
 
 We define a macro \AMA{extract} as the main entry point of the
-extractor.  This macro takes as inputs the name \AB{main} of the main
-function and a list \AB{noinline} of functions that
+extractor.  This macro takes as inputs the name of the main
+function and a list of functions that
 should not be inlined (see the next section for more
 details on inlining). The implementation of the macro (not shown here)
 runs \AF{extract-defs} on the initial state. If extraction succeeds,
@@ -795,7 +795,7 @@ macro extract : Name → Names → Term → TC ⊤
 \end{code}
 
 We provide a default list \AF{base} of functions for which to avoid
-inlining, which can be further extended to tailor extraction to a
+inlining, which can be further tailored to the extraction of a
 specific program.
 
 
