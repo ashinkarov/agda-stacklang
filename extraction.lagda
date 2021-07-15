@@ -86,7 +86,6 @@ terms and map basic stack operations such as \AF{dup} and \AF{add} to their
 PostScript counterparts.  On the other hand, extractor determines
 which terms are valid in the presented shallow embedding: these
 are the terms that are accepted by our extractor.
-
 Our criteria of acceptable embeddings are as follows:
 \begin{itemize}
     \item The function acts on a single stack argument and returns stack.
@@ -101,7 +100,7 @@ Our criteria of acceptable embeddings are as follows:
 
     \item Conditionals for stack elements are implemented using
     pattern-matching.  The extractor needs to translate these patterns to
-    conditional statements. This is done by the functions
+    conditional statements. This is done by %the functions
     \AF{extract-pattern} and \AF{extract-clauses}.
 \end{itemize}
 
@@ -513,8 +512,8 @@ If the check succeeds, we return the list of commands collected in
   go v acc = do
     b ← stack-ok stackp v
     if b then (return acc)
-         else (fail ("stack mismatch: " <> showPattern stackp
-                     <> " and " <>ₜ v))
+         else (fail ("stack mismatch: " 
+                     <> showPattern stackp <> " and " <>ₜ v))
 \end{code}
 
 The function \AF{stack-ok} ensures that when we use the stack (of type
@@ -589,7 +588,7 @@ extract-type x = go x false 0
 
 \paragraph{Extracting clauses}
 
-\AF{extract-clauses} takes as input the clauses of a function
+\AF{extract-clauses} takes as input the cla\-uses of a function
 definition and the position of the principal argument (as computed by
 \AF{extract-type}) and translates the clauses to a list of PostScript
 commands. For example, consider the function \AF{non-zero}:

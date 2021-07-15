@@ -83,7 +83,7 @@ the first argument is \AB{x}, which is structurally smaller than
 \AC{suc} \AB{x}.
 
 \paragraph{Proving equalities}
-Agda is both a programming language and a proof assistant.
+Agda is both a programming lan\-gua\-ge and a proof assistant.
 One common example of this is the equality type \AF{\_≡\_} that
 expresses equality of its two arguments. It has a single constructor
 \AC{refl} : \AB{x} \AD{≡} \AB{x} stating that any value \AB{x} is

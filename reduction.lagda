@@ -198,7 +198,7 @@ _ = refl
 
 \paragraph{Implementation details}
 
-Partial evaluation of Agda terms is achieved by normalising \ie{}~by
+Partial evaluation in Agda is achieved by normalising, \ie{}~by
 applying reduction rules to (sub)terms until they turn into values or
 neutral terms.
 %
@@ -220,8 +220,7 @@ extended the reflection API to provide it for us (see
 
 \item The functionality to selectively normalise certain functions
 while leaving others intact was not previously available in Agda. We
-added two new primitives to the reflection API: \AF{dontReduceDefs}
-and \AF{onlyReduceDefs}. (see
+added \AF{dontReduceDefs} and \AF{onlyReduceDefs} to the reflection API (see
 \hrefu{https://github.com/agda/agda/pull/4978}{github.com/agda/agda/pull/4978}).
 
 \end{itemize}
