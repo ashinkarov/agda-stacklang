@@ -411,7 +411,7 @@ PostScript commands in an accumulator.
 
 \begin{AgdaAlign}
 \begin{code}
--- : Term → Pattern → ExtractM (List PsCmd)
+--: Term → Pattern → ExtractM (List PsCmd)
 extract-term v stackp = go v []
   where
   go : Term → List PsCmd → ExtractM (List PsCmd)
@@ -525,7 +525,7 @@ there are a few other cases for dealing with natural number literals
 
 \begin{AgdaSuppressSpace}
 \begin{code}
--- : Pattern → Term → ExtractM ⊤
+--: Pattern → Term → ExtractM ⊤
 stack-ok p@(p₁ `# p₂) t@(t₁ `# t₂) = do
   ok₁ ← stack-ok p₁ t₁
   ok₂ ← stack-ok p₂ t₂
@@ -575,7 +575,7 @@ thus safely be erased during extraction. If these checks succeed, it
 returns the position of the principal argument.
 
 \begin{code}
--- : Type → ExtractM ℕ
+--: Type → ExtractM ℕ
 extract-type x = go x false 0
   where
   go : Type → (st-arg : Bool) → (idx : ℕ) → ExtractM ℕ
@@ -629,7 +629,7 @@ extract-stackp : (hd-idx : ℕ) → Pattern
                → ExtractM (Maybe (List PsCmd))
 \end{code}
 \begin{code}
--- : ℕ → Pattern → ExtractM (Maybe (List PsCmd))
+--: ℕ → Pattern → ExtractM (Maybe (List PsCmd))
 extract-natp hd-idx p = go p 0
   where
   mk-cmp : PsCmd → ℕ → List PsCmd
@@ -659,7 +659,7 @@ patterns require non-trivial conditions, we combine both using the
 
 \begin{AgdaSuppressSpace}
 \begin{code}
--- : ℕ → Pattern → ExtractM (Maybe (List PsCmd))
+--: ℕ → Pattern → ExtractM (Maybe (List PsCmd))
 extract-stackp hd-idx  (var x)    = return nothing
 extract-stackp hd-idx  (ps `# p)  = do
   ml₁  ← extract-natp hd-idx p
@@ -697,7 +697,7 @@ completeness of definitions by pattern matching, so if the final case
 is reached it is guaranteed to match.
 
 \begin{code}
--- : Clauses → ℕ → ExtractM (List PsCmd)
+--: Clauses → ℕ → ExtractM (List PsCmd)
 extract-clauses (clause _ ps t ∷ []) i = do
   stackp ← lookup-arg ps i
   extract-term t stackp
@@ -732,7 +732,7 @@ an Agda function, gets its type and definition, and calls
 of PostScript commands.
 
 \begin{code}
--- : Name → ExtractM (List PsCmd)
+--: Name → ExtractM (List PsCmd)
 extract-def f = do
   ty   ← get-normalised-type f
   function cs ← get-normalised-def f
