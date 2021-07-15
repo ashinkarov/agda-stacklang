@@ -803,7 +803,13 @@ specific program.
 \paragraph{Testing the extractor}
 
 Thanks to the theorem-proving capabilities of Agda, we can embed test
-cases for the extractor as equality proofs. These test cases
+cases for the extractor 
+\begin{wrapfigure}{l}{.3\columnwidth}
+\epsfbox[0 0 66 66]{sierp.ps}
+\caption{\label{fig:sierpinski}Draw \AF{sierpinski}.}
+\end{wrapfigure}
+\noindent
+as equality proofs. These test cases
 are run automatically during type checking, so if a change to the
 extractor causes one of them to fail it will not go unnoticed.
 
@@ -818,9 +824,11 @@ test-add-1 : lines (extract add-1 base) ≡  ( "/add-1 {"
                                          ∷ [] )
 test-add-1 = refl
 \end{code}
-
 We can test the output of the extractor on the other examples from the
 previous section in a similar fashion.
+Finally, we can feed generated programs into PostScript
+interpreters and obtain outputs such as one at~\figref{sierpinski}.
+
 
 \begin{code}[hide]
 _ : lines (extract non-zero base) ≡
