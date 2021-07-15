@@ -28,7 +28,7 @@ The type \AD{ℕ} of unary natural numbers is a datatype with two constructors:
 the type \AF{Set}, Agda's builtin type of all (small) types.
 
 Agda allows the declaration of indexed
-datatypes\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/data-types.html}},
+datatypes\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/data-types.html}{agda.readthedocs.io/en/v2.6.2/language/data-types.html}},
 such as the type \AD{Vec} which is indexed over values of type \AD{ℕ}:
 \begin{code}
   data Vec (A : Set) : ℕ → Set where
@@ -40,12 +40,12 @@ values of type \AB{A}.  It has two constructors: \AC{[]} for the empty
 vector of length \AC{zero} and \AC{\_∷\_} for adding an element to a
 vector, increasing the length by 1.  Curly braces indicate hidden
 arguments that can be left out at function
-applications.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/implicit-arguments.html}}
+applications.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/implicit-arguments.html}{agda.readthedocs.io/en/v2.6.2/language/implicit-arguments.html}}
 %Hidden arguments can be passed explicitly using the syntax \AC{\_∷\_}
 %\{\AB{n}\} \AB{x} \AB{xs}.
 The underscores in the name of \AC{\_∷\_}
 indicate mixfix
-syntax:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/mixfix-operators.html}}
+syntax:\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/mixfix-operators.html}{agda.readthedocs.io/en/v2.6.2/language/mixfix-operators.html}}
 we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
 \AB{xs}.
 
@@ -58,7 +58,7 @@ we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
 \end{code}}
 \and
 \codeblock{\begin{code}
-  tail : {n : ℕ} → Vec ℕ (suc n) 
+  tail : {n : ℕ} → Vec ℕ (suc n)
        → Vec ℕ n
   tail (x ∷ xs) = xs
 \end{code}}
@@ -71,19 +71,19 @@ empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
 \paragraph{Termination checking}
 To ensure totality, Agda checks that all recursive functions
 are terminating on all
-inputs.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}}
+inputs.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}{agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}}
 %
 While it is impossible to infer termination for an arbitrary function
-due to the halting problem, Agda uses heuristics to handle common
-cases.  The main idea behind the check is that the argument to the
-recursive call has to be structurally smaller than the input argument.
-This means that we have to remove at least one constructor from at
-least one argument.  For example, in the recursive call to \AF{\_+\_},
+due to the halting problem, the termination check of Agda is powerful
+enough to handle many common cases.  The main idea behind the check is
+that at least one of the arguments to the function has to become
+structurally smaller than the input argument in each recursive call.
+For example, in the recursive call to \AF{\_+\_},
 the first argument is \AB{x}, which is structurally smaller than
 \AC{suc} \AB{x}.
 
 \paragraph{Proving equalities}
-Agda can be used both as a programming language and a proof assistant.
+Agda is both a programming language and a proof assistant.
 One common example of this is the equality type \AF{\_≡\_} that
 expresses equality of its two arguments. It has a single constructor
 \AC{refl} : \AB{x} \AD{≡} \AB{x} stating that any value \AB{x} is
@@ -122,10 +122,10 @@ programs embedded in Agda is an important benefit of our approach.
 
 \paragraph{Run-time irrelevance}
 
-Function arguments can be marked as \emph{run-time
+Function types can be marked as \emph{run-time
 irrelevant}~\cite{McBride16} with the @0
-annotation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/runtime-irrelevance.html}} The
-Agda typechecker guarantees that run-time irrelevant arguments are not
+annotation.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/runtime-irrelevance.html}{agda.readthedocs.io/en/v2.6.2/language/runtime-irrelevance.html}}
+Agda guarantees that run-time irrelevant arguments are not
 needed for evaluation of the program, they can thus safely be erased
 by the compiler. For example, we can mark the \AB{n} argument to the
 \AF{tail} function as run-time irrelevant:
@@ -135,39 +135,42 @@ by the compiler. For example, we can mark the \AB{n} argument to the
 \end{code}
 In our embedding of PostScript into Agda, we make use of this
 annotation to ensure that the functions we define do not
-computationally depend on arguments that are not on the stack and can
+computationally depend on arguments that are not on the stack and those arguments can
 hence safely be erased during extraction of PostScript code (see
 \secref{embedding} and \secref{extraction}).
 
 \paragraph{Generalizable variables} To avoid having to bind implicit
 arguments in type signatures, we use \emph{generalizable
-variables}:\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/generalization-of-declared-variables.html}}
+variables}.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/generalization-of-declared-variables.html}{agda.readthedocs.io/en/v2.6.2/language/generalization-of-declared-variables.html}}
+%
+For example, declaring \AB{n} as a variable allows us to avoid having
+to bind \AB{n} explicitly in the type of \AF{tail}:
+
 \begin{code}
   variable @0 n : ℕ
-\end{code}
-This allows us for example to avoid having to bind \AB{n} explicitly
-in the type of \AF{tail}:
-\begin{code}
   tail'' : Vec ℕ (suc n) → Vec ℕ n
   tail'' (x ∷ xs) = xs
 \end{code}
 
+\paragraph{Reflected syntax}
 
-\paragraph{Reflection}
-
-The reflection API of Agda allows quoting and unquoting of expressions
-and declarations, and provides access to some of the internals of the
-Agda typechecker such as unification and
-normalisation.\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
-
+The reflection API of
+Agda\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}{agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
+provides various datatypes that represent the internal syntax of Agda
+programs.
+%
 Expressions (of type \AD{Term}) are represented by a constructor such
 as \AC{con} (for constructors), \AC{def} (for other defined symbols),
-or \AC{var} (for variables) applied to a quoted name and a list of
-arguments.  \AC{vArg} denotes a visible argument, while \AC{hArg} is
-used for hidden arguments.  For example, the full reflected form of
-the expression \AC{zero} is \AC{con} (\AK{quote} \AC{zero}) \AC{[]}.
+\AC{lam} (for lambda expressions), or \AC{var} (for variables).
+The constructors \AC{con} and \AC{def} are
+applied to a quoted name (of type \AD{Name}) and a list of
+arguments (of type \AD{List} (\AD{Arg} \AD{Term})).  \AC{vArg} denotes
+a visible argument, while \AC{hArg} is used for hidden arguments.  For
+example, the full reflected form of the expression \AC{suc} \AC{zero}
+is \AC{con} (\AK{quote} \AC{suc}) (\AD{vArg} (\AC{con} (\AK{quote}
+\AC{zero}) \AC{[]}) \AC{∷} \AC{[]}).
 
-To make reflected syntax more readable, we use \emph{pattern synonyms}
+To make reflected syntax more readable, we use \emph{pattern synonyms}\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/pattern-synonyms.html}{agda.readthedocs.io/en/v2.6.2/language/pattern-synonyms.html}}
 for commonly used pieces of syntax. As a convention, the names of
 these pattern synonyms start with a backtick followed by the name
 of the represented Agda construct, for example:
@@ -191,8 +194,8 @@ module FunExample where
   pattern _`+_ x y  = def (quote _+_) (vArg x ∷ vArg y ∷ [])
 \end{code}
 
-As a complete example, below is the definition of a function \AF{foo}
-and its reflected syntax \AF{`foo}:
+As a complete example, below is the definition of a function \AF{foo} (left)
+and its reflected syntax \AF{`foo} (right):
 
 \begin{mathpar}
 \codeblock{\begin{code}
@@ -212,7 +215,7 @@ and its reflected syntax \AF{`foo}:
 \end{mathpar}
 
 
-The reflected syntax of \AF{foo} is represented by the constructor \AC{function} applied to a list
+The reflected syntax of \AF{foo} (of type \AD{Definition}) is represented by the constructor \AC{function} applied to a list
 of clauses. Each clause (of type \AD{Clause}) itself is represented by the constructor
 \AC{clause} applied to three arguments: i) the telescope, i.e.~a
 list of the names of variables and their types; ii) the list of

@@ -94,7 +94,7 @@ We consider a small subset of PostScript that is sufficient to express
 functions on natural numbers.  While PostScript has many more commands,
 types, and drawing primitives, this subset is sufficient to demonstrate
 the main challenges with verification and extraction.
-This keeps our extractor complexity low, and makes the examples
+This keeps the complexity of our extractor low, and makes the examples
 transferable to other stack languages such as Forth.
 
 The main focus of our Agda embedding is to track the number of elements
@@ -110,7 +110,7 @@ meaning.
 
 \subsection{Embedding in Agda}
 
-Our Agda embedding consists of a type for stacks and a number of basic operators
+Our PostScript embedding in Agda consists of a type for stacks and a number of basic operators
 operating on it.
 
 \paragraph{Stack type}
@@ -128,12 +128,8 @@ variable s : Stack n
 \end{code}
 Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
-a stack of three natural numbers is defined as follows:
-\begin{code}
-stack123 : Stack 3
-stack123 = [] # 1 # 2 # 3
-\end{code}
-We defined \AC{\_\#\_} to be left-associative, therefore we do not need any parenthesis.
+\AC{[]} \AC{\#} \AN{1} \AC{\#} \AN{2} \AC{\#} \AN{3} is a stack of type \AD{Stack} \AN{3}.
+We define \AC{\_\#\_} to be left-associative, therefore we do not need any parenthesis.
 
 \paragraph{Basic Operations}
 
@@ -153,12 +149,12 @@ add mul : Stack (2 + n) → Stack (1 + n)
 exch : Stack (2 + n) → Stack (2 + n)
 \end{code}
 \begin{code}
-push x s = s # x                --: ℕ → Stack n → Stack (1 + n)
-pop (s # x) = s                 --: Stack (1 + n) → Stack n
-dup (s # x) = s # x # x         --: Stack (1 + n) → Stack (2 + n)
-exch (s # x # y) = s # y # x    --: Stack (2 + n) → Stack (2 + n)
-add (s # x # y) = s # x + y     --: Stack (2 + n) → Stack (1 + n)
-mul (s # x # y) = s # x * y     --: Stack (2 + n) → Stack (1 + n)
+push  x s          = s # x        --: ℕ → Stack n → Stack (1 + n)
+pop   (s # x)      = s            --: Stack (1 + n) → Stack n
+dup   (s # x)      = s # x # x    --: Stack (1 + n) → Stack (2 + n)
+exch  (s # x # y)  = s # y # x    --: Stack (2 + n) → Stack (2 + n)
+add   (s # x # y)  = s # x + y    --: Stack (2 + n) → Stack (1 + n)
+mul   (s # x # y)  = s # x * y    --: Stack (2 + n) → Stack (1 + n)
 \end{code}
 \begin{code}[hide]
 clear : Stack n → Stack 0
@@ -261,12 +257,12 @@ is essential part of Agda, so there is no need to introduce any new
 operators.  In \secref{for-loop} we demonstrate how to add a for-loop to
 the embedding.
 
-Nothing in this shallow embedding prevents us from doing
-operations that are illegal in PostScript, such as duplicating the
+Nothing in this shallow embedding prevents us yet from doing
+operations that are impossible to express in PostScript, such as duplicating the
 whole stack or discarding it altogether. Such properties could be
 enforced by using an (indexed) monad for stack operations, or by
 working in a quantitative type theory such as Idris 2~\cite{Brady21-1}.
-Here we take a more straightforward approach by rejecting these
+In this paper we take a more straightforward approach by rejecting these
 illegal programs in our extractor.
 
 \subsection{Examples}
@@ -362,8 +358,8 @@ module FibNonTerm where
 The only unusual thing here is that we match the structure of the stack
 and the structure of the element simultaneously.
 For now, it is an excercise to the reader to verify that \AF{fib}
-actually implements fibonacci numbers. We will soon give a formal proof of
-this fact (see the definition of \AF{fib-thm} below).
+actually implements fibonacci numbers. Below, we give a formal proof \AF{fib-thm} of
+this fact.
 
 Note that Agda does not see that the \AF{fib} function terminates.
 For now, we add an explicit annotation, but we demonstrate how to deal
@@ -445,12 +441,12 @@ module FibNonTermPf where
   fspec 0 = 1
   fspec 1 = 1
   fspec (suc (suc x)) =
-       fspec (suc x) 
+       fspec (suc x)
     +  fspec x
 \end{code}}
 \and
 \codeblock{\begin{code}
-  ✔ : (s : Stack n) (x : ℕ) 
+  ✔ : (s : Stack n) (x : ℕ)
     → fib (s # x) ≡ s # fspec x
   ✔ _ 0 = refl
   ✔ _ 1 = refl
@@ -476,11 +472,11 @@ The problem with \AF{rep} is that the recursive call happens on the stack
 that became one element bigger, yet the top element decreased by one.
 Therefore, this argument is not strictly smaller, and there are no other
 decreasing arguments, so the termination checker fails to accept this
-definition.  A standard way to fix this is to add an extra argument to
-the function, and define a relation that depends on that argument in a
-such a way that the argument decreases.  For \AF{rep} we add an
-implicit argument \AB{k}, as well as a proof that the top of the stack
-is equal to \AB{k}:
+definition.  To fix this is, we can add an extra argument on which the
+function is structurally decreasing, together with a proof that it is
+related in some way to the values on the stack.  For example, for
+\AF{rep} we add an implicit argument \AB{k}, as well as a proof that
+the top of the stack is equal to \AB{k}:
 
 \begin{code}[hide]
 module RepTerm where
@@ -488,7 +484,7 @@ module RepTerm where
 \end{code}
 \begin{code}
     rep′ : (s : Stack (2 + n)) → @0 (s ! 0 ≡ k) → Stack ((s ! 0) + n)
-    rep′ {k = 0}      s@(_ # _ # zero)   refl  = s ▹ pop ▹ pop
+    rep′ {k = zero}   s@(_ # _ # zero)   refl  = s ▹ pop ▹ pop
     rep′ {k = suc m}  s@(_ # _ # suc m)  refl  =
          let  s′ = s ▹ push 1 ▹ sub ▹ index 1 ▹ exch
          in   subst-stack (+-suc _ _) (rep′ {k = m} s′ refl)
@@ -498,7 +494,7 @@ module RepTerm where
 \end{code}
 As the function is pattern-matching on the top of the stack, and the
 only value of the \AD{\_≡\_} type is \AC{refl}, the argument \AB{k}
-has to be \AN{0} in the first case, and \AC{suc} \AB{m} in the second
+has to be \AN{zero} in the first case, and \AC{suc} \AB{m} in the second
 case.  This ensures that \AF{rep′} is structurally decreasing in \AB{k},
 and the function is accepted by the termination checker.
 
@@ -556,12 +552,13 @@ and the function is accepted by the termination checker.
 Showing termination of the \AF{fib} function fails for the same reason
 as in case of \AF{rep} --- it is unclear whether any argument decreases when
 calling \AF{fib} recursively.  Unfortunately, we cannot use the above trick
-with relation as is, because we make two recursive calls, but we keep results
-on the same stack.  The problem is that after the first recursive call \AF{fib}
+as is.  The problem is that after the first recursive call \AF{fib}
 \AB{s\#x\#x-1} we obtain (conceptually) a new stack.  To call \AF{fib}
 on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
-(to bring \AB{x} at the top).  However, we cannot prove that \AF{fib} only
+(to bring \AB{x} at the top).  However, the termination checker does not see that \AF{fib} only
 modified the top element of the stack and did not touch other elements.
+In the next section we give a different implementation of \AF{fib} that
+works around this problem.
 
 \begin{comment}
 There is a number of ways we can fix this, but for presentatoinal purposes
@@ -631,7 +628,7 @@ for {n} f (st # s # e) = if s ≤ e then loop (e - s) st else st
          loop (suc i)  st = st ▹ loop i ▹ push (suc i + s) ▹ f
 \end{code}
 The initial stack contains 2 loop boundary elements and $n$ other
-elements. It computes the number of iterations \AB{i} and unrolls the
+elements. The implementation of \AF{for} computes the number of iterations \AB{i} and unrolls the
 loop that many times, each time pushing the current value of the loop
 variable to the top of the stack. In the end, it finishes with a stack
 with \AB{n} elements. If the lower boundary is already above the upper
@@ -644,7 +641,7 @@ sum-for s@(_ # x) = s ▹ push 10 ▹ exch ▹ push 0 ▹ exch
                       ▹ for add
 \end{code}
 
-Now we are ready to define our running fibonacci example using \AF{for}:
+Now we are ready to define our \AF{fib} example using \AF{for}:
 \begin{code}
 fib-for : Stack (1 + n) → Stack (1 + n)
 fib-for s@(_ # x) =
@@ -669,7 +666,7 @@ $j$ is not zero.
 For this example we assume that a drawing function and bit-wise `and'
 are already defined in PostScript, so we postulate them in Agda.  This
 means that we only provide a type signature of the functions, but not
-the implementaiton.
+the implementation.
 %
 We implement conditional drawing via the helper function \AF{draw-if}.
 \begin{code}

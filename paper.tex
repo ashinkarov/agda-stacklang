@@ -101,6 +101,8 @@
 \newcommand{\AS}[1]{\AgdaString{#1}}
 \newcommand{\AMA}[1]{\AgdaMacro{#1}}
 
+\newcommand{\hrefu}[2]{\href{#1}{\nolinkurl{#2}}}
+
 \newcommand\codeblock[1]{%
   %{\fbox{\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}}
   {\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}
@@ -242,10 +244,10 @@
 \section{Introduction}\label{sec:introduction}
 
 It is often desirable to guarantee that a
-certain class of errors does not occur in the given program.  These
-error classes may include: dereferencing the null pointer, division
+certain class of errors does not occur in a given program.  These
+error classes may include: dereferencing a null pointer, division
 by zero, or out of bound indexing.  In most
-programming languages, the guarantees that can be checked
+programming languages, the properties that can be checked
 statically are limited.  Nevertheless, moving to a different
 language is not always an option.  For example, these languages may
 come with great tooling, compilers and/or libraries.  In this paper, we
@@ -307,7 +309,7 @@ suddenly becomes deep.
 
 \input{latex/intro-example}
 
-To keep presentation as simple as possible, we have
+To keep presentation as easy as possible to follow, we have
 chosen a simple target language to embed --- we use a subset
 of PostScript~\citep{postscript1999language}, a stack-based
 language used in the corresponding document format.
@@ -405,21 +407,22 @@ Agda embedding.
 
 \section{\label{sec:related}Related Work}
 
-\paragraph{Metaprogramming} There is a large body of
+%\paragraph{Metaprogramming}
+There is a large body of
 work on metaprogramming facilities in various programming
 languages.  \citet{refl-masses} track the origins
-of metaprogramming to Smith's work on reflection in Lisp~\cite{refl-lisp}.
+of metaprogramming to Smith's work on reflection in Lisp \cite{refl-lisp}.
 Some prominent metaprogramming systems include
-MetaOcaml~\cite{metaocaml}, MetaML~\cite{metaml},
-reFlect~\cite{DBLP:journals/jfp/GrundyMO06},
-Template Haskell~\cite{sheard2002template},
-Racket~\cite{plt-tr1}, and various other Lisp/Scheme dialects.
+MetaOcaml \cite{metaocaml}, MetaML \cite{metaml},
+reFlect \cite{DBLP:journals/jfp/GrundyMO06},
+Template Haskell \cite{sheard2002template},
+Racket \cite{plt-tr1}, and various other Lisp/Scheme dialects.
 %
 However, these systems typically do not support dependent
 types, so they are not well suited for our goal of statically
 enforcing correctness of embedded programs.
 
-\paragraph{Embedding}
+%\paragraph{Embedding}
 Defining deep embeddings with static guarantees are a common application
 of dependent types~\cite{10.5555/647849.737066,CHAPMAN200921,
 10.1007/978-3-540-74464-1_7,10.1145/3236785,10.1145/1863495.1863497}.
@@ -431,16 +434,15 @@ of program transformations and optimisations.
 While the fact that this is possible is impressive in theory, the resulting
 encodings are often difficult to use in practice. In this paper
 we instead aim for a more lightweight approach.
-
+%
 \citet{deepshallow} propose to solve this problem with
 a combination of deep and shallow embeddings.  Their idea is to define
 a small deep embedding and leverage type classes in Haskell to define
-the rest of the language on top of that.  It would be interesting to see
-whether such an approach scales to dependently-typed embedded
-languages.
+the rest of the language on top of that.  However, so far this idea has not yet
+been applied to dependently typed embedded languages.
 
 
-\paragraph{Extraction}
+%\paragraph{Extraction}
 The Coq proof assistant is equipped with extraction
 capabilities~\cite{10.1007/978-3-540-69407-6_39,10.1007/3-540-39185-1_12},
 which extracts functional code from Coq proofs (or programs).  The
@@ -464,7 +466,7 @@ communicate with each other. In addition, as they are just Agda programs, they c
 be reflected themselves and their structure can be leveraged.
 
 
-\paragraph{Dependently typed metaprogramming}
+%\paragraph{Dependently typed metaprogramming}
 Several dependently-typed languages are equipped with metaprogramming
 capabilities: Idris \cite{idris-refl}, Lean \cite{lean-refl},
 Coq \cite{metacoq}, and Agda \cite{agda-refl}.  All of these

@@ -92,8 +92,8 @@ Our criteria of acceptable embeddings are as follows:
     \item The function acts on a single stack argument and returns stack.
     The function can accept arbitrary number of additional arguments
     (for verification purposes) as long as these arguments are
-    computationally irrelevant.  In the implementation the type analysis
-    is achieved with \AF{extract-type}.
+    computationally irrelevant.  This is checked by the function
+    \AF{extract-type}.
 
     \item Within the function, the stack is never duplicated, discarded
     or modified by any means but embedded stack operations.  This is
@@ -101,7 +101,7 @@ Our criteria of acceptable embeddings are as follows:
 
     \item Conditionals for stack elements are implemented using
     pattern-matching.  The extractor needs to translate these patterns to
-    conditional statements. This is done in the implementation of
+    conditional statements. This is done by the functions
     \AF{extract-pattern} and \AF{extract-clauses}.
 \end{itemize}
 
@@ -207,7 +207,7 @@ record ExtractM (X : Set) : Set where -- ...
 
 The monad structure is given by the monadic operations \AF{>>=} and
 \AF{return}, which are used in the desugaring of
-\AK{do}-no\-ta\-ti\-on\footnote{\url{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.  The \AF{fail} function aborts the extraction process.
+\AK{do}-no\-ta\-ti\-on\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}{agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.  The \AF{fail} function aborts the extraction process.
 \begin{code}
 return : X → ExtractM X
 _>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y

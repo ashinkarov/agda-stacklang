@@ -216,13 +216,13 @@ context for each clause.  Agda constructs this context internally
 during elaboration of the clauses, but the reflection API did not
 provide access to it. To solve this problem we
 extended the reflection API to provide it for us (see
-\url{https://github.com/agda/agda/pull/4722}).
+\hrefu{https://github.com/agda/agda/pull/4722}{github.com/agda/agda/pull/4722}).
 
 \item The functionality to selectively normalise certain functions
 while leaving others intact was not previously available in Agda. We
 added two new primitives to the reflection API: \AF{dontReduceDefs}
 and \AF{onlyReduceDefs}. (see
-\url{https://github.com/agda/agda/pull/4978}).
+\hrefu{https://github.com/agda/agda/pull/4978}{github.com/agda/agda/pull/4978}).
 
 \end{itemize}
 
