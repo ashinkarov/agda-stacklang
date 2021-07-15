@@ -191,9 +191,9 @@ data Err {a} (A : Set a) : Set a where
 record ExtractState : Set where
   constructor mkExtractState
   field
-    extern : Names   -- Externally defined functions that should not be inlined.
-    todo   : Names   -- Functions to extract.
-    done   : Names   -- Functions that we have processed.
+    noinline : Names   -- Functions that should not be inlined.
+    todo     : Names   -- Functions to extract.
+    done     : Names   -- Functions that we have processed.
 \end{code}
 
 \begin{code}
@@ -316,28 +316,28 @@ liftTC m .runExtractM s = m R.>>= λ x → R.return (s , ok x)
 
 get-normalised-type f = do
   ty   ← liftTC (R.getType f)
-  extern ← ExtractState.extern <$> get-state
-  liftTC (withReconstructed (dontReduceDefs extern (R.normalise ty)))
+  noinline ← ExtractState.noinline <$> get-state
+  liftTC (withReconstructed (dontReduceDefs noinline (R.normalise ty)))
 
 normalise-clause : Names → Clause → TC Clause
-normalise-clause extern (clause tel ps t) =
+normalise-clause noinline (clause tel ps t) =
   let ctx = L.reverse (L.map proj₂ tel) in
-  clause tel ps R.<$> R.inContext ctx (R.dontReduceDefs extern (R.normalise t))
+  clause tel ps R.<$> R.inContext ctx (R.dontReduceDefs noinline (R.normalise t))
 normalise-clause extern c = R.return c
 
 normalise-clauses : Names → List Clause → TC (List Clause)
-normalise-clauses extern [] = R.return []
-normalise-clauses  extern (c ∷ cs) =
-  _∷_ R.<$> normalise-clause extern c R.<*> normalise-clauses extern cs
+normalise-clauses noinline [] = R.return []
+normalise-clauses noinline (c ∷ cs) =
+  _∷_ R.<$> normalise-clause noinline c R.<*> normalise-clauses noinline cs
 
 normalise-def : Names → Definition → TC Definition
-normalise-def extern (function cs) = function R.<$> normalise-clauses extern cs
-normalise-def extern deff = R.return deff
+normalise-def noinline (function cs) = function R.<$> normalise-clauses noinline cs
+normalise-def noinline deff = R.return deff
 
 get-normalised-def f = do
   deff ← liftTC (withReconstructed (R.getDefinition f))
-  extern ← ExtractState.extern <$> get-state
-  liftTC (withReconstructed (normalise-def extern deff))
+  noinline ← ExtractState.noinline <$> get-state
+  liftTC (withReconstructed (normalise-def noinline deff))
 \end{code}
 
 
@@ -353,7 +353,7 @@ these functions in detail.
 extract-term     : Term → Pattern → ExtractM (List PsCmd)
 extract-type     : Type → ExtractM ℕ
 extract-clauses  : Clauses → ℕ → ExtractM (List PsCmd)
-extract-def      : Name → ExtractM PsCmd
+extract-def      : Name → ExtractM (List PsCmd)
 \end{code}
 
 \begin{code}[hide]
@@ -510,10 +510,10 @@ If the check succeeds, we return the list of commands collected in
 \AB{acc}.
 
 \begin{code}
-  go v acc = do 
+  go v acc = do
     b ← stack-ok stackp v
-    if b then (return acc) 
-         else (fail ("stack mismatch: " <> showPattern stackp 
+    if b then (return acc)
+         else (fail ("stack mismatch: " <> showPattern stackp
                      <> " and " <> showTerm v))
 \end{code}
 
@@ -733,14 +733,14 @@ an Agda function, gets its type and definition, and calls
 of PostScript commands.
 
 \begin{code}
--- : Name → ExtractM PsCmd
+-- : Name → ExtractM (List PsCmd)
 extract-def f = do
   ty   ← get-normalised-type f
   function cs ← get-normalised-def f
-    where _ → fail ("not a function: " <> prettyName f)
+    where _ → return []
   i ← extract-type ty
   b ← extract-clauses cs i
-  return (FunDef (prettyName f) b)
+  return [ FunDef (prettyName f) b ]
 \end{code}
 
 \paragraph{Extracting whole programs}
@@ -760,36 +760,19 @@ extract-defs : ExtractM (List PsCmd)
 extract-defs = do
   just f ← get-next-todo
     where nothing → return []
-  x  ← extract-def f
-  xs ← extract-defs
-  return (x ∷ xs)
+  xs ← extract-def f
+  ys ← extract-defs
+  return (xs ++ ys)
 \end{code}
 
 We define a macro \AF{extract} as the main entry point of the
 extractor.  This macro takes as inputs the name \AB{main} of the main
-function, a list \AB{base} of base functions that should not be
-extracted and a list \AB{extern} of externally defined functions that
-should not be extracted or inlined (see the next section for more
+function and a list \AB{noinline} of functions that
+should not be inlined (see the next section for more
 details on inlining). The implementation of the macro (not shown here)
 runs \AF{extract-defs} on the initial state. If extraction succeeds,
 it replaces the call to the macro by the pretty-printed result, and
 otherwise throws an error.
-
-\begin{code}
-macro extract : Name → Names → Names → Term → TC ⊤
-\end{code}
-\begin{code}[hide]
-      extract main base extern hole =
-        let initState =
-              mkExtractState extern [ main ] base in
-        runExtractM extract-defs initState R.>>= λ where
-          (_ , ok p)       → R.quoteTC (print-ps p) R.>>= R.unify hole
-          (_ , error err)  → R.typeError [ R.strErr err ]
-\end{code}
-
-We provide a default list \AF{base} of functions that can be used as
-input to the macro \AF{extract}, which can be further extended to
-tailor extraction to a specific program.
 
 \begin{code}[hide]
 base : List Name
@@ -799,6 +782,23 @@ base = quote add ∷ quote sub ∷ quote mul
      ∷ quote rot3 ∷ quote index ∷ quote subst-stack
      ∷ quote for ∷ []
 \end{code}
+
+\begin{code}
+macro extract : Name → Names → Term → TC ⊤
+\end{code}
+\begin{code}[hide]
+      extract main noinline hole =
+        let initState =
+              mkExtractState noinline [ main ] base in
+        runExtractM extract-defs initState R.>>= λ where
+          (_ , ok p)       → R.quoteTC (print-ps p) R.>>= R.unify hole
+          (_ , error err)  → R.typeError [ R.strErr err ]
+\end{code}
+
+We provide a default list \AF{base} of functions for which to avoid
+inlining, which can be further extended to tailor extraction to a
+specific program.
+
 
 \paragraph{Testing the extractor}
 
@@ -812,10 +812,10 @@ correctly. To improve readability, we use the \AF{lines} function to
 split the output of the extractor into individual lines.
 
 \begin{code}
-test-add-1 : lines (extract add-1 base base) ≡  ( "/add-1 {"
-                                                ∷ "  1 add"
-                                                ∷ "} def"
-                                                ∷ [] )
+test-add-1 : lines (extract add-1 base) ≡  ( "/add-1 {"
+                                         ∷ "  1 add"
+                                         ∷ "} def"
+                                         ∷ [] )
 test-add-1 = refl
 \end{code}
 
@@ -823,7 +823,7 @@ We can test the output of the extractor on the other examples from the
 previous section in a similar fashion.
 
 \begin{code}[hide]
-_ : lines (extract non-zero base base) ≡
+_ : lines (extract non-zero base) ≡
   ( "/non-zero {"
   ∷ "  0 index 0 eq "
   ∷ "  {"
@@ -840,7 +840,7 @@ _ = refl
 dblsuc : Stack (1 + n) → Stack (2 + n)
 dblsuc xs = add-1 (dup xs)
 
-_ : lines (extract dblsuc base (quote add-1 ∷ base)) ≡
+_ : lines (extract dblsuc (quote add-1 ∷ base)) ≡
   ( "/add-1 {"
   ∷ "  1 add"
   ∷ "} def"
@@ -856,14 +856,14 @@ boo (s # x) n = s # (0 + x)
 --boo s n = add (push 1 s)
 --boo s = λ n → add (push 1) s
 
-_ : lines (extract sqsum base base) ≡
+_ : lines (extract sqsum base) ≡
   ( "/sqsum {"
   ∷ "  dup mul exch dup mul exch add"
   ∷ "} def"
   ∷ [] )
 _ = refl
 
-_ : lines (extract RepSimple.rep base base) ≡
+_ : lines (extract RepSimple.rep base) ≡
   ( "/rep {"
   ∷ "  0 index 0 eq "
   ∷ "  {"
@@ -877,7 +877,7 @@ _ : lines (extract RepSimple.rep base base) ≡
   ∷ [] )
 _ = refl
 
-_ : lines (extract FibNonTerm.fib base base) ≡
+_ : lines (extract FibNonTerm.fib base) ≡
   ( "/fib {"
   ∷ "  0 index 0 eq "
   ∷ "  {"
@@ -904,7 +904,7 @@ As another example, we test that the implementation of \AF{fib} is
 extracted correctly:
 
 \begin{code}
-_ : lines (extract Fib3.fib base base) ≡
+_ : lines (extract Fib3.fib base) ≡
   ( "/fib3 {"
   ∷ "  2 index 0 eq "
   ∷ "  {"
@@ -926,7 +926,7 @@ _ = refl
 \end{comment}
 
 \begin{code}[hide]
-_ : lines (extract sum-for base base) ≡
+_ : lines (extract sum-for base) ≡
   ("/sum-for {" ∷
    "  10 exch 0 exch " ∷
    "  1 exch" ∷
@@ -937,7 +937,7 @@ _ : lines (extract sum-for base base) ≡
    "} def" ∷ [])
 _ = refl
 
-_ : lines (extract fib-for base base) ≡
+_ : lines (extract fib-for base) ≡
   ("/fib-for {" ∷
    "  0 exch 1 exch 0 exch " ∷
    "  1 exch" ∷
@@ -950,10 +950,7 @@ _ = refl
 \end{code}
 
 \begin{code}[hide]
-base′ : Names
-base′ = quote Sierpinski.bit-and ∷ quote Sierpinski.draw-circ-xy ∷ base
-
-_ : lines (extract Sierpinski.sierpinski base′ base′) ≡
+_ : lines (extract Sierpinski.sierpinski base) ≡
   ("/draw-if {" ∷
    "  0 index 0 eq " ∷
    "  {" ∷

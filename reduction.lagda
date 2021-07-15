@@ -51,12 +51,12 @@ pow32 s = applyN 5 (λ s → s ▹ dup ▹ mul) s
 
 The function \AF{applyN} is a polymorphic and higher-order function,
 so it falls well outside the fragment of Agda that our extractor can
-deal with. Nevertheless, we can ask the extractor to inline the
-definition of \AF{applyN}, which then makes it possible to extract the
-definition of \AF{pow32}:
+deal with. Nevertheless, the extractor can inline the
+definition of \AF{applyN}: running \AF{extract} \AF{pow32} \AF{base}
+produces the following code:
 
 \begin{code}[hide]
-_ : lines (extract pow32 base base) ≡
+_ : lines (extract pow32 base) ≡
   ( "/pow32 {"
   ∷ "  dup mul dup mul dup mul dup mul dup mul"
   ∷ "} def"
@@ -79,7 +79,7 @@ the extractor knows how to deal with.
 In addition to inlining external functions, the extractor can also
 simplify expressions that involve basic operations such as \AF{push}
 and \AF{pop}. To achieve this, we pass an empty list as the
-third argument to the \AF{extract} macro (which is the list of
+second argument to the \AF{extract} macro (which is the list of
 functions that should not be inlined). For example, it can eliminate
 values that are first pushed and then popped again without being used:
 \begin{mathpar}
@@ -96,7 +96,7 @@ push-pop s = s ▹ push 42 ▹ pop
 \end{mathpar}
 %
 \begin{code}[hide]
-_ : lines (extract push-pop base []) ≡
+_ : lines (extract push-pop []) ≡
   ( "/push-pop {"
   ∷ "  "
   ∷ "} def"
@@ -158,18 +158,24 @@ add-some-numbers : Stack (1 + n) → Stack (1 + n)
 add-some-numbers s = s  ▹ push 1 ▹ add  ▹ push 2 ▹ add
                         ▹ push 4 ▹ add  ▹ push 2 ▹ add
 \end{code}
-\begin{lstlisting}[language=PostScript]
-/add-some-numbers { 9 add } def
-\end{lstlisting}
 
 \begin{code}[hide]
-_ : lines (extract add-some-numbers base []) ≡
+_ : lines (extract add-some-numbers []) ≡
   ( "/add-some-numbers {"
   ∷ "  9 add"
   ∷ "} def"
   ∷ [] )
 _ = refl
 \end{code}
+
+Running \AF{extract} \AF{add-some-numbers} \AF{[]} produces
+the following code:
+
+\begin{lstlisting}[language=PostScript]
+/add-some-numbers {
+  9 add
+} def
+\end{lstlisting}
 
 \begin{code}[hide]
 -- Another example, pretty similar to the previous one.
@@ -181,7 +187,7 @@ add-sub-cancel (s # x) k = cong (s #_) (m+n∸n≡m x k)
 foo : Stack (1 + n) → Stack (1 + n)
 foo s = s ▹ push 5 ▹ add ▹ push 5 ▹ sub
 
-_ : lines (extract foo base []) ≡ "/foo {" ∷ "  " ∷ "} def" ∷ []
+_ : lines (extract foo []) ≡ "/foo {" ∷ "  " ∷ "} def" ∷ []
 _ = refl
 
 -- s ▹ push 0 ▹ add ≡ s
