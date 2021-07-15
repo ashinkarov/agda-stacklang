@@ -334,21 +334,21 @@ while generating the paper.
   reflection.
 
 \item We demonstrate this approach by a concrete example: an embedding
-  of (a subset of the) PostScript language into Agda.
-
-\item We give several examples of PostScript programs written in our
-  embedding, and demonstrate how to statically enforce properties such
-  as the absence of stack underflows, termination, and functional
-  correctness.
+  of (a subset of the) PostScript language into Agda
+  (\secref{embedding}). We give several examples of PostScript
+  programs written in our embedding, and demonstrate how to statically
+  enforce properties such as the absence of stack underflows,
+  termination, and functional correctness.
 
 \item We show how to use reflection in Agda to implement an extractor
-  that translates code written in our embedding to plain PostScript.
+  that translates code written in our embedding to plain PostScript
+  (\secref{extraction}).
 
 \item We show how to our approach provides easy support for partial
   evaluation by making use of normalisation in the host language. This
   allows us to use functions of the host language as macros, as well
   as automatically apply optimizations through the use of rewrite
-  rules.
+  rules (\secref{partial-evaluation}).
 \end{itemize}
 
 \begin{comment}
