@@ -344,7 +344,7 @@ spaces, so \AB{s\#a*a\#b*b} is a valid variable name.
 \paragraph{Pattern Matching}
 The only way to express conditional in the proposed embedding is
 by means of pattern matching.  Consider the implementation of the
-fibonacci example:
+fibonacci function:
 
 \begin{code}[hide]
 module FibNonTerm where

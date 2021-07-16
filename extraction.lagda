@@ -83,7 +83,7 @@ implemented using reflection in Agda.
 \paragraph{Assumptions}
 Our extractor serves a dual purpose.  On the one hand, we traverse Agda
 terms and map basic stack operations such as \AF{dup} and \AF{add} to their
-PostScript counterparts.  On the other hand, extractor determines
+PostScript counterparts.  On the other hand, the extractor determines
 which terms are valid in the presented shallow embedding: these
 are the terms that are accepted by our extractor.
 Our criteria of acceptable embeddings are as follows:
@@ -512,7 +512,7 @@ If the check succeeds, we return the list of commands collected in
   go v acc = do
     b ← stack-ok stackp v
     if b then (return acc)
-         else (fail ("stack mismatch: " 
+         else (fail ("stack mismatch: "
                      <> showPattern stackp <> " and " <>ₜ v))
 \end{code}
 

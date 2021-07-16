@@ -167,7 +167,7 @@ applied to a quoted name (of type \AD{Name}) and a list of
 arguments (of type \AD{List} (\AD{Arg} \AD{Term})).  \AC{vArg} denotes
 a visible argument, while \AC{hArg} is used for hidden arguments.  For
 example, the full reflected form of the expression \AC{suc} \AC{zero}
-is \AC{con} (\AK{quote} \AC{suc}) (\AD{vArg} (\AC{con} (\AK{quote}
+is \AC{con} (\AK{quote} \AC{suc}) (\AC{vArg} (\AC{con} (\AK{quote}
 \AC{zero}) \AC{[]}) \AC{∷} \AC{[]}).
 
 To make reflected syntax more readable, we use \emph{pattern synonyms}\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/pattern-synonyms.html}{agda.readthedocs.io/en/v2.6.2/language/pattern-synonyms.html}}
