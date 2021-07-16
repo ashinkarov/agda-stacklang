@@ -407,7 +407,8 @@ only through the primitive stack operations of PostScript.
 
 The implementation of \AF{extract-term} uses a helper function \AF{go}
 to traverse the reflected Agda syntax, collecting the generated
-PostScript commands in an accumulator.
+PostScript commands in an accumulator.  Note that we defined a number
+of pattern synonims such as \AC{`pop}, \AC{`dup}, \etc{}
 
 \begin{AgdaAlign}
 \begin{code}
@@ -525,7 +526,7 @@ there are a few other cases for dealing with natural number literals
 
 \begin{AgdaSuppressSpace}
 \begin{code}
---: Pattern → Term → ExtractM ⊤
+--: Pattern → Term → ExtractM Bool
 stack-ok p@(p₁ `# p₂) t@(t₁ `# t₂) = do
   ok₁ ← stack-ok p₁ t₁
   ok₂ ← stack-ok p₂ t₂
@@ -944,7 +945,7 @@ _ = refl
 
 _ : lines (extract fib-for base) ≡
   ("/fib-for {" ∷
-   "  0 exch 1 exch 0 exch " ∷
+   "  1 exch 1 exch 1 exch " ∷
    "  1 exch" ∷
    "  {" ∷
    "    pop exch 1 index add" ∷

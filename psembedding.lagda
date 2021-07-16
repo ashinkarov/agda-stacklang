@@ -26,7 +26,7 @@ variable
 \section{PostScript and its embedding in Agda} \label{sec:embedding}
 
 PostScript is a document description language, and besides the usual markup,
-it is possible to define arbitrary computations.  The language is dynamically typed
+it is possible to define arbitrary computations in it.  The language is dynamically typed
 and stack-based.  That is, there is a notion of a global stack that
 is used for both, passing values and storing results.  All the commands
 are argumentless operators, and a program is a chain of such commands.
@@ -78,15 +78,17 @@ body of the function) followed by the \textbf{def} command.  Definitions may be
 used as regular commands, including recursive calls.
 In the body of the function, we check whether the argument
 (the top stack element) is zero, in which case we remove it
-from the stack and put the value one.
+from the stack and put the value one.  The same for the case when the argument
+is one.
 
 \begin{wrapfigure}{r}{.33\columnwidth}
 \epsfbox[17 10 80 65]{1.ps}
 \caption{\label{fig:fib}Draw \AF{fib}.}
 \end{wrapfigure}
-Otherwise, we duplicate the argument,
-subtract one, make a recursive call, and multiply the result with the
-original argument.  Conditional are expressed with two code blocks
+Otherwise, we duplicate the argument, subtract one, make a recursive call.
+Then we exchange the original argument with the result of the recursive call
+by running \textbf{exch}.  We subtract two, make a recursive call and add results
+of two recursive calls.   Conditionals are expressed with two code blocks
 followed by the \textbf{ifelse} command.
 In~\figref{fib} we draw the results of the fib function (code not shown here) using
 a PostScript interpreter.
@@ -113,8 +115,8 @@ meaning.
 
 \subsection{Embedding in Agda}
 
-Our PostScript embedding in Agda consists of a type for stacks and a number of basic operators
-operating on it.
+Our PostScript embedding in Agda consists of a type for stacks and a number
+of basic functions operating on it.
 
 \paragraph{Stack type}
 We define the type of our stack inductively, and we force the type to carry
@@ -133,6 +135,9 @@ Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stac
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
 \AC{[]} \AC{\#} \AN{1} \AC{\#} \AN{2} \AC{\#} \AN{3} is a stack of type \AD{Stack} \AN{3}.
 We define \AC{\_\#\_} to be left-associative, therefore we do not need any parenthesis.
+We annotate the index of \AD{Stack} as computationally irrelevant.
+%by putting `@0' annotation in
+%the definition of the type.
 
 \paragraph{Basic Operations}
 
@@ -227,8 +232,8 @@ length $n$, given a (run-time irrelevant) proof that $m \equiv n$.
 subst-stack : @0 m ≡ n → Stack m → Stack n
 subst-stack refl s = s
 \end{code}
-This operation does not have any run-time behaviour and is erased by
-the extractor.
+This operation does not have any run-time behaviour and will be
+erased by the extractor.
 
 We also define the PostScript command \AF{index} that
 makes it possible to access any element of the stack by providing
@@ -271,7 +276,7 @@ illegal programs in our extractor.
 \subsection{Examples}
 
 Let us consider a typical program in the proposed embedding.
-Per our assumption, we express all the
+We express all the
 operations in terms of base functions defined above.  We
 start with a trivial function that adds one to the top element of
 the stack.
@@ -361,8 +366,8 @@ module FibNonTerm where
 The only unusual thing here is that we match the structure of the stack
 and the structure of the element simultaneously.
 For now, it is an excercise to the reader to verify that \AF{fib}
-actually implements fibonacci numbers. Below, we give a formal proof \AF{fib-thm} of
-this fact.
+actually implements fibonacci numbers. Below, we give a formal proof
+\AF{✔} of this fact.
 
 Note that Agda does not see that the \AF{fib} function terminates.
 For now, we add an explicit annotation, but we demonstrate how to deal
@@ -411,7 +416,7 @@ This results in the stack \AF{rep} \AB{s\#x\#x\#m} of size $(m + (1 +
 n))$ while the expected size is $(1 + (m + n))$. It is not obvious to
 Agda that these two sized are equal, so we apply
 \AF{subst-stack} with the proof \AD{+-suc} from the standard library
-to convert between these two sizes.
+to convert between the sizes.
 
 \paragraph{Extrinsic Verification}
 The nature of dependently-typed systems makes it possible not only to
@@ -429,10 +434,6 @@ So the proof is simply the \AC{refl}exivity constructor.
 
 On the other hand, proving that \AF{fib} matches a simpler specification that
 we call \AF{fspec} requires a bit more work.
-This is an inductive proof where we consider two base cases, and the
-step case.  In the latter we refer to the theorem with a structurally
-smaller arguments, and after rewriting such cases, the statement becomes
-obvious.
 \begin{code}[hide]
 module FibNonTermPf where
   open FibNonTerm
@@ -458,6 +459,10 @@ module FibNonTermPf where
     ✔ (s # fspec (suc x)) x = refl
 \end{code}}
 \end{mathpar}
+This is an inductive proof where we consider two base cases, and the
+step case.  In the latter we refer to the theorem with a structurally
+smaller arguments, and after rewriting such cases, the statement becomes
+obvious.
 
 
 \paragraph{Proving Termination}
@@ -466,14 +471,14 @@ non-trivial properties related to the length of the stack, and verify that
 a function evaluates to the same results as some other function.  One remaining
 problem is that for some functions, Agda cannot automatically prove termination.
 However, as long as a programmer is happy to take responsibility by putting
-the annotation, we can immediately proceed to extraction.
+the annotation, we can immediately proceed to the next sections.
 
 We demonstrate a way to prove termination of the functions from previous
 sections.
 %
 The problem with \AF{rep} is that the recursive call happens on the stack
 that became one element bigger, yet the top element decreased by one.
-Therefore, this argument is not strictly smaller, and there are no other
+Therefore, this argument is not strictly structurally smaller, and there are no other
 decreasing arguments, so the termination checker fails to accept this
 definition.  To fix this is, we can add an extra argument on which the
 function is structurally decreasing, together with a proof that it is
@@ -560,8 +565,9 @@ as is.  The problem is that after the first recursive call \AF{fib}
 on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
 (to bring \AB{x} at the top).  However, the termination checker does not see that \AF{fib} only
 modified the top element of the stack and did not touch other elements.
-In the next section we give a different implementation of \AF{fib} that
-works around this problem.
+While we can prove termination of the current version of \AF{fib}, due to
+space limitations, we provide an alternative (terminating) implementation
+of \AF{fib} in \secref{for-loop}.
 
 \begin{comment}
 There is a number of ways we can fix this, but for presentatoinal purposes
@@ -607,7 +613,7 @@ trvial to implement it in terms of \AF{roll} and \AF{exch}.
 
 \subsection{For Loop} \label{sec:for-loop}
 The final part of our embedding is the for-loop construct.  Not only
-this is often found in practical PostScript documents, it also helps
+this is often found in real PostScript documents, it also helps
 to avoid the problem with proving termination.  The difficulty with
 encoding the for-loop behaviour lies in its potential ability to
 arbitrarily modify stack at every iteration.  While there is no
@@ -648,12 +654,13 @@ Now we are ready to define our \AF{fib} example using \AF{for}:
 \begin{code}
 fib-for : Stack (1 + n) → Stack (1 + n)
 fib-for s@(_ # x) =
-  s ▹ push 0 ▹ exch ▹ push 1 ▹ exch ▹ push 0 ▹ exch
+  s ▹ push 1 ▹ exch ▹ push 1 ▹ exch ▹ push 1 ▹ exch
     ▹ for (λ s → s ▹ pop ▹ exch ▹ index 1 ▹ add) ▹ pop
 \end{code}
 Our initial stack contains the function argument $x$ at the top. We modify
-the stack by inserting $0$ and $1$ (inital fibonacci seeds) and $0$ (the lower bound for the for loop) before $x$.  In the function body, we remove the iteration value,
+the stack by inserting $1$ and $1$ (inital fibonacci seeds) and $1$ (the lower bound for the for loop) before $x$.  In the function body, we remove the iteration value,
 and modify $\langle a , b\rangle$ into $\langle b , a+b\rangle$.
+Note that termination of \AF{fib-for} is derived automatically.
 %Note that we start from 0 1 and not 1 1, as the loop goes from 0 to $x$
 %inclusively.  Alternatively, we could have conditionalise on $x$.
 \begin{code}[hide]
@@ -696,4 +703,5 @@ that no extra arguments are left on the stack.
 In the implementation of algorithms like this one, it is easy to forget to
 remove or copy an element within for-loops when implementing such
 a code manually.  The strict stack size discipline that we have in Agda
-is helpful here, as it eliminates this entire class of errors.
+helps to avoid these errors.
+
