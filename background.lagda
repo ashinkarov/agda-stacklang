@@ -221,7 +221,7 @@ and its reflected syntax \AF{`foo} (right):
 
 The reflected syntax of \AF{foo} (of type \AD{Definition}) is represented by the constructor \AC{function} applied to a list
 of clauses. Each clause (of type \AD{Clause}) itself is represented by the constructor
-\AC{clause} applied to three arguments: i) the telescope, i.e.~a
+\AC{clause} applied to three arguments: i) the telescope, \ie{} a
 list of the names of variables and their types; ii) the list of
  patterns (of type \AD{List} (\AD{Arg} \AD{Pattern})); and iii) the body of the clause (of type \AD{Term}).
 %

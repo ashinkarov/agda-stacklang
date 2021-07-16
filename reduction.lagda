@@ -104,8 +104,8 @@ _ : lines (extract push-pop []) ≡
 _ = refl
 \end{code}
 
-From the way we defined \AF{for}, we can automatically unroll loops for
-free, using the same technique.
+From the way we defined \AF{for}, we can automatically unroll loops with
+constant boundaries for free, using the same technique.
 %
 %
 \paragraph{Domain-specific optimizations as rewrite rules}

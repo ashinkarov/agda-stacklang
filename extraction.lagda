@@ -408,7 +408,7 @@ only through the primitive stack operations of PostScript.
 The implementation of \AF{extract-term} uses a helper function \AF{go}
 to traverse the reflected Agda syntax, collecting the generated
 PostScript commands in an accumulator.  Note that we defined a number
-of pattern synonims such as \AC{`pop}, \AC{`dup}, \etc{}
+of pattern synonyms such as \AC{`pop}, \AC{`dup}, \etc{}
 
 \begin{AgdaAlign}
 \begin{code}

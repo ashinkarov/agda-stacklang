@@ -85,7 +85,7 @@ is one.
 \epsfbox[17 10 80 65]{1.ps}
 \caption{\label{fig:fib}Draw \AF{fib}.}
 \end{wrapfigure}
-Otherwise, we duplicate the argument, subtract one, make a recursive call.
+Otherwise, we duplicate the argument, subtract one, and make a recursive call.
 Then we exchange the original argument with the result of the recursive call
 by running \textbf{exch}.  We subtract two, make a recursive call and add results
 of two recursive calls.   Conditionals are expressed with two code blocks
@@ -349,7 +349,7 @@ spaces, so \AB{s\#a*a\#b*b} is a valid variable name.
 \paragraph{Pattern Matching}
 The only way to express conditional in the proposed embedding is
 by means of pattern matching.  Consider the implementation of the
-fibonacci function:
+Fibonacci function:
 
 \begin{code}[hide]
 module FibNonTerm where
@@ -365,8 +365,8 @@ module FibNonTerm where
 \end{code}
 The only unusual thing here is that we match the structure of the stack
 and the structure of the element simultaneously.
-For now, it is an excercise to the reader to verify that \AF{fib}
-actually implements fibonacci numbers. Below, we give a formal proof
+For now, it is an exercise to the reader to verify that \AF{fib}
+actually implements Fibonacci numbers. Below, we give a formal proof
 \AF{✔} of this fact.
 
 Note that Agda does not see that the \AF{fib} function terminates.
@@ -566,11 +566,11 @@ on $x - 2$ we first apply \AF{exch} to the result of the first recursive call
 (to bring \AB{x} at the top).  However, the termination checker does not see that \AF{fib} only
 modified the top element of the stack and did not touch other elements.
 While we can prove termination of the current version of \AF{fib}, due to
-space limitations, we provide an alternative (terminating) implementation
+space limitations, we provide an alternative (provably terminating) implementation
 of \AF{fib} in \secref{for-loop}.
 
 \begin{comment}
-There is a number of ways we can fix this, but for presentatoinal purposes
+There is a number of ways we can fix this, but for presentational purposes
 we show the shortest one.  We adjust the structure of our recursion,
 so that we deal with three elements per iteration, implementing a
 scheme $\langle 1+x, a, b \rangle \leadsto \langle x, b, a+b \rangle$.
@@ -608,7 +608,7 @@ Then \AF{fib3} is doing the iteration; \AF{fib} sets the inital seed
 and cleans-up the stack.  We defined a new stack operation
 called \AF{rot3} that reverses the top three elements of the stack.
 Note that this is not a built-in operation of PostScript, but it is
-trvial to implement it in terms of \AF{roll} and \AF{exch}.
+trivial to implement it in terms of \AF{roll} and \AF{exch}.
 \end{comment}
 
 \subsection{For Loop} \label{sec:for-loop}
