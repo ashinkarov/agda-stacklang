@@ -237,7 +237,7 @@ get-normalised-type : Name → ExtractM Type
 get-normalised-def  : Name → ExtractM Definition
 \end{code}
 
-The implementation of these operations is standard so we omit it here.
+%The implementation of these operations is standard so we omit it here.
 
 \begin{code}[hide]
 open ExtractM

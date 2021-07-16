@@ -18,23 +18,27 @@ reflection API.  For a more in-depth introduction to Agda refer
 to the Agda user manual~\cite{agda}.
 
 \paragraph{Datatypes} Datatypes are defined as follows:
-\begin{code}
+\begin{mathpar}
+\codeblock{\begin{code}
   data ℕ : Set where
     zero  : ℕ
     suc   : ℕ → ℕ
-\end{code}
+\end{code}}
+\and
+\codeblock{\begin{code}
+  data Vec (A : Set) : ℕ → Set where
+    []   : Vec A zero
+    _∷_  : {n : ℕ} → A → Vec A n
+         → Vec A (suc n)
+\end{code}}
+\end{mathpar}
 The type \AD{ℕ} of unary natural numbers is a datatype with two constructors:
 \AC{zero} and \AC{suc}.  The type \AD{ℕ} itself belongs to
 the type \AF{Set}, Agda's builtin type of all (small) types.
 
 Agda allows the declaration of indexed
 datatypes\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/data-types.html}{agda.readthedocs.io/en/v2.6.2/language/data-types.html}},
-such as the type \AD{Vec} which is indexed over values of type \AD{ℕ}:
-\begin{code}
-  data Vec (A : Set) : ℕ → Set where
-    []   : Vec A zero
-    _∷_  : {n : ℕ} → A → Vec A n → Vec A (suc n)
-\end{code}
+such as the type \AD{Vec} which is indexed over values of type \AD{ℕ}.
 The type \AD{Vec} \AB{A} \AB{n} represents vectors holding \AB{n}
 values of type \AB{A}.  It has two constructors: \AC{[]} for the empty
 vector of length \AC{zero} and \AC{\_∷\_} for adding an element to a

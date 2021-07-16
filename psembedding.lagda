@@ -416,7 +416,7 @@ This results in the stack \AF{rep} \AB{s\#x\#x\#m} of size $(m + (1 +
 n))$ while the expected size is $(1 + (m + n))$. It is not obvious to
 Agda that these two sized are equal, so we apply
 \AF{subst-stack} with the proof \AD{+-suc} from the standard library
-to convert between the sizes.
+to convert between these two sizes.
 
 \paragraph{Extrinsic Verification}
 The nature of dependently-typed systems makes it possible not only to
