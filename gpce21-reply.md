@@ -1,3 +1,22 @@
+We thank the reviewers for their honest and insightful comments. We
+wish to start by reiterating two important points.
+
+First, we admit that the example DSL in the paper is perhaps not yet
+the most practical to use. However, our main goal was never to show
+the usability of this particular embedded language, but rather the
+feasibility of defining the embedding, its correctness properties, and
+the extractor for it side-by-side in the same host language.
+
+Secondly, our choice to start from a shallow embedding instead of a
+deep one is not just because of convenience in the definition of the
+embedding. To be practical, the deep embedding requires us to
+implement a separate typechecker, while with a shallow embedding we
+can simply reuse the typechecker of the host language.
+
+In the remainder of this response, we go into more detail on each of
+the individual comments.
+
+
 > GPCE 2021 Paper #18 Reviews and Comments
 > ===========================================================================
 > Paper #18 Extracting The Power of Dependent Types
@@ -41,11 +60,11 @@
 You are right, these are interesting questions indeed.  However, we never claimed
 that it would be possible to literally port existing programs into the proposed
 system.  Our main point is to demonstrate that you can add arbitrary properties
-to the programs that you will execute in the chosen language.  As we are pursuing
+to the programs that you will execute in the chosen language.  As we are pursuing an
 intrinsic approach, where proofs are parts of programs, it would be hard to imagine
 that there exists an approach that makes it possible to automatically port any
-existing programs into the proposed system with strong invariants.  The invariants
-would have to come from somewhere.
+existing programs into the proposed system with strong invariants, since in general
+there is no way to infer the invariants automatically.
 
 > * I think the main downside of the approach is that there is no enforcement
 >   that the embedded programs actually correspond to Postscript programs. They
@@ -53,19 +72,21 @@ would have to come from somewhere.
 >   not explicitly supported, the code extraction will simply fail.
 
 The proposed technology allows one to programmatically add such an enforcement
-before attempting the extraction.  We have chosen not to do so, as the proposed
-"macros" may be useful.  However, this does not seem to be the limitation of the
-proposed system.
+before attempting the extraction.  We have chosen not to do so, as this allows for
+functions in the host language to be used as macros (as demonstrated in section 5
+of the paper).  However, this is not a limitation of the proposed system.
 
 > * It is claimed that the embedding approach works for dependently typed host
 >   languages such as Coq, Agda, Idris or Lean. Do all these languages support
 >   reflection in such a way to make your code extraction approach work?
 
-According to the documentation available to us that seem to be the case.
-There is surely a chance that some feature of the reflection machinery does not
-work as advertised.  However, that is likely to be a technical problem/bug rather
+All of these systems support reflection in a similar way to Agda, and nothing in
+the documentation of these systems suggests our approach would not work.
+Since we have not actually tried it, there is surely a chance that some feature
+of the reflection machinery does not work as advertised.
+However, that is likely to be a technical problem/bug rather
 than a fundamental restriction.  Fundamentally, there is nothing special about
-Agda that can't be recreated in the systems you mention.
+Agda that can't be recreated in the systems mentioned.
 
 > Some more detailed comments:
 > 
@@ -76,10 +97,10 @@ Agda that can't be recreated in the systems you mention.
 > language programs. I would have appreciated if the authors would have at least
 > given deep embedding a chance and not reject it possibly prematurely.
 
-You are right, for a particular postscript example, this might be an overkill.
+You are right, for the particular example in the paper, our approach might be overkill.
 However, our main point was to demonstrate the technology, and postscript is
-a simple enough example where you can create precedents for using dependent types,
-i.e. rep function.  We are not claiming that embedding postscript this way is
+a simple enough example where dependent types are needed to express properties,
+e.g. the `rep` function.  We are not claiming that embedding postscript this way is
 very practical, but we did demonstrate our technology.  We tried explaining this
 in paragraph at line 136, which we are happy to improve.  As for deep embedding,
 we simply ran out of space.  There is plenty of things we could say, but we chose
@@ -88,7 +109,7 @@ the main focus to be around the extraction technology.
 > l. 321, what is the T in TC_T? Is that an application of the TC type
 > constructor to the unit type? Then why is it typeset as an index?
 
-This is not TC_T, this TC \top, where \top is the unicode symbol.  This is not
+This is not TC_T, but TC \top, where \top is the unicode symbol.  This is not
 an index, we can make a footnote in the text to clarify this.
 
 > l. 500 couldn't you modify |> in such a way that one could write in a fully
@@ -111,7 +132,7 @@ We have chosen to minimise the number of additional constructions and be explici
 The problem with porting PS programs "as is" is that you'd have to convince Agda
 that these programs adhere to invariants that you have put in the types.  It is
 easy to specify all the PS commands as they are, but it might be quite inconvenient
-to work with them.  Potentially one could end-up wrapping a lot of commands with
+to work with them.  Potentially one could end up wrapping a lot of commands with
 "subst"s that propagate stack invariants.  By making the structure of the code
 more explicit, Agda can deduce many things automatically.
 
@@ -184,10 +205,11 @@ terms, therefore there needs to be some DSL embedding.  You can vary the level
 of the information that your embedded terms carry.  This difference is often referred as
 extrinsic vs intrinsic verification.  The former separates the property you want
 to observe from the embedding, the latter interleaves them.  The literature does
-not give a clear answer of choosing one over the other.  Extrinsic approach often
-comes with large proofs that are difficult to work with.  In the intrinsic approach
-the proves are interleaved with the code, but in systems like Agda you get a lot
-of automation and much simpler proofs.  This paper advocates intrinsic approach.
+not give a clear answer of choosing one over the other. The extrinsic approach often
+comes with large proofs that are difficult to work with, especially for properties that
+require dependent types to express.  In the intrinsic approach
+the proofs are interleaved with the code, but in systems like Agda you get a lot
+of automation and much simpler proofs.  This paper advocates the intrinsic approach.
 
 
 > This can be easily done by the "standard" approach (deep embedding) of
@@ -195,7 +217,7 @@ of automation and much simpler proofs.  This paper advocates intrinsic approach.
 > implementing an intepreter).
 
 Unfortunately, this is not that easy at all.  Defining a syntax and semantics
-of the PostScript is surely easy.  However, the PostScript is untyped.  Therefore,
+of the PostScript is surely easy.  However, PostScript is untyped.  Therefore,
 in order to state (interesting!) properties about PS programs, you would have to
 implement a custom typechecker that can handle dependent types.  This work says
 that we can instead share the typecheker of the host language.
@@ -203,7 +225,7 @@ that we can instead share the typecheker of the host language.
 > I know that this can lead to some overhead, but is very clear and supports
 > modular change of semantics.
 
-This is not really about overheads, implementing custom dependent typechecker
+This is about more than just overhead, implementing a custom dependent typechecker
 is far from trivial.  Also, as there is no way to infer an arbitrary property
 about the embedded program, some manual proofs will be required anyway.
 
@@ -300,9 +322,10 @@ We are happy to clarify this in the revised text.
 > writing any programs is quite non-trivial.  I wonder if there is a more
 > systematic treatment for the implementation part.
 
-In https://arxiv.org/abs/2105.10819 we build a small framework and implement
-three DSLs in it.  While the core part would always have to deal with the
-reflected syntax, a number of mechanisms can be generalised.
+In https://arxiv.org/abs/2105.10819 we build a small framework for
+defining embedded DSLs and extractors and implement three DSLs in it.
+While the core part would always have to deal with the reflected
+syntax, this shows that a number of mechanisms can be generalised.
 
 > -　Oleg Kiselyov and others' ‘tagless-final’ embedding might be relevant to
 > this work, since it can be used to shallowly embed object languages, but can
@@ -315,7 +338,7 @@ reflected syntax, a number of mechanisms can be generalised.
 As we mention in lines 98-99, tagless embeddings for dependently-typed DSLs are
 perfectly possible, unfortunately it is very impractical to write programs in them.
 For example "Outrageous but meaningful coincidences: dependent type-safe syntax
-and evaluation" by Conor McBride shows it very clearly why this is the case.
+and evaluation" by Conor McBride shows very clearly why this is the case.
 As for Coq modules, it is unclear how this could solve the problem of the mix
 of specification and encoding that happens in the dependently-typed tagless
 embeddings.
@@ -323,7 +346,7 @@ embeddings.
 >       Carette, Kiselov, Shan, “Finally tagless, partially evaluated: Tagless
 >       staged interpreters for simpler typed languages”, JFP Vol. 19, 2009.
 
-We are happy to reference this paper as well.\
+We are happy to reference this paper as well.
 
 > 
 > Minor points
