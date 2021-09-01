@@ -169,15 +169,56 @@ the text.
 > types/expressions of the host language into DSL types/expressions, seems very
 > counterintuitive.  Do you mean that to write a correct PostScript program one
 > should start from developing its equivalent Agda function and then get the
-> extracted program? I think that programmers would like to write DSL programs
+> extracted program?
+
+Yes.  However, this is not an arbitrary Agda function, but rather an Agda function
+that is composed of the postscript operators embedded in Agda.
+
+> I think that programmers would like to write DSL programs
 > and to have tools (in a more powerful language) to prove they to be correct.
+
+What does "correct" mean here?  DSLs like PostScript do not have a type system, so
+the first problem is to *be able* to specify the properties about programs.
+That is what dependent types are good for.  However, the types must annotate some
+terms, therefore there needs to be some DSL embedding.  You can vary the level
+of the information that your embedded terms carry.  This difference is often referred as
+extrinsic vs intrinsic verification.  The former separates the property you want
+to observe from the embedding, the latter interleaves them.  The literature does
+not give a clear answer of choosing one over the other.  Extrinsic approach often
+comes with large proofs that are difficult to work with.  In the intrinsic approach
+the proves are interleaved with the code, but in systems like Agda you get a lot
+of automation and much simpler proofs.  This paper advocates intrinsic approach.
+
+
 > This can be easily done by the "standard" approach (deep embedding) of
 > implementing in Agda bot the DSL syntax and semantics (in practice,
-> implementing an intepreter). I know that this can lead to some overhead, but is
-> very clear and supports modular change of semantics.
-> 
+> implementing an intepreter).
+
+Unfortunately, this is not that easy at all.  Defining a syntax and semantics
+of the PostScript is surely easy.  However, the PostScript is untyped.  Therefore,
+in order to state (interesting!) properties about PS programs, you would have to
+implement a custom typechecker that can handle dependent types.  This work says
+that we can instead share the typecheker of the host language.
+
+> I know that this can lead to some overhead, but is very clear and supports
+> modular change of semantics.
+
+This is not really about overheads, implementing custom dependent typechecker
+is far from trivial.  Also, as there is no way to infer an arbitrary property
+about the embedded program, some manual proofs will be required anyway.
+
+I am not sure what is meant by "modular change of semantics".  In the current
+embedding you can also change the semantics of the base operators.  It will have
+consequences on the programs.  But the same consequences would happen in the
+extrinsic case.
+
 > Another important criticism is that I do not see how to lift your example to a
 > general construction, working for a given class of DSLs. 
+
+As we say in conclusions, line 1290, in this paper https://arxiv.org/abs/2105.10819
+it is demonstrated how a similar approach can be lifted into a small framework
+where we give examples for three non-trivial DSLs.
+
 > 
 > Small comments and typos
 > 
@@ -249,14 +290,20 @@ the text.
 > places in the paper mentions ‘verification’ of (object) programs, which is (in
 > my view) misleading, hence I encourage the author to clarify what is meant by
 > ‘correct’/’verify’ in an early part of this paper (e.g. in Section 1).
-> 
+
+We are happy to clarify this in the revised text.
+
 > -　The paper reveals the fact that, even using this paper’s brilliant idea, it
 > is rather difficult to fully carry out the embedding and program extraction for
 > non-trivial object language. One needs to understand how Agda’s quoted
 > terms/types are structured (which is quite puzzling for non-experts) etc., so
 > writing any programs is quite non-trivial.  I wonder if there is a more
 > systematic treatment for the implementation part.
-> 
+
+In https://arxiv.org/abs/2105.10819 we build a small framework and implement
+three DSLs in it.  While the core part would always have to deal with the
+reflected syntax, a number of mechanisms can be generalised.
+
 > -　Oleg Kiselyov and others' ‘tagless-final’ embedding might be relevant to
 > this work, since it can be used to shallowly embed object languages, but can
 > work as a compiler by choosing an appropriate interpretation.  Although they
@@ -264,8 +311,20 @@ the text.
 > easily imagine its application to, say, Coq, since it has modules. I am not
 > sure if such a combination works in practice, but you had better mention it in
 > the revised version of this paper.
+
+As we mention in lines 98-99, tagless embeddings for dependently-typed DSLs are
+perfectly possible, unfortunately it is very impractical to write programs in them.
+For example "Outrageous but meaningful coincidences: dependent type-safe syntax
+and evaluation" by Conor McBride shows it very clearly why this is the case.
+As for Coq modules, it is unclear how this could solve the problem of the mix
+of specification and encoding that happens in the dependently-typed tagless
+embeddings.
+
 >       Carette, Kiselov, Shan, “Finally tagless, partially evaluated: Tagless
 >       staged interpreters for simpler typed languages”, JFP Vol. 19, 2009.
+
+We are happy to reference this paper as well.\
+
 > 
 > Minor points
 > -	Ocaml and MetaOcaml should be OCaml and MetaOCaml (capital ‘C’).
