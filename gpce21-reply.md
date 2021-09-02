@@ -245,7 +245,7 @@ extrinsic case.
 > Another important criticism is that I do not see how to lift your example to a
 > general construction, working for a given class of DSLs. 
 
-As we say in conclusions, line 1290, in this paper https://arxiv.org/abs/2105.10819
+As we say in conclusions, line 1296, in this paper https://arxiv.org/abs/2105.10819
 it is demonstrated how a similar approach can be lifted into a small framework
 where we give examples for three non-trivial DSLs.
 
