@@ -1,7 +1,7 @@
 We thank the reviewers for their honest and insightful comments. We
 wish to start by reiterating two important points.
 
-First, we admit that the example DSL in the paper is perhaps not yet
+First, the example DSL in the paper is perhaps not
 the most practical to use. However, our main goal was never to show
 the usability of this particular embedded language, but rather the
 feasibility of defining the embedding, its correctness properties, and
@@ -9,9 +9,10 @@ the extractor for it side-by-side in the same host language.
 
 Secondly, our choice to start from a shallow embedding instead of a
 deep one is not just because of convenience in the definition of the
-embedding. To be practical, the deep embedding requires us to
-implement a separate typechecker, while with a shallow embedding we
-can simply reuse the typechecker of the host language.
+embedding. If we want to capture non-trivial properties of programs,
+the deep embedding requires us to implement a separate typechecker
+(for dependent types!), while with a shallow embedding we can simply
+reuse the typechecker of the host language.
 
 In the remainder of this response, we go into more detail on each of
 the individual comments.
@@ -192,16 +193,22 @@ the text.
 > should start from developing its equivalent Agda function and then get the
 > extracted program?
 
-Yes.  However, this is not an arbitrary Agda function, but rather an Agda function
-that is composed of the postscript operators embedded in Agda.
+Yes, it is mentioned in line 128, item (i).  However, this is not an arbitrary Agda
+function, but rather an Agda function that is composed of the basic postscript operators
+embedded in Agda.  Notice that our entire PS embedding is ~20 lines of Agda.
+Typically, one would have to define a type that would capture most of the invariants
+(Stack in our case) and a small number of base operators.  As most of the basic
+concepts such as variables, functions, conditionals are present in Agda, we do
+not add those separately to the embedding.  We are reusing them.
 
 > I think that programmers would like to write DSL programs
 > and to have tools (in a more powerful language) to prove they to be correct.
 
-What does "correct" mean here?  DSLs like PostScript do not have a type system, so
-the first problem is to *be able* to specify the properties about programs.
-That is what dependent types are good for.  However, the types must annotate some
-terms, therefore there needs to be some DSL embedding.  You can vary the level
+The key question is: what does "correct" mean here?  DSLs like PostScript do
+not have a type system, so the first problem is to *be able* to specify the
+properties about programs.  That is what dependent types are good for, and that
+what this entire paper is all about.  As types must annotate some
+terms, there needs to be some DSL embedding.  You can vary the level
 of the information that your embedded terms carry.  This difference is often referred as
 extrinsic vs intrinsic verification.  The former separates the property you want
 to observe from the embedding, the latter interleaves them.  The literature does
@@ -227,7 +234,8 @@ that we can instead share the typecheker of the host language.
 
 This is about more than just overhead, implementing a custom dependent typechecker
 is far from trivial.  Also, as there is no way to infer an arbitrary property
-about the embedded program, some manual proofs will be required anyway.
+about the embedded program (because the type may depend on arbitrary computations),
+some manual proofs will be required anyway.
 
 I am not sure what is meant by "modular change of semantics".  In the current
 embedding you can also change the semantics of the base operators.  It will have
@@ -247,12 +255,19 @@ where we give examples for three non-trivial DSLs.
 > 166 to our -> our
 > 
 > 234 you are using here 1,2, but you only introduced zero and suc until now
+
+You are right, we should mention that this refers to the same thing.
 > 
 > 321 Functions of return type -> Functions of type   (I guess?)
 > 
 > 336 for both, -> for both
 > 
 > 458 what is T here?
+
+This is a function that turns a boolean values to types (false becomes the
+empty type, and true becomes the unit type).  We are happy to mention this in
+the text.
+
 > 
 > 
 > 
@@ -337,7 +352,7 @@ syntax, this shows that a number of mechanisms can be generalised.
 
 As we mention in lines 98-99, tagless embeddings for dependently-typed DSLs are
 perfectly possible, unfortunately it is very impractical to write programs in them.
-For example "Outrageous but meaningful coincidences: dependent type-safe syntax
+For example, "Outrageous but meaningful coincidences: dependent type-safe syntax
 and evaluation" by Conor McBride shows very clearly why this is the case.
 As for Coq modules, it is unclear how this could solve the problem of the mix
 of specification and encoding that happens in the dependently-typed tagless
@@ -351,6 +366,12 @@ We are happy to reference this paper as well.
 > 
 > Minor points
 > -	Ocaml and MetaOcaml should be OCaml and MetaOCaml (capital ‘C’).
+
+Yes, you are correct, we will fix that.
+
 > -	Line 531: what is the check mark after ‘proof’?
+
+This is the name of the proof (function), we will make this explicit in the text.
+
 > -	Line 540: ‘a dependency’ -> ‘dependency’
 > 
