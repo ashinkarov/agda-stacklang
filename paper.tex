@@ -1,4 +1,4 @@
-\documentclass[sigplan,screen,anonymous,review]{acmart}
+\documentclass[sigplan,screen]{acmart}
 
 %% Bibliography style
 \bibliographystyle{ACM-Reference-Format}
@@ -185,61 +185,6 @@
   the PostScript language in Agda, and illustrating it with several short examples.
   Thus we use the power of reflection to bring the benefits of dependent types to languages
   that had to go without them so far.
-
-
-%  Dependently-typed host languages empower users to verify a wide
-%  range of properties of embedded languages and
-%  programs written in them.  Designers of such embedded languages
-%  are faced with a difficult choice between using a shallow or a deep
-%  embedding.  The former is easier to use because the entire
-%  infrastructure of the host langauge is immediately
-%  available. Meanwhile, the latter gives full access to the
-%  structure of embedded programs, but is difficult to use in practice,
-%  especially when the embedded language is itself dependently typed.
-%
-%  The main insight presented in this paper is that the choice between
-%  shallow and deep embedding can be eliminated by working in a host
-%  language with reflection capabilities: we start from a shallow
-%  embedding that can use all libraries and tools of the host language,
-%  and later use reflection to expose the deep structure of the
-%  embedded programs.
-%  %
-%  Concretely, we apply this technique to embed three
-%  programming languages --- Kaleidoscope, SaC, and (a subset of) APL ---
-%  into the dependently typed theorem prover Agda, using dependent
-%  types to statically enforce several properties of interest.  We then
-%  use Agda's reflection capabilities to extract the embedded programs
-%  back into the original language, so that the existing toolchain can
-%  be leveraged.
-%  %
-%  In this process, statically verified properties of the host language
-%  are mapped onto runtime checks in the target language, allowing
-%  extracted programs to interact safely with existing code.
-%  %
-%  Finally, we demonstrate the feasibility of our approach with the
-%  implementation and extraction of a convolutional neural network in
-%  our embedding of APL.\@
-
-%  Most practical programming languages of today prioriterise
-%  performance and usability over safety.  As a result, many
-%  useful correctness invariants cannot be expressed in the given
-%  language, typically due to weakness of the chosen type system.
-%  We are looking for non-invasive verification: how to
-%  guarantee a property about the given program without any modifications
-%  to the language toolchain.
-%
-%  We study an approach when a programming language is shallowly
-%  embedded into a theorem prover, and dependent types are used
-%  to encode the properties of interest.   Bringing the embedded
-%  langauge and the properties back into the original language
-%  is the main focus of this work.  We propose a generic extraction
-%  mechanism that we implement in Agda that is based on the concept
-%  of reflection.  Making it possible to translate any shallowly
-%  embedded language in the target backend without the necessity
-%  to modify the theorem prover.
-%  We demonstrate our framework in action by encoding three languages:
-%  Kaleidoskope, SaC and a subset of APL, culminating in the implementation
-%  and extraction of a convolutional neural network.
 \end{abstract}
 \maketitle
 
@@ -415,7 +360,7 @@ work on metaprogramming facilities in various programming
 languages.  \citet{refl-masses} track the origins
 of metaprogramming to Smith's work on reflection in Lisp \cite{refl-lisp}.
 Some prominent metaprogramming systems include
-MetaOcaml \cite{metaocaml}, Me\-taML \cite{metaml},
+MetaOCaml \cite{metaocaml}, Me\-taML \cite{metaml},
 reFlect \cite{DBLP:journals/jfp/GrundyMO06},
 Template Haskell \cite{sheard2002template},
 Racket \cite{plt-tr1}, and various other Lisp/Scheme dialects.
@@ -448,7 +393,7 @@ been applied to dependently typed embedded languages.
 The Coq proof assistant is equipped with extraction
 capabilities~\cite{10.1007/978-3-540-69407-6_39,10.1007/3-540-39185-1_12},
 which extracts functional code from Coq proofs (or programs).  The
-default target language is Ocaml, but a few other options were added
+default target language is OCaml, but a few other options were added
 recently.
 %
 Likewise, Agda itself has a mechanism for defining custom backends, of

@@ -28,7 +28,7 @@ variable
 PostScript is a document description language, and besides the usual markup,
 it is possible to define arbitrary computations in it.  The language is dynamically typed
 and stack-based.  That is, there is a notion of a global stack that
-is used for both, passing values and storing results.  All the commands
+is used for passing values and storing results.  All the commands
 are argumentless operators, and a program is a chain of such commands.
 For example, consider a function that computes $a^2 + b^2$, where $a$ and
 $b$ are the top two stack values.
@@ -255,6 +255,7 @@ _!_ (s # x) (suc k) {sk<m}  = (s ! k) {sk<m}
 index : (k : ℕ) → @0{T (k < m)} → Stack m → Stack (1 + m)
 index k {k<m} s = s # (s ! k) {k<m}
 \end{code}
+\todo[inline]{Explain \AD{T} in the above example}
 The proof that \AB{k} is less than \AB{m} is marked as implicit,
 which means that Agda will automatically fill in the proof
 (at least in the simple cases that we have in this paper).
@@ -367,7 +368,7 @@ The only unusual thing here is that we match the structure of the stack
 and the structure of the element simultaneously.
 For now, it is an exercise to the reader to verify that \AF{fib}
 actually implements Fibonacci numbers. Below, we give a formal proof
-\AF{✔} of this fact.
+of this fact named \AF{✔}.
 
 Note that Agda does not see that the \AF{fib} function terminates.
 For now, we add an explicit annotation, but we demonstrate how to deal
@@ -379,9 +380,9 @@ with this in \secref{for-loop}.
 So far, all the specifications in the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it quickly becomes clear
-that even simple programs in stack languages may expose a dependency
+that even simple programs in stack languages may expose dependency
 between the input stack and the size of the output stack.  Those cases
-require dependent types to express statically.  An example
+require dependent types to express statically\todo{This word reads weirdly}.  An example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
