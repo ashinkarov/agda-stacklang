@@ -224,3 +224,17 @@ Minor points
 -	Line 531: what is the check mark after ‘proof’?
 -	Line 540: ‘a dependency’ -> ‘dependency’
 
+
+Final decision
+==============
+
+Thank you for the detailed response.  The reviewers are happy to accept your
+submission, with the following changes for the camera-ready version:
+
+* giving a more detailed comparison with the deep-embedding approach
+* explaining how one can enforce that the embedded programs actually correspond to Postscript
+  programs
+* mentioning the 'correctness' issue of the extractor early in the paper
+* explaining whether (and how) this approach can be applied to other dependently-typed 
+  languages such as Coq, Idris etc.
+* explaining how to lift your example to a general construction, working for other DSLs
