@@ -618,7 +618,34 @@ this is often found in real PostScript documents, it also helps
 to avoid the problem with proving termination.  The difficulty with
 encoding the for-loop behaviour lies in its potential ability to
 arbitrarily modify stack at every iteration.  While there is no
-technical problem to encode such a behaviour in Agda, it would be
+technical problem to encode\footnote{
+If one wants to mimic the actual for-loop found in PostScript, the type
+of the operation would be:
+\begin{code}[hide]
+module PsForLoop where
+  postulate
+    #it : {f : ∀ {m} → Stack (1 + m) → ℕ}
+        → (∀ {m} (s : Stack (1 + m)) → Stack (f s))
+        → ∀ {m} (s : Stack (3 + m)) → ℕ
+\end{code}
+\begin{code}
+    for : {f : ∀{m} → Stack (1 + m) → ℕ} 
+        → (loop : ∀ {m} (s : Stack (1 + m)) → Stack (f s))
+        → ∀ {m} (s : Stack (3 + m)) → Stack (#it loop s)
+\end{code}
+As it can be seen, we have to explain how the size of the stack
+changes at each iteration, which is given by a \emph{dependent}
+function \AF{f}, as the size of the stack can depend
+on the values found on the stack.  Unfortunately,
+the size of the stack after the final iteration cannot
+be computed upfront.  We would have to run the loop to get
+the size --- this is done by \AF{\#it}.  However, working with such
+encoding is very inconvenient.  Even simplest analysis of determining
+whether for-loop returns a non-empty stack turns into painful proving
+exercise.  Therefore, it is more practical to introduce well-behaved
+variants of the for-loop where we lift size invariants up.  All such
+variants can be seen as special cases of the generic for loop.
+} such a behaviour in Agda, it would be
 quite inconvenient to work with.  Every time one needs to ensure
 that a stack returned by a for-loop contains enough elements, a
 potentially complex proof has to be given.  We make our life

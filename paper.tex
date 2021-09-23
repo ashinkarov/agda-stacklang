@@ -196,7 +196,7 @@
   give a shallow embedding of the language (or a subset) into a
   dependently typed language.  Secondly, we write a program
   in that embedding, and we use dependent types to guarantee
-  correctness properties of interest.  Thirdly, we
+  correctness properties of interest within the embedding.  Thirdly, we
   extract a program written in the original language,
   so that it can be used by the existing compilers and tools.
 
@@ -242,8 +242,8 @@ dependently typed host language, which allows us to re-use the typechecker
 of the host language to typecheck the embedded language.
 
 There are two common approaches to language embedding: deep and shallow.
-A shallow embedding defines a language in terms of functions and operators
-of the host language.  Programs in a shallowly-embedded language are programs
+Shallow embeddings define languages in terms of functions and operators
+of the host language.  Programs in shallowly-embedded languages are programs
 in the host language, so they are immediately run\-nable; types of the embedded
 language are types of the host language, so the host typechecker is used for
 checking embedded programs.  The downside of this approach is that we cannot
@@ -254,13 +254,16 @@ of the embedded language.  This requires us to define a type system
 and evaluator for the language separately.  With a dependently typed
 host language the AST and the type system can be defined as a single
 data structure, which is typically referred to as a tagless
-interpreter~\citep{PasalicTS02}.  The benefit of deep embedding is that we get
+interpreter~\citep{PasalicTS02,Tagless}.  The benefit of deep embedding is that we get
 full access to the syntactic structure of the embedded program.  This
 approach works beautifully for embedded languages with simple type
 systems. However, for embedded languages with dependent types, tagless
 interpreters are technically
 possible~\citep{CHAPMAN200921,10.1007/978-3-540-74464-1_7}, but are
-extremely challenging to define and use in practice.
+\emph{extremely challenging} to define and use in practice.
+For further details on why exactly this is challenging refer to the
+first section of~\cite{10.1145/1863495.1863497} where the problem is meticulously
+explained by~\citeauthor{10.1145/1863495.1863497}.
 
 The key insight of this paper lies in proposing a novel approach that
 combines the best parts of shallow and deep embeddings through the use
@@ -289,13 +292,24 @@ language used in the corresponding document format.
 written in our embedding and the PostScript code produced by
 our extractor.
 %
-While the embedding may look simplistic, this simplicity
-allows us to focus on the essence of the proposed approach and avoid unrelated
-technical details.  We ensure that many verification patterns found in bigger
-languages are covered, showing that the proposed approach scales.
+This paper is not concerned with practical application of
+the presented embedding, so we consciously keep the setup as minimal as
+possible.  It is powerful enough to motivate the use of dependent
+types \emph{within} the embedding, and to demonstrate the essence
+of the proposed approach.  While we include many patterns found
+in bigger languages, we leave the scaling of the approach out
+of the scope of the paper referring the interested reader
+to~\cite{DBLP:journals/corr/abs-2105-10819} where we work
+out such generalisations.
 
-This entire paper is a literate Agda script: all code is typechecked
-while generating the paper.
+% While the embedding may look simplistic, this simplicity
+% allows us to focus on the essence of the proposed approach and avoid unrelated
+% technical details.  We ensure that many verification patterns found in bigger
+% languages are covered, showing that the proposed approach scales.
+
+This entire paper is a literate Agda script\footnote{The sources of the paper
+can be found at \url{https://github.com/ashinkarov/agda-stacklang}.}:
+all code is typechecked while generating the paper.
 
 
 \paragraph{Contributions.}
@@ -323,6 +337,19 @@ while generating the paper.
   as automatically apply optimizations through the use of rewrite
   rules (\secref{partial-evaluation}).
 \end{itemize}
+
+When dealing with embedded languages that are extracted and run
+by external compilers, we are fundamentally bound to have potential
+semantic mismatches.  Semantics of the embedding may differ from the
+semantics implemented by external compilers, as well as translation from the
+embedding back to external compilers can be faulty.  Real world compilers
+face exactly the same problem: how do you know that generated assembly
+code is doing what you think it is doing?  Addressing such problems
+requires fully verified toolchains that run on a verified hardware.
+Enormous research efforts are spent towards addressing this
+problem, but this is beyond the scope of this paper.
+
+
 
 \begin{comment}
 The rest of this paper is structured as follows. \secref{background}
@@ -441,9 +468,10 @@ be reflected themselves and their structure can be leveraged.
 Several dependently-typed languages are equipped with metaprogramming
 capabilities: Idris \cite{idris-refl}, Lean \cite{lean-refl},
 Coq \cite{metacoq}, and Agda \cite{agda-refl}.  All of these
-implement a similar API as described in this paper.  This is
-reassuring, as it means our proposed approach is immediately portable
-into many other contexts.
+implement a similar API as described in this paper.  This
+means that our proposed approach is immediately implementable
+in these languages --- one simply needs to adjust extraction
+to the particular API.
 \citet{10.1145/3371071} introduce the Turnstile+ framework for
 building dependently typed embedded DSLs and
 shares the ideas advocated in this paper, suggesting that
