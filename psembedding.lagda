@@ -255,8 +255,10 @@ _!_ (s # x) (suc k) {sk<m}  = (s ! k) {sk<m}
 index : (k : ℕ) → @0{T (k < m)} → Stack m → Stack (1 + m)
 index k {k<m} s = s # (s ! k) {k<m}
 \end{code}
-\todo[inline]{Explain \AD{T} in the above example}
-The proof that \AB{k} is less than \AB{m} is marked as implicit,
+The proof\footnote{
+We use the function \AF{T} (found in standard library) to convert
+a boolean predicate \AD{\_<\_} into a unit type (in case the predicate holds)
+or an empty type otherwise.} that \AB{k} is less than \AB{m} is marked as implicit,
 which means that Agda will automatically fill in the proof
 (at least in the simple cases that we have in this paper).
 

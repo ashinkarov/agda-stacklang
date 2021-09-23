@@ -33,7 +33,8 @@ to the Agda user manual~\cite{agda}.
 \end{code}}
 \end{mathpar}
 The type \AD{ℕ} of unary natural numbers is a datatype with two constructors:
-\AC{zero} and \AC{suc}.  The type \AD{ℕ} itself belongs to
+\AC{zero} and \AC{suc}.  The usual notation 0, 1, 2, \dots is implicitly mapped
+into \AD{ℕ}.  The type \AD{ℕ} itself belongs to
 the type \AF{Set}, Agda's builtin type of all (small) types.
 
 Agda allows the declaration of indexed
