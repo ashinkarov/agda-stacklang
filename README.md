@@ -35,6 +35,15 @@ Example
 As an example, consider the following embedded program, its extracted
 version and postscript-generated picture.
 
+
+<table>
+<tr>
+    <td>Embedding </td>
+    <td>Extraction</td>
+</tr>
+<tr>
+  <td>
+    
 ```agda
 sierpinski : Stack (1 + n) → Stack n
 sierpinski s  =
@@ -44,7 +53,10 @@ sierpinski s  =
                                   ▹ bit-and ▹ draw-if ▹ pop)
                    ▹ pop)
     ▹ pop
-```
+```    
+    
+  </td>
+  <td>
 
 ```ps
 /sierpinski {
@@ -57,6 +69,12 @@ sierpinski s  =
   } for pop
 } def
 ```
+    
+  </td>
+  </tr>
+</table>
+
+
 
 <img src="sierp.png" />
 
