@@ -93,8 +93,7 @@ followed by the \textbf{ifelse} command.
 In~\figref{fib} we draw the results of the fib function (code not shown here) using
 a PostScript interpreter.
 
-\paragraph{Assumptions}
-
+\paragraph{Assumptions}%
 We consider a small subset of PostScript that is sufficient to express
 functions on natural numbers.  While PostScript has many more commands,
 types, and drawing primitives, this subset is sufficient to demonstrate
@@ -118,10 +117,11 @@ meaning.
 Our PostScript embedding in Agda consists of a type for stacks and a number
 of basic functions operating on it.
 
-\paragraph{Stack type}
+\paragraph{Stack type}%
 We define the type of our stack inductively, and we force the type to carry
 its length. Per our assumptions, the stack can only store elements of type
 \AD{ℕ}.
+
 \begin{code}
 data Stack : @0 ℕ → Set where
   []   : Stack 0
@@ -131,6 +131,7 @@ data Stack : @0 ℕ → Set where
 infixl 5 _#_
 variable s : Stack n
 \end{code}
+
 Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
 \AC{[]} \AC{\#} \AN{1} \AC{\#} \AN{2} \AC{\#} \AN{3} is a stack of type \AD{Stack} \AN{3}.
@@ -139,13 +140,12 @@ We annotate the index of \AD{Stack} as computationally irrelevant.
 %by putting `@0' annotation in
 %the definition of the type.
 
-\paragraph{Basic Operations}
-
 \begin{code}[hide]
 tl : Stack (1 + n) → Stack n
 tl (xs # _) = xs
 \end{code}
 
+\paragraph{Basic Operations}%
 The basic stack operations are defined as functions from \AD{Stack} to \AD{Stack}.
 The type index makes it possible to capture precisely the effect of each
 operation.
@@ -284,10 +284,14 @@ operations in terms of base functions defined above.  We
 start with a trivial function that adds one to the top element of
 the stack.
 
+%\begin{wrapfigure}{l}{.6\columnwidth}
+%\vspace{-14pt}
 \begin{code}
 add-1 : Stack (1 + n) → Stack (1 + n)
 add-1 s = add (push 1 s)
 \end{code}
+%\vspace{-24pt}
+%\end{wrapfigure}
 
 We are required to define the type, which in turn forces us to specify
 how does the operation change the length of the stack.  Stack
@@ -349,7 +353,7 @@ sqsum s#a#b = let s#a#b*b    = s#a#b      ▹ dup   ▹ mul
 Agda identifiers are chains of almost arbitrary symbols with no
 spaces, so \AB{s\#a*a\#b*b} is a valid variable name.
 
-\paragraph{Pattern Matching}
+\paragraph{Pattern Matching}%
 The only way to express conditional in the proposed embedding is
 by means of pattern matching.  Consider the implementation of the
 Fibonacci function:
@@ -378,7 +382,7 @@ with this in \secref{for-loop}.
 
 
 
-\paragraph{Dependent Stack Length}
+\paragraph{Dependent Stack Length}%
 So far, all the specifications in the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it quickly becomes clear
@@ -421,54 +425,9 @@ Agda that these two sized are equal, so we apply
 \AF{subst-stack} with the proof \AD{+-suc} from the standard library
 to convert between these two sizes.
 
-\paragraph{Extrinsic Verification}
-The nature of dependently-typed systems makes it possible not only to
-specify functions with intrinsic constraints, such as length of the stack,
-but also to prove some properties about existing functions as theorems.  For
-example, we prove that \AF{sqsum} actually implements the sum of squares:
-\begin{code}
-sqsum-thm : sqsum (s # k # l) ≡ s # k * k + l * l
-sqsum-thm = refl
-\end{code}
-The theorem says that for any $s$, $k$ and $l$, application of \AD{sqsum} to
-$s$ appended with $k$ and $l$ equals to $s$ appended with $k^2 + l^2$.  Luckily,
-from the way we constructed the basic operations, this fact is obvious to Agda.
-So the proof is simply the \AC{refl}exivity constructor.
-
-On the other hand, proving that \AF{fib} matches a simpler specification that
-we call \AF{fspec} requires a bit more work.
-\begin{code}[hide]
-module FibNonTermPf where
-  open FibNonTerm
-\end{code}
-\begin{mathpar}
-\codeblock{\begin{code}
-  fspec : ℕ
-        → ℕ
-  fspec 0 = 1
-  fspec 1 = 1
-  fspec (suc (suc x)) =
-       fspec (suc x)
-    +  fspec x
-\end{code}}
-\and
-\codeblock{\begin{code}
-  ✔ : (s : Stack n) (x : ℕ)
-    → fib (s # x) ≡ s # fspec x
-  ✔ _ 0 = refl
-  ✔ _ 1 = refl
-  ✔ s (suc (suc x)) rewrite
-    ✔ (s # suc (suc x)) (suc x) |
-    ✔ (s # fspec (suc x)) x = refl
-\end{code}}
-\end{mathpar}
-This is an inductive proof where we consider two base cases, and the
-step case.  In the latter we refer to the theorem with a structurally
-smaller arguments, and after rewriting such cases, the statement becomes
-obvious.
 
 
-\paragraph{Proving Termination}
+\paragraph{Proving Termination}%
 At this point, we have seen how to write programs in the embedding, express
 non-trivial properties related to the length of the stack, and verify that
 a function evaluates to the same results as some other function.  One remaining
@@ -613,6 +572,54 @@ called \AF{rot3} that reverses the top three elements of the stack.
 Note that this is not a built-in operation of PostScript, but it is
 trivial to implement it in terms of \AF{roll} and \AF{exch}.
 \end{comment}
+
+
+\paragraph{Extrinsic Verification}%
+The nature of dependently-typed systems makes it possible not only to
+specify functions with intrinsic constraints, such as length of the stack,
+but also to prove some properties about existing functions as theorems.  For
+example, we prove that \AF{sqsum} actually implements the sum of squares:
+\begin{code}
+sqsum-thm : sqsum (s # k # l) ≡ s # k * k + l * l
+sqsum-thm = refl
+\end{code}
+The theorem says that for any $s$, $k$ and $l$, application of \AD{sqsum} to
+$s$ appended with $k$ and $l$ equals to $s$ appended with $k^2 + l^2$.  Luckily,
+from the way we constructed the basic operations, this fact is obvious to Agda.
+So the proof is simply the \AC{refl}exivity constructor.
+
+On the other hand, proving that \AF{fib} matches a simpler specification that
+we call \AF{fspec} requires a bit more work.
+\begin{code}[hide]
+module FibNonTermPf where
+  open FibNonTerm
+\end{code}
+\begin{mathpar}
+\codeblock{\begin{code}
+  fspec : ℕ
+        → ℕ
+  fspec 0 = 1
+  fspec 1 = 1
+  fspec (suc (suc x)) =
+       fspec (suc x)
+    +  fspec x
+\end{code}}
+\and
+\codeblock{\begin{code}
+  ✔ : (s : Stack n) (x : ℕ)
+    → fib (s # x) ≡ s # fspec x
+  ✔ _ 0 = refl
+  ✔ _ 1 = refl
+  ✔ s (suc (suc x)) rewrite
+    ✔ (s # suc (suc x)) (suc x) |
+    ✔ (s # fspec (suc x)) x = refl
+\end{code}}
+\end{mathpar}
+This is an inductive proof where we consider two base cases, and the
+step case.  In the latter we refer to the theorem with a structurally
+smaller arguments, and after rewriting such cases, the statement becomes
+obvious.
+
 
 \subsection{For Loop} \label{sec:for-loop}
 The final part of our embedding is the for-loop construct.  Not only

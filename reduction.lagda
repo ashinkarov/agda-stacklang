@@ -32,8 +32,7 @@ couple of examples of how this is useful. We also demonstrate how
 to extend Agda's evaluator with domain-specific optimizations through
 the use of \emph{rewrite rules}.
 
-\paragraph{Using Agda functions as macros}
-
+\paragraph{Using Agda functions as macros}%
 By reducing Agda expressions prior to extraction, we may use any host
 language constructs that are not present in the embedding, as long as
 they are eliminated prior to extraction. For example, we can
@@ -74,8 +73,7 @@ In essence, this allows us to write macros using arbitrary Agda
 functions, as long as the end result falls within the fragment that
 the extractor knows how to deal with.
 
-\paragraph{Partial evaluation of primitive operators}
-
+\paragraph{Partial evaluation of primitive operators}%
 In addition to inlining external functions, the extractor can also
 simplify expressions that involve basic operations such as \AF{push}
 and \AF{pop}. To achieve this, we pass an empty list as the
@@ -106,10 +104,9 @@ _ = refl
 
 From the way we defined \AF{for}, we can automatically unroll loops with
 constant boundaries for free, using the same technique.
-%
-%
-\paragraph{Domain-specific optimizations as rewrite rules}
 
+
+\paragraph{Domain-specific optimizations as rewrite rules}%
 A common way to define domain-specific compiler optimizations is through
 the specification of \emph{rewrite rules} that rewrite terms matching
 a given pattern to an equivalent form that is either more efficient
@@ -174,12 +171,15 @@ _ = refl
 Running \AMA{extract} \AF{add-some-numbers} \AF{[]} produces
 the following code:
 
+\begin{wrapfigure}{l}{.32\columnwidth}
+\vspace{-14pt}
 \begin{lstlisting}[language=PostScript]
-/add-some-numbers { 
-    9 add
+/add-some-numbers 
+{ 9 add
 } def
 \end{lstlisting}
-
+\vspace{-20pt}
+\end{wrapfigure}
 \begin{code}[hide]
 -- Another example, pretty similar to the previous one.
 add-sub-cancel : (s : Stack (1 + n)) (k : ℕ) → s ▹ push k ▹ add ▹ push k ▹ sub ≡ s
@@ -199,8 +199,7 @@ _ = refl
 
 \end{code}
 
-\paragraph{Implementation details}
-
+\paragraph{Implementation details}%
 Partial evaluation in Agda is achieved by normalising, \ie{}~by
 applying reduction rules to (sub)terms until they turn into values or
 neutral terms.

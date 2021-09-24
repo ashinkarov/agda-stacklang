@@ -73,7 +73,7 @@ cases.  In the definition of \AF{tail}, we omit the case for the
 empty vector \AC{[]} because it takes an input of type \AD{Vec} \AB{A}
 (\AC{suc}\ \AB{n}), so it can never be called with input \AC{[]}.
 
-\paragraph{Termination checking}
+\paragraph{Termination checking}%
 To ensure totality, Agda checks that all recursive functions
 are terminating on all
 inputs.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}{agda.readthedocs.io/en/v2.6.2/language/termination-checking.html}}
@@ -87,7 +87,7 @@ For example, in the recursive call to \AF{\_+\_},
 the first argument is \AB{x}, which is structurally smaller than
 \AC{suc} \AB{x}.
 
-\paragraph{Proving equalities}
+\paragraph{Proving equalities}%
 Agda is both a programming lan\-gua\-ge and a proof assistant.
 One common example of this is the equality type \AF{\_≡\_} that
 expresses equality of its two arguments. It has a single constructor
@@ -102,10 +102,15 @@ module Proving where
 Using the equality type, we can state and prove equations between Agda
 expressions, which are then checked by the typechecker. For example,
 we can prove that \AN{1} \AF{+} \AN{1} = \AN{2}:
+
+\begin{wrapfigure}{l}{.33\columnwidth}
+\vspace{-14pt}
 \begin{code}
   simple-proof : 1 + 1 ≡ 2
   simple-proof = refl
 \end{code}
+\vspace{-24pt}
+\end{wrapfigure}
 Although in this paper we only prove a few basic properties, the fact
 that it is possible to prove arbitrary (functional) properties of
 programs embedded in Agda is an important benefit of our approach.
@@ -125,8 +130,7 @@ programs embedded in Agda is an important benefit of our approach.
 %
 %   Nat, Fin, Vec, Eq, with, patterns, hidden values, mixfix}
 
-\paragraph{Run-time irrelevance}
-
+\paragraph{Run-time irrelevance}%
 Function types can be marked as \emph{run-time
 irrelevant}~\cite{McBride16} with the @0
 annotation.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/runtime-irrelevance.html}{agda.readthedocs.io/en/v2.6.2/language/runtime-irrelevance.html}}
@@ -134,10 +138,16 @@ Agda guarantees that run-time irrelevant arguments are not
 needed for evaluation of the program, they can thus safely be erased
 by the compiler. For example, we can mark the \AB{n} argument to the
 \AF{tail} function as run-time irrelevant:
+
+\begin{wrapfigure}{l}{.5\columnwidth}
+\vspace{-14pt}
 \begin{code}
-  tail' : {@0 n : ℕ} → Vec ℕ (suc n) → Vec ℕ n
+  tail' : {@0 n : ℕ} → Vec ℕ (suc n) 
+                     → Vec ℕ n
   tail' (x ∷ xs) = xs
 \end{code}
+\vspace{-24pt}
+\end{wrapfigure}
 In our embedding of PostScript into Agda, we make use of this
 annotation to ensure that the functions we define do not
 computationally depend on arguments that are not on the stack and those arguments can
@@ -151,11 +161,15 @@ variables}.\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/gener
 For example, declaring \AB{n} as a variable allows us to avoid having
 to bind \AB{n} explicitly in the type of \AF{tail}:
 
+\begin{wrapfigure}{l}{.5\columnwidth}
+\vspace{-14pt}
 \begin{code}
   variable @0 n : ℕ
   tail'' : Vec ℕ (suc n) → Vec ℕ n
   tail'' (x ∷ xs) = xs
 \end{code}
+\vspace{-24pt}
+\end{wrapfigure}
 
 \paragraph{Reflected syntax}
 
@@ -214,8 +228,7 @@ and its reflected syntax \AF{`foo} (right):
     ( clause [] (vArg `zero ∷ []) `zero
     ∷ clause (("x" , vArg `ℕ) ∷ [])
              (vArg (`suc (var 0)) ∷ [])
-             (var 0 [] `+ var 0 [])
-    ∷ [] )
+             (var 0 [] `+ var 0 []) ∷ [] )
 \end{code}}
 \end{mathpar}
 
@@ -238,8 +251,7 @@ de Bruijn index \AN{0} refers to the variable \AB{x}.  Note that we write
 into their corresponding \AC{zero}/\AC{suc} representations.
 
 
-\paragraph{The \AD{TC} monad}
-
+\paragraph{The \AD{TC} monad}%
 Following the approach of \emph{elaborator reflection} introduced by
 Idris~\cite{idris-refl}, Agda exposes many parts of the elaborator to
 the reflection API, including reduction and normalisation of

@@ -132,6 +132,7 @@
 \newcommand{\defref}[1]{\myref{Definition}{def:#1}}
 \newcommand{\eqnref}[1]{\hyperref[#1]{(\ref{#1})}}
 
+\renewcommand{\paragraph}[1]{\textbf{\textit{#1. }}}
 
 
 \begin{document}
@@ -275,7 +276,7 @@ tools and libraries. Essentially, we demonstrate that a
 shallow embedding in a host language with reflection
 suddenly becomes deep.
 
-\input{latex/intro-example}
+% \input{latex/intro-example}
 
 To keep presentation as easy as possible to follow, we have
 chosen a simple target language to embed --- we use a subset
@@ -301,12 +302,12 @@ out such generalisations.
 % technical details.  We ensure that many verification patterns found in bigger
 % languages are covered, showing that the proposed approach scales.
 
-This entire paper is a literate Agda script\footnote{The sources of the paper
+This entire paper is a \emph{literate Agda} script\footnote{The sources of the paper
 can be found at \url{https://github.com/ashinkarov/agda-stacklang}.}:
 all code is typechecked while generating the paper.
 
+Our \textit{\textbf{main contributions}} are as follows:
 
-\paragraph{Contributions.}
 \begin{itemize}
 
 \item We propose a novel approach that can be used to statically
@@ -332,7 +333,7 @@ all code is typechecked while generating the paper.
   rules (\secref{partial-evaluation}).
 \end{itemize}
 
-When dealing with embedded languages that are extracted and run
+When dealing with embedded languages that are ex\-trac\-ted and run
 by external compilers, we are fundamentally bound to have potential
 semantic mismatches.  Semantics of the embedding may differ from the
 semantics implemented by external compilers, and the translation from the

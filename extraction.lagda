@@ -80,7 +80,7 @@ prettyName f = maybe id "" (L.last (S.wordsBy ('.' C.≟_) (showName f)))
 In this section, we show a concrete example of an extractor
 implemented using reflection in Agda.
 
-\paragraph{Assumptions}
+\paragraph{Assumptions}%
 Our extractor serves a dual purpose.  On the one hand, we traverse Agda
 terms and map basic stack operations such as \AF{dup} and \AF{add} to their
 PostScript counterparts.  On the other hand, the extractor determines
@@ -204,35 +204,35 @@ record ExtractM (X : Set) : Set where -- ...
                 → TC (ExtractState × Err X)
 \end{code}
 
-The monad structure is given by the monadic operations \AF{>>=} and
-\AF{return}, which are used in the desugaring of
-\AK{do}-no\-ta\-ti\-on\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}{agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.  The \AF{fail} function aborts the extraction process.
-\begin{code}
+% The monad structure is given by the monadic operations \AF{>>=} and
+% \AF{return}, which are used in the desugaring of
+% \AK{do}-no\-ta\-ti\-on\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}{agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.  The \AF{fail} function aborts the extraction process.
+\begin{code}[hide]
 return : X → ExtractM X
 _>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y
 fail : String → ExtractM X
 \end{code}
 
-The monad also provides two operations for managing the queue of
-functions to be extracted: \AF{mark-todo} adds a function name to the
-queue, while \AF{get-next-todo} returns the next function that has been
-marked for extraction and has not been processed already, as long as
-there are any left.  Since each individual function is only returned
-at most once by \AF{get-next-todo}, we avoid extracting the same
-function twice.
+% The monad also provides two operations for managing the queue of
+% functions to be extracted: \AF{mark-todo} adds a function name to the
+% queue, while \AF{get-next-todo} returns the next function that has been
+% marked for extraction and has not been processed already, as long as
+% there are any left.  Since each individual function is only returned
+% at most once by \AF{get-next-todo}, we avoid extracting the same
+% function twice.
 
-\begin{code}
+\begin{code}[hide]
 mark-todo      : Name → ExtractM ⊤
 get-next-todo  : ExtractM (Maybe Name)
 \end{code}
 
-Finally, the monad provides two operations for getting normalized types
-and definitions of a given symbol. This can be used for example for
-inlining Agda functions that cannot be translated to PostScript, or
-for applying domain-specific optimizations through the use of rewrite
-rules (\secref{partial-evaluation}).
+% Finally, the monad provides two operations for getting normalized types
+% and definitions of a given symbol. This can be used for example for
+% inlining Agda functions that cannot be translated to PostScript, or
+% for applying domain-specific optimizations through the use of rewrite
+% rules (\secref{partial-evaluation}).
 
-\begin{code}
+\begin{code}[hide]
 get-normalised-type : Name → ExtractM Type
 get-normalised-def  : Name → ExtractM Definition
 \end{code}
@@ -396,7 +396,7 @@ stack-ok : Pattern → Term → ExtractM Bool
 \end{code}
 
 
-\paragraph{Extracting terms}
+\paragraph{Extracting terms}%
 \AF{extract-term} traverses an Agda term and translates it to a
 list of PostScript commands. For example, $\AF{add}\ (\AF{push}\ \AN{1}\ \AB{s})$ is translated to $\AC{Push}\ \AN{1}\ \AC{∷}\
 \AF{Add}\ \AC{∷}\ \AC{[]}$. It takes an additional argument of type
@@ -518,8 +518,7 @@ If the check succeeds, we return the list of commands collected in
 \end{code}
 
 The function \AF{stack-ok} ensures that when we use the stack (of type
-\AD{Term}), it is identical to the stack that we got as the input to
-the function (of type \AD{Pattern}). In addition to the cases below,
+\AD{Term}), it is identical to the stack that we got as the input tothe function (of type \AD{Pattern}). In addition to the cases below,
 there are a few other cases for dealing with natural number literals
 \AN{0}, \AN{1}, \AN{2}, \ldots (not shown here).
 
@@ -565,7 +564,7 @@ stack-ok p t = return false
 \end{AgdaSuppressSpace}
 
 
-\paragraph{Extracting types}
+\paragraph{Extracting types}%
 The function \AF{extract-type} defines
 what Agda types are valid for functions in the embedding.
 It traverses an Agda type and checks that it
@@ -587,8 +586,7 @@ extract-type x = go x false 0
 \end{code}
 
 
-\paragraph{Extracting clauses}
-
+\paragraph{Extracting clauses}%
 \AF{extract-clauses} takes as input the cla\-uses of a function
 definition and the position of the principal argument (as computed by
 \AF{extract-type}) and translates the clauses to a list of PostScript
@@ -726,12 +724,14 @@ instead insert an assertion failure in case of an absurd clause is
 reached.
 \end{comment}
 
-\paragraph{Extracting definitions}
+\paragraph{Extracting definitions}%
 Finally, \AF{extract-def} takes as input a (reflected) name of
 an Agda function, gets its type and definition, and calls
 \AF{extract-type} and \AF{extract-clauses} to translate it to a list
 of PostScript commands.
 
+\begin{wrapfigure}{l}{.6\columnwidth}
+\vspace{-16pt}
 \begin{code}
 --: Name → ExtractM (List PsCmd)
 extract-def f = do
@@ -742,9 +742,10 @@ extract-def f = do
   b ← extract-clauses cs i
   return [ FunDef (prettyName f) b ]
 \end{code}
+\vspace{-23pt}
+\end{wrapfigure}
 
-\paragraph{Extracting whole programs}
-
+\paragraph{Whole program extraction}%
 To run the extractor on a complete Agda program, we need to run it on
 the main function and all its (recursive) dependencies. This is
 implemented by the function \AF{extract-defs}, which makes use of
@@ -754,6 +755,8 @@ definitions and each definition is only processed once, this function
 is terminating. However, the Agda termination checker does not detect
 this, so we mark it as terminating manually using a pragma.
 
+\begin{wrapfigure}{l}{.55\columnwidth}
+\vspace{-14pt}
 \begin{code}
 {-# TERMINATING #-}
 extract-defs : ExtractM (List PsCmd)
@@ -764,6 +767,8 @@ extract-defs = do
   ys ← extract-defs
   return (xs ++ ys)
 \end{code}
+\vspace{-24pt}
+\end{wrapfigure}
 
 We define a macro \AMA{extract} as the main entry point of the
 extractor.  This macro takes as inputs the name of the main
@@ -799,13 +804,12 @@ We provide a default list \AF{base} of functions for which to avoid
 inlining, which can be further tailored to the extraction of a
 specific program.
 
-
-\paragraph{Testing the extractor}
-
 \begin{wrapfigure}{r}{.3\columnwidth}
 \epsfbox[0 0 66 66]{sierp.ps}
 \caption{\label{fig:sierpinski}Draw \AF{sierpinski}.}
 \end{wrapfigure}
+
+\paragraph{Testing the extractor}%
 Thanks to the theorem-proving capabilities of Agda, we can embed test
 cases for the extractor as equality proofs. These test cases
 are run automatically during type checking, so if a change to the
@@ -816,12 +820,18 @@ correctly. To improve readability, we use the \AF{lines} function to
 split the output of the extractor into individual lines.
 
 \begin{code}
-test-add-1 : lines (extract add-1 base) ≡  ( "/add-1 {"
-                                         ∷ "  1 add"
-                                         ∷ "} def"
-                                         ∷ [] )
+test-add-1 : extract add-1 base ≡ "/add-1 {\n  1 add\n} def\n"
 test-add-1 = refl
 \end{code}
+
+% \begin{code}
+% test-add-1 : lines (extract add-1 base) ≡  ( "/add-1 {"
+%                                          ∷ "  1 add"
+%                                          ∷ "} def"
+%                                          ∷ [] )
+% test-add-1 = refl
+% \end{code}
+ 
 We can test the output of the extractor on the other examples from the
 previous section in a similar fashion.
 Finally, we can feed generated programs into PostScript
