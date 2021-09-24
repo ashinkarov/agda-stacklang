@@ -1000,6 +1000,22 @@ _ : lines (extract Sierpinski.sierpinski base) ≡
    " pop" ∷
    "} def" ∷ [])
 _ = refl
+
+-- Loop unrolling
+sum : Stack (1 + n) → Stack (1 + n)
+sum s = for add ( s ▹ push 0 ▹ exch ▹ push 0 ▹ exch)
+
+-- Use the above sum definition
+ex : Stack n → Stack (1 + n)
+ex s = sum (s ▹ push 4)
+
+_ : (lines (extract ex (quote add ∷ []))) ≡
+  ( "/ex {"
+  ∷ "  0 0 add 1 add 2 add 3 add 4 add"
+  ∷ "} def"
+  ∷ [] )
+_ = refl
+
 \end{code}
 
 \end{AgdaAlign}
