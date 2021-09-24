@@ -883,6 +883,24 @@ _ : lines (extract RepSimple.rep base) ≡
   ∷ [] )
 _ = refl
 
+_ : lines (extract RepTerm.rep base) ≡
+  ( "/rep′ {"
+  ∷ "  0 index 0 eq "
+  ∷ "  {"
+  ∷ "    pop pop"
+  ∷ "  }"
+  ∷ "  {"
+  ∷ "    1 sub 1 index exch rep′"
+  ∷ "  } ifelse"
+  ∷ ""
+  ∷ "} def"
+  ∷ ""
+  ∷ "/rep {"
+  ∷ "  rep′"
+  ∷ "} def"
+  ∷ [] )
+_ = refl
+
 _ : lines (extract FibNonTerm.fib base) ≡
   ( "/fib {"
   ∷ "  0 index 0 eq "

@@ -495,8 +495,8 @@ module RepTerm where
 \end{code}
 \begin{code}
     rep′ : (s : Stack (2 + n)) → @0 (s ! 0 ≡ k) → Stack ((s ! 0) + n)
-    rep′ {k = zero}   s@(_ # _ # zero)   refl  = s ▹ pop ▹ pop
-    rep′ {k = suc m}  s@(_ # _ # suc m)  refl  =
+    rep′ s@(_ # zero)   refl  = s ▹ pop ▹ pop
+    rep′ s@(_ # suc m)  refl  =
          let  s′ = s ▹ push 1 ▹ sub ▹ index 1 ▹ exch
          in   subst-stack (+-suc _ _) (rep′ {k = m} s′ refl)
 
