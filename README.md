@@ -112,7 +112,7 @@ In the proposed system dependent types come to rescue.
   <td>
 
 ```agda
-rep′ : (s : Stack (2 + n)) → @0 (s ! 0 ≡ k) → Stack ((s ! 0) + n)
+rep′ : (s : Stack (2 + n)) → @0(s ! 0 ≡ k) → Stack ((s ! 0) + n)
 rep′ s@(_ # zero)   refl  = s ▹ pop ▹ pop
 rep′ s@(_ # suc m)  refl  =
      let s′ = s ▹ push 1 ▹ sub ▹ index 1 ▹ exch
@@ -220,8 +220,9 @@ Our extraction can do the following:
 
 ```agda
 add-some-numbers : Stack (1 + n) → Stack (1 + n)
-add-some-numbers s = s  ▹ push 1 ▹ add  ▹ push 2 ▹ add
-                        ▹ push 4 ▹ add  ▹ push 2 ▹ add
+add-some-numbers s = 
+   s ▹ push 1 ▹ add  ▹ push 2 ▹ add
+     ▹ push 4 ▹ add  ▹ push 2 ▹ add
 ```    
   </td>
   <td>
