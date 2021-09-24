@@ -631,13 +631,14 @@ module PsForLoop where
         → ∀ {m} (s : Stack (3 + m)) → ℕ
 \end{code}
 \begin{code}
-    for : {f : ∀{m} → Stack (1 + m) → ℕ} 
+    for : {f : ∀{m} → Stack (1 + m) → ℕ}
         → (loop : ∀ {m} (s : Stack (1 + m)) → Stack (f s))
         → ∀ {m} (s : Stack (3 + m)) → Stack (#it loop s)
 \end{code}
 As it can be seen, we have to explain how the size of the stack
-changes at each iteration, which is given by a \emph{dependent}
-function \AF{f}, as the size of the stack can depend
+changes at each iteration, which is given by a
+function \AF{f} that determines the size of the stack after
+each iteration, as this can depend
 on the values found on the stack.  Unfortunately,
 the size of the stack after the final iteration cannot
 be computed upfront.  We would have to run the loop to get
@@ -645,7 +646,8 @@ the size --- this is done by \AF{\#it}.  However, working with such
 encoding is very inconvenient.  Even simplest analysis of determining
 whether for-loop returns a non-empty stack turns into painful proving
 exercise.  Therefore, it is more practical to introduce well-behaved
-variants of the for-loop where we lift size invariants up.  All such
+variants of the for-loop where we have strong guarantees about the
+final size of the stack.  All such
 variants can be seen as special cases of the generic for loop.
 } such a behaviour in Agda, it would be
 quite inconvenient to work with.  Every time one needs to ensure
@@ -734,4 +736,3 @@ In the implementation of algorithms like this one, it is easy to forget to
 remove or copy an element within for-loops when implementing such
 a code manually.  The strict stack size discipline that we have in Agda
 helps to avoid these errors.
-
