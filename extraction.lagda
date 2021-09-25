@@ -177,8 +177,24 @@ print-ps es = intercalate "\n" (reverse (L.map (expr-to-string 0) es))
 
 We make use of a monad for extraction to keep track of the current
 state of functions that still need to be extracted, and for
-propagating errors.
+propagating errors.  The monad combines the built-in \AD{TC}
+monad, extraction state and a possibility to chose between
+values and errors.  \AD{ExtractM} gives rise to 
+\AK{do}-no\-ta\-ti\-on\footnote{
+\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}{agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.
+The \AF{fail} function aborts the extraction process.
+Two operations for managing the queue of
+functions to be extracted: \AF{mark-todo} adds a function name to the
+queue, while \AF{get-next-todo} returns the next function that has been
+marked for extraction.
+Finally, the monad provides two operations for getting normalized types
+and definitions of a given symbol. This can be used for example for
+inlining Agda functions that cannot be translated to PostScript, or
+for applying domain-specific optimizations through the use of rewrite
+rules (\secref{partial-evaluation}).
 
+
+%
 \begin{code}[hide]
 -- This is a `Maybe`-like data type except that nothing
 -- is extended with a string argument, to carry around the error.
@@ -194,25 +210,26 @@ record ExtractState : Set where
     todo     : Names   -- Functions to extract.
     done     : Names   -- Functions that we have processed.
 \end{code}
-
 \begin{code}
-record ExtractM (X : Set) : Set where -- ...
+record ExtractM (X : Set) : Set; fail : String → ExtractM X
+mark-todo      : Name → ExtractM ⊤
+get-next-todo  : ExtractM (Maybe Name)
+get-normalised-type : Name → ExtractM Type
+get-normalised-def  : Name → ExtractM Definition
 \end{code}
 \begin{code}[hide]
+return : X → ExtractM X
+_>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y
+record ExtractM X where
   field
     runExtractM : ExtractState
                 → TC (ExtractState × Err X)
 \end{code}
-
+%
 % The monad structure is given by the monadic operations \AF{>>=} and
 % \AF{return}, which are used in the desugaring of
 % \AK{do}-no\-ta\-ti\-on\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}{agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.  The \AF{fail} function aborts the extraction process.
-\begin{code}[hide]
-return : X → ExtractM X
-_>>=_ : ExtractM X → (X → ExtractM Y) → ExtractM Y
-fail : String → ExtractM X
-\end{code}
-
+%
 % The monad also provides two operations for managing the queue of
 % functions to be extracted: \AF{mark-todo} adds a function name to the
 % queue, while \AF{get-next-todo} returns the next function that has been
@@ -220,22 +237,14 @@ fail : String → ExtractM X
 % there are any left.  Since each individual function is only returned
 % at most once by \AF{get-next-todo}, we avoid extracting the same
 % function twice.
-
-\begin{code}[hide]
-mark-todo      : Name → ExtractM ⊤
-get-next-todo  : ExtractM (Maybe Name)
-\end{code}
-
+%
 % Finally, the monad provides two operations for getting normalized types
 % and definitions of a given symbol. This can be used for example for
 % inlining Agda functions that cannot be translated to PostScript, or
 % for applying domain-specific optimizations through the use of rewrite
 % rules (\secref{partial-evaluation}).
-
-\begin{code}[hide]
-get-normalised-type : Name → ExtractM Type
-get-normalised-def  : Name → ExtractM Definition
-\end{code}
+%\begin{code}[hide]
+%\end{code}
 
 %The implementation of these operations is standard so we omit it here.
 
@@ -731,7 +740,7 @@ an Agda function, gets its type and definition, and calls
 of PostScript commands.
 
 \begin{wrapfigure}{l}{.6\columnwidth}
-\vspace{-16pt}
+% \vspace{-16pt}
 \begin{code}
 --: Name → ExtractM (List PsCmd)
 extract-def f = do
@@ -742,7 +751,7 @@ extract-def f = do
   b ← extract-clauses cs i
   return [ FunDef (prettyName f) b ]
 \end{code}
-\vspace{-23pt}
+% \vspace{-23pt}
 \end{wrapfigure}
 
 \paragraph{Whole program extraction}%
@@ -756,7 +765,7 @@ is terminating. However, the Agda termination checker does not detect
 this, so we mark it as terminating manually using a pragma.
 
 \begin{wrapfigure}{l}{.55\columnwidth}
-\vspace{-14pt}
+% \vspace{-14pt}
 \begin{code}
 {-# TERMINATING #-}
 extract-defs : ExtractM (List PsCmd)
@@ -767,7 +776,7 @@ extract-defs = do
   ys ← extract-defs
   return (xs ++ ys)
 \end{code}
-\vspace{-24pt}
+% \vspace{-24pt}
 \end{wrapfigure}
 
 We define a macro \AMA{extract} as the main entry point of the

@@ -132,7 +132,10 @@
 \newcommand{\defref}[1]{\myref{Definition}{def:#1}}
 \newcommand{\eqnref}[1]{\hyperref[#1]{(\ref{#1})}}
 
-\renewcommand{\paragraph}[1]{\textbf{\textit{#1. }}}
+%\renewcommand{\paragraph}[1]{\textbf{\textit{#1. }}}
+\setlength{\intextsep}{0pt}
+%\AgdaNoSpaceAroundCode{}
+
 
 
 \begin{document}
@@ -283,9 +286,9 @@ chosen a simple target language to embed --- we use a subset
 of PostScript~\citep{postscript1999language}, a stack-based
 language used in the corresponding document format.
 %
-\figref{sqsum} shows an example of a program
-written in our embedding and the PostScript code produced by
-our extractor.
+%\figref{sqsum} shows an example of a program
+%written in our embedding and the PostScript code produced by
+%our extractor.
 %
 This paper is not concerned with practical application of
 the presented embedding, so we consciously keep the setup as minimal as

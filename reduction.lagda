@@ -172,13 +172,13 @@ Running \AMA{extract} \AF{add-some-numbers} \AF{[]} produces
 the following code:
 
 \begin{wrapfigure}{l}{.32\columnwidth}
-\vspace{-14pt}
+% \vspace{-14pt}
 \begin{lstlisting}[language=PostScript]
 /add-some-numbers 
 { 9 add
 } def
 \end{lstlisting}
-\vspace{-20pt}
+% \vspace{-20pt}
 \end{wrapfigure}
 \begin{code}[hide]
 -- Another example, pretty similar to the previous one.

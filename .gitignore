@@ -28,4 +28,4 @@ tramp
 *.xcp
 .DS_Store
 paper.pdf
-latex/*
+latex/*.tex

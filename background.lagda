@@ -55,6 +55,7 @@ we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
 \AB{xs}.
 
 \paragraph{Pattern matching} Functions are defined in a pattern-matching style:
+% \vspace{-20pt}
 \begin{mathpar}
 \codeblock{\begin{code}
   _+_ : ℕ → ℕ → ℕ
@@ -104,12 +105,12 @@ expressions, which are then checked by the typechecker. For example,
 we can prove that \AN{1} \AF{+} \AN{1} = \AN{2}:
 
 \begin{wrapfigure}{l}{.33\columnwidth}
-\vspace{-14pt}
+%\vspace{-\intextsep}
 \begin{code}
   simple-proof : 1 + 1 ≡ 2
   simple-proof = refl
 \end{code}
-\vspace{-24pt}
+%\vspace{-2\intextsep}
 \end{wrapfigure}
 Although in this paper we only prove a few basic properties, the fact
 that it is possible to prove arbitrary (functional) properties of
@@ -140,13 +141,13 @@ by the compiler. For example, we can mark the \AB{n} argument to the
 \AF{tail} function as run-time irrelevant:
 
 \begin{wrapfigure}{l}{.5\columnwidth}
-\vspace{-14pt}
+% \vspace{-14pt}
 \begin{code}
   tail' : {@0 n : ℕ} → Vec ℕ (suc n) 
                      → Vec ℕ n
   tail' (x ∷ xs) = xs
 \end{code}
-\vspace{-24pt}
+% \vspace{-24pt}
 \end{wrapfigure}
 In our embedding of PostScript into Agda, we make use of this
 annotation to ensure that the functions we define do not
@@ -162,17 +163,16 @@ For example, declaring \AB{n} as a variable allows us to avoid having
 to bind \AB{n} explicitly in the type of \AF{tail}:
 
 \begin{wrapfigure}{l}{.5\columnwidth}
-\vspace{-14pt}
+% \vspace{-14pt}
 \begin{code}
   variable @0 n : ℕ
   tail'' : Vec ℕ (suc n) → Vec ℕ n
   tail'' (x ∷ xs) = xs
 \end{code}
-\vspace{-24pt}
+% \vspace{-24pt}
 \end{wrapfigure}
 
-\paragraph{Reflected syntax}
-
+\paragraph{Reflected syntax}%
 The reflection API of
 Agda\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}{agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
 provides various datatypes that represent the internal syntax of Agda
@@ -215,7 +215,6 @@ module FunExample where
 
 As a complete example, below is the definition of a function \AF{foo} (left)
 and its reflected syntax \AF{`foo} (right):
-
 \begin{mathpar}
 \codeblock{\begin{code}
   foo : ℕ → ℕ

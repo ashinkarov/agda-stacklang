@@ -122,6 +122,7 @@ We define the type of our stack inductively, and we force the type to carry
 its length. Per our assumptions, the stack can only store elements of type
 \AD{ℕ}.
 
+\begin{wrapfigure}{l}{.6\columnwidth}
 \begin{code}
 data Stack : @0 ℕ → Set where
   []   : Stack 0
@@ -131,7 +132,7 @@ data Stack : @0 ℕ → Set where
 infixl 5 _#_
 variable s : Stack n
 \end{code}
-
+\end{wrapfigure}
 Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
 \AC{[]} \AC{\#} \AN{1} \AC{\#} \AN{2} \AC{\#} \AN{3} is a stack of type \AD{Stack} \AN{3}.
@@ -139,7 +140,6 @@ We define \AC{\_\#\_} to be left-associative, therefore we do not need any paren
 We annotate the index of \AD{Stack} as computationally irrelevant.
 %by putting `@0' annotation in
 %the definition of the type.
-
 \begin{code}[hide]
 tl : Stack (1 + n) → Stack n
 tl (xs # _) = xs
@@ -173,7 +173,6 @@ sub (s # x # y) = s # x - y
 eq  (s # x # y) = s # (if x ℕ.≡ᵇ y then 1 else 0)
 gt  (s # x # y) = s # (if x ℕ.≤ᵇ y then 0 else 1)
 \end{code}
-
 In the types of these operations, the length index of \AD{Stack}
 ensures that the body of the function respects the specification.  If
 the body of the function returns the stack that does not have the
@@ -284,14 +283,14 @@ operations in terms of base functions defined above.  We
 start with a trivial function that adds one to the top element of
 the stack.
 
-%\begin{wrapfigure}{l}{.6\columnwidth}
+\begin{wrapfigure}{l}{.6\columnwidth}
 %\vspace{-14pt}
 \begin{code}
 add-1 : Stack (1 + n) → Stack (1 + n)
 add-1 s = add (push 1 s)
 \end{code}
 %\vspace{-24pt}
-%\end{wrapfigure}
+\end{wrapfigure}
 
 We are required to define the type, which in turn forces us to specify
 how does the operation change the length of the stack.  Stack
@@ -301,7 +300,7 @@ program.  While this does not affect functionality, it may be
 aesthetically pleasing to maintain the original order of operators.
 For this purpose we define an operation \AF{\_▹\_} that reverses
 the arguments in applications.  So we can rewrite the above example as:
-%
+
 \begin{code}[hide]
 infixl 5 _▹_
 add-1′ : Stack (1 + n) → Stack (1 + n)
@@ -337,9 +336,10 @@ add-1′ s = s ▹ push 1 ▹ add
 % dblsuc : Stack ℕ (1 + n) → Stack ℕ (2 + n)
 % dblsuc xs = add1 (dup xs)
 % \end{code}
+%
 
-
-Consider now the example from \figref{sqsum} that computes
+Consider now the example % from \figref{sqsum} 
+that computes
 $a^2 + b^2$ where $a$ and $b$ are top two elements of the stack.
 It can be easier to understand the code if we introduce names
 for the intermediate states of the stack using \AK{let}:
@@ -387,12 +387,11 @@ So far, all the specifications in the embedded language did not
 require dependent types, and could be encoded in languages with a weaker
 type system such as Haskell or OCaml.  However, it quickly becomes clear
 that even simple programs in stack languages may expose dependency
-between the input stack and the size of the output stack.  Those cases
-require dependent types to express statically\todo{This word reads weirdly}.  An example
+between the input stack and the size of the output stack.  Capturing
+these cases statically requires dependent types.  An example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
 Here is a possible implementation of that function:
-
 \begin{code}[hide]
 module RepSimple where
     open import Data.Nat using (s≤s; z≤n)
@@ -407,8 +406,6 @@ module RepSimple where
              s#x#x#m  = s#x#m#x  ▹ exch
          in  subst-stack (+-suc _ _) (rep s#x#x#m)
 \end{code}
-
-
 The length of the stack returned by \AD{rep} is given by the topmost
 element of the input stack \AB{s} plus \AB{n}. Hence the size of the
 output stack depends on the value of the input stack.
@@ -447,7 +444,6 @@ function is structurally decreasing, together with a proof that it is
 related in some way to the values on the stack.  For example, for
 \AF{rep} we add an implicit argument \AB{k}, as well as a proof that
 the top of the stack is equal to \AB{k}:
-
 \begin{code}[hide]
 module RepTerm where
     open import Data.Nat using (s≤s; z≤n)
@@ -467,8 +463,8 @@ only value of the \AD{\_≡\_} type is \AC{refl}, the argument \AB{k}
 has to be \AN{zero} in the first case, and \AC{suc} \AB{m} in the second
 case.  This ensures that \AF{rep′} is structurally decreasing in \AB{k},
 and the function is accepted by the termination checker.
-
-
+%
+%
 % New implicit variables fucked-up the code in FibTerm
 %
 %
