@@ -102,9 +102,8 @@ _ : lines (extract push-pop []) ≡
 _ = refl
 \end{code}
 
-From the way we defined \AF{for}, we can automatically unroll loops with
-constant boundaries for free, using the same technique.
-
+Using the same technique with the \AF{for} for, we can automatically unroll loops with
+constant boundaries for free.
 
 \paragraph{Domain-specific optimizations as rewrite rules}%
 A common way to define domain-specific compiler optimizations is through
@@ -154,27 +153,27 @@ From now on the rule is applied automatically by the extractor
 whenever possible:
 
 \begin{code}
-add-some-numbers : Stack (1 + n) → Stack (1 + n)
-add-some-numbers s = s  ▹ push 1 ▹ add  ▹ push 2 ▹ add
+add-numbers : Stack (1 + n) → Stack (1 + n)
+add-numbers s = s  ▹ push 1 ▹ add  ▹ push 2 ▹ add
                         ▹ push 4 ▹ add  ▹ push 2 ▹ add
 \end{code}
 
 \begin{code}[hide]
-_ : lines (extract add-some-numbers []) ≡
-  ( "/add-some-numbers {"
+_ : lines (extract add-numbers []) ≡
+  ( "/add-numbers {"
   ∷ "  9 add"
   ∷ "} def"
   ∷ [] )
 _ = refl
 \end{code}
 
-Running \AMA{extract} \AF{add-some-numbers} \AF{[]} produces
-the following code:
+Running \AMA{extract} \AF{add-numbers} \AF{[]} produces
+this code:
 
 \begin{wrapfigure}{l}{.32\columnwidth}
 % \vspace{-14pt}
 \begin{lstlisting}[language=PostScript]
-/add-some-numbers 
+/add-numbers
 { 9 add
 } def
 \end{lstlisting}
@@ -217,13 +216,13 @@ were faced with the challenge of reconstructing the right typing
 context for each clause.  Agda constructs this context internally
 during elaboration of the clauses, but the reflection API did not
 provide access to it. To solve this problem we
-extended the reflection API to provide it for us (see
-\hrefu{https://github.com/agda/agda/pull/4722}{github.com/agda/agda/pull/4722}).
+extended the reflection API to provide it for us.\footnote{See
+\hrefu{https://github.com/agda/agda/pull/4722}{github.com/agda/agda/pull/4722}.}
 
 \item The functionality to selectively normalise certain functions
 while leaving others intact was not previously available in Agda. We
-added \AF{dontReduceDefs} and \AF{onlyReduceDefs} to the reflection API (see
-\hrefu{https://github.com/agda/agda/pull/4978}{github.com/agda/agda/pull/4978}).
+added \AF{dontReduceDefs} and \AF{onlyReduceDefs} to the reflection API.\footnote{See
+\hrefu{https://github.com/agda/agda/pull/4978}{github.com/agda/agda/pull/4978}.}
 
 \end{itemize}
 

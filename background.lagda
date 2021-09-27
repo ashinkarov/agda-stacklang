@@ -64,8 +64,8 @@ we can write \AB{x} \AC{∷} \AB{xs} instead of \AC{\_∷\_} \AB{x}
 \end{code}}
 \and
 \codeblock{\begin{code}
-  tail : {n : ℕ} → Vec ℕ (suc n)
-       → Vec ℕ n
+  tail : {n : ℕ} →
+    Vec ℕ (suc n) → Vec ℕ n
   tail (x ∷ xs) = xs
 \end{code}}
 \end{mathpar}
@@ -102,18 +102,11 @@ module Proving where
 \end{code}
 Using the equality type, we can state and prove equations between Agda
 expressions, which are then checked by the typechecker. For example,
-we can prove that \AN{1} \AF{+} \AN{1} = \AN{2}:
-
-\begin{wrapfigure}{l}{.33\columnwidth}
-%\vspace{-\intextsep}
-\begin{code}
-  simple-proof : 1 + 1 ≡ 2
-  simple-proof = refl
-\end{code}
-%\vspace{-2\intextsep}
-\end{wrapfigure}
-Although in this paper we only prove a few basic properties, the fact
-that it is possible to prove arbitrary (functional) properties of
+we can prove that $1 + 1 = 2$ by \AC{refl} : \AN{1} \AF{+} \AN{1}
+\AD{≡} \AN{2}.
+%
+Although in this paper we only prove a few basic properties, the
+possibility to prove arbitrary (functional) properties of
 programs embedded in Agda is an important benefit of our approach.
 
 %The definition of \AF{abs} uses the \emph{absurd pattern} (),
@@ -143,8 +136,8 @@ by the compiler. For example, we can mark the \AB{n} argument to the
 \begin{wrapfigure}{l}{.5\columnwidth}
 % \vspace{-14pt}
 \begin{code}
-  tail' : {@0 n : ℕ} → Vec ℕ (suc n) 
-                     → Vec ℕ n
+  tail' : {@0 n : ℕ} →
+    Vec ℕ (suc n) → Vec ℕ n
   tail' (x ∷ xs) = xs
 \end{code}
 % \vspace{-24pt}
@@ -245,8 +238,8 @@ list of the names of variables and their types; ii) the list of
 %
 Variables (both in patterns and in terms) are given as de Bruijn indices
 relative to the telescope of the clause.  That is, in the second clause the
-de Bruijn index \AN{0} refers to the variable \AB{x}.  Note that we write
-\AN{0} instead of \AC{zero}, as numbers are expanded
+de Bruijn index \AN{0} refers to the variable \AB{x}.  Note that numbers
+\AN{0}, \AN{1}, \AN{2},\ldots{} are expanded
 into their corresponding \AC{zero}/\AC{suc} representations.
 
 

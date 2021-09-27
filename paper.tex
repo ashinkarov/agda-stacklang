@@ -256,11 +256,11 @@ of the host language to typecheck the embedded language.
 
 There are two common approaches to language embedding: deep and shallow.
 Shallow embeddings define lan\-gua\-ges in terms of functions and operators
-of the host language.  Programs in shallowly-embedded languages are programs
+of the host language.  Programs in shallowly embedded languages are programs
 in the host language, so they are immediately run\-nable; types of the embedded
 language are types of the host language, so the host typechecker is used for
-checking embedded programs.  The downside of this approach is that we cannot
-easily get the representation of embedded programs.
+checking embedded programs. However we cannot easily get the syntactic
+representation of a shallowly embedded program.
 
 Meanwhile, a deep embedding defines a data type to represent the AST
 of the embedded language.  This requires us to define a type system
@@ -452,13 +452,13 @@ These embeddings usually also define semantics of the embedded
 language and therefore allow us to reason about the correctness
 of program transformations and optimisations.
 %
-While the fact that this is possible is impressive in theory, the resulting
-encodings are often difficult to use in practice. In this paper
+While the this is impressive in theory, the resulting
+encodings are difficult to use in practice. In this paper
 we instead aim for a more lightweight approach.
 %
 \citet{deepshallow} propose to solve this problem with
-a combination of deep and shallow embeddings.  Their idea is to define
-a small deep embedding and leverage type classes in Haskell to define
+a combination of deep and shallow embeddings, by using
+a small deep embedding and leveraging type classes in Haskell to define
 the rest of the language on top of that.  However, so far this idea has not yet
 been applied to dependently typed embedded languages.
 
@@ -480,9 +480,7 @@ is that these extractors are written as plugins to the proof
 assistant, while we implement our extractors directly in the proof
 assistant itself.
 %
-While it would be possible to implement extractors presented in this
-paper as Coq plugins or Agda backends, conceptually they are more
-heavyweight.  Our extractors and programs can (in principle)
+As a consequence, our extractors and programs can (in principle)
 communicate with each other. In addition, as they are just Agda programs, they can
 be reflected themselves and their structure can be leveraged.
 
@@ -491,10 +489,9 @@ be reflected themselves and their structure can be leveraged.
 Several dependently-typed languages are equipped with metaprogramming
 capabilities: Idris \cite{idris-refl}, Lean \cite{lean-refl},
 Coq \cite{metacoq}, and Agda \cite{agda-refl}.  All of these
-implement a similar API as described in this paper.  This
-means that our proposed approach is immediately implementable
-in these languages --- one simply needs to adjust extraction
-to the particular API.
+implement a similar API as described in this paper, and hence could be
+used to implement our approach --- one simply needs to adjust
+extraction to the particular API.
 \citet{10.1145/3371071} introduce the Turnstile+ framework for
 building dependently typed embedded DSLs and
 shares the ideas advocated in this paper, suggesting that
@@ -519,8 +516,7 @@ conundrum of choosing between deep and shallow
 embedding by leveraging the power of
 reflection.
 This allows us to enjoy simplicity of writing programs
-in shallow embedding.  Yet we keep full access to the internal
-structure of the embedded programs, so that we could translate
+in shallow embedding, while keeping the ability to translate
 them into the original language.
 
 We apply this idea in the context of dependently-typed
@@ -538,32 +534,29 @@ While we showcase a single example, the approach has been applied
 to several other languages: Kaleidoscope, a minimalist imperative language;
 Single assignment C, a high-performance array language; and
 APL (Array Programming Language), another array language with
-heavily overloaded syntax.
-For more details on these examples,
-refer to~\citet{DBLP:journals/corr/abs-2105-10819}.
+heavily overloaded syntax~\cite{DBLP:journals/corr/abs-2105-10819}.
+
 
 We believe that the reader is now empowered to apply the proposed
 technique to verify code in any language.
 
 
+\paragraph{Future work} While our approach is flexible, it is not a
+magic bullet. Right now, we cannot yet guarantee that the extracted
+code preservers the semantics of the original implementation. While we
+rarely see fully-verified compiler backends in the real world, our
+approach is very close to enabling this.  In future work, we would
+like to give a formal semantics of the reflected language and the
+proof that reflected programs respect it.  While this is non-trivial,
+a system like Agda could do it in principle.
 
-\paragraph{Future work}
-While our approach is flexible and powerful, it is
-certainly not a magic bullet. A lot of things
-need to be implemented for each target language: the embedding,
-the encoding of the properties under consideration as types,
-and the extractor.  For enforcing more complex properties, a number
-of proofs needs to be written explicitly.
-
-Right now, we cannot yet guarantee that the
-extracted code preservers the semantics of the original
-implementation. While we rarely see
-fully-verified compiler backends in the real world,
-our approach is very close to enabling this.
-We would need a formal semantics of the reflected language
-and the proof that reflected programs respect it.
-While this is non-trivial, a system like Agda could do
-this in principle.
+%\paragraph{Future work}
+%While our approach is flexible and powerful, it is
+%certainly not a magic bullet. A lot of things
+%need to be implemented for each target language: the embedding,
+%the encoding of the properties under consideration as types,
+%and the extractor.  For enforcing more complex properties, a number
+%of proofs needs to be written explicitly.
 
 % There is a number of improvements that can be added to
 % Agda and our extractors to make the resulting code more

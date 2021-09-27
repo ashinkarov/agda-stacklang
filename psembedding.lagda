@@ -81,15 +81,17 @@ In the body of the function, we check whether the argument
 from the stack and put the value one.  The same for the case when the argument
 is one.
 
-\begin{wrapfigure}{r}{.33\columnwidth}
-\epsfbox[17 10 80 65]{1.ps}
-\caption{\label{fig:fib}Draw \AF{fib}.}
-\end{wrapfigure}
 Otherwise, we duplicate the argument, subtract one, and make a recursive call.
 Then we exchange the original argument with the result of the recursive call
 by running \textbf{exch}.  We subtract two, make a recursive call and add results
 of two recursive calls.   Conditionals are expressed with two code blocks
 followed by the \textbf{ifelse} command.
+%
+\begin{wrapfigure}{r}{.33\columnwidth}
+\epsfbox[17 10 80 65]{1.ps}
+\caption{\label{fig:fib}Draw \AF{fib}.}
+\end{wrapfigure}
+%
 In~\figref{fib} we draw the results of the fib function (code not shown here) using
 a PostScript interpreter.
 
@@ -121,7 +123,7 @@ of basic functions operating on it.
 We define the type of our stack inductively, and we force the type to carry
 its length. Per our assumptions, the stack can only store elements of type
 \AD{ℕ}.
-
+%
 \begin{wrapfigure}{l}{.6\columnwidth}
 \begin{code}
 data Stack : @0 ℕ → Set where
@@ -226,9 +228,9 @@ if we require a stack of length $m + n$, but we have a stack of length
 $n + m$, we cannot blindly use it, as this would not typecheck.  To
 deal with situations like this, we provide an operation
 \AF{subst-stack} that cast a stack of length $m$ into the stack of
-length $n$, given a (run-time irrelevant) proof that $m \equiv n$.
+length $n$, given a (run-time irrelevant) proof that \AB{m} \AD{≡} \AB{n}.
 \begin{code}
-subst-stack : @0 m ≡ n → Stack m → Stack n
+subst-stack : @0(m ≡ n) → Stack m → Stack n
 subst-stack refl s = s
 \end{code}
 This operation does not have any run-time behaviour and will be
@@ -250,14 +252,15 @@ infix 5 _!_
 _!_ : Stack m → (k : ℕ) → @0{T (k < m)} → ℕ
 _!_ (s # x) zero            = x
 _!_ (s # x) (suc k) {sk<m}  = (s ! k) {sk<m}
-
+\end{code}
+\begin{code}
 index : (k : ℕ) → @0{T (k < m)} → Stack m → Stack (1 + m)
 index k {k<m} s = s # (s ! k) {k<m}
 \end{code}
 The proof\footnote{
 We use the function \AF{T} (found in standard library) to convert
-a boolean predicate \AD{\_<\_} into a unit type (in case the predicate holds)
-or an empty type otherwise.} that \AB{k} is less than \AB{m} is marked as implicit,
+a boolean predicate \AD{\_<\_} into a type representing its truth value.}
+that \AB{k} is less than \AB{m} is marked as implicit,
 which means that Agda will automatically fill in the proof
 (at least in the simple cases that we have in this paper).
 
@@ -282,7 +285,7 @@ We express all the
 operations in terms of base functions defined above.  We
 start with a trivial function that adds one to the top element of
 the stack.
-
+%
 \begin{wrapfigure}{l}{.6\columnwidth}
 %\vspace{-14pt}
 \begin{code}
@@ -298,25 +301,19 @@ operators are regular functions, so the chain of applications would be
 written in reverse, when comparing to the corresponding PostScript
 program.  While this does not affect functionality, it may be
 aesthetically pleasing to maintain the original order of operators.
-For this purpose we define an operation \AF{\_▹\_} that reverses
-the arguments in applications.  So we can rewrite the above example as:
+For this purpose we define an operation \AF{\_▹\_} as \AB{x} \AF{▹}
+\AB{f} = \AB{f} \AB{x}, so we can for example define \AF{add-1} instead as
+\AF{add-1} \AB{s} = \AB{s} \AF{▹} \AF{push} \AN{1} \AF{▹} \AF{add}.
 
 \begin{code}[hide]
 infixl 5 _▹_
 add-1′ : Stack (1 + n) → Stack (1 + n)
-\end{code}
-\begin{mathpar}
-\codeblock{\begin{code}
+
 _▹_ : X → (X → Y) → Y
 x ▹ f  = f x
-\end{code}}
-\and
-\codeblock{\begin{code}
-add-1′ s = s ▹ push 1 ▹ add
-\end{code}}
-\end{mathpar}
-\begin{code}[hide]
 {-# INLINE _▹_ #-}
+
+add-1′ s = s ▹ push 1 ▹ add
 \end{code}
 % This function does nothing to the stack but it introduces
 % a bunch of runtime irrelevant argumetns.
@@ -338,7 +335,7 @@ add-1′ s = s ▹ push 1 ▹ add
 % \end{code}
 %
 
-Consider now the example % from \figref{sqsum} 
+Consider now the example % from \figref{sqsum}
 that computes
 $a^2 + b^2$ where $a$ and $b$ are top two elements of the stack.
 It can be easier to understand the code if we introduce names
@@ -391,7 +388,7 @@ between the input stack and the size of the output stack.  Capturing
 these cases statically requires dependent types.  An example
 of such a program is a function \AF{rep} that replicates the $x$ value $n$ times,
 where $x$ and $n$ are top two stack elements.
-Here is a possible implementation of that function:
+Here is a possible implementation:
 \begin{code}[hide]
 module RepSimple where
     open import Data.Nat using (s≤s; z≤n)
@@ -417,8 +414,8 @@ copy the argument we are replicating, and put them in the expected position
 to make the next recursive call.
 %
 This results in the stack \AF{rep} \AB{s\#x\#x\#m} of size $(m + (1 +
-n))$ while the expected size is $(1 + (m + n))$. It is not obvious to
-Agda that these two sized are equal, so we apply
+n))$ while the expected size is $(1 + (m + n))$, which are not obviously
+equal to Agda, hence we apply
 \AF{subst-stack} with the proof \AD{+-suc} from the standard library
 to convert between these two sizes.
 
@@ -429,12 +426,10 @@ At this point, we have seen how to write programs in the embedding, express
 non-trivial properties related to the length of the stack, and verify that
 a function evaluates to the same results as some other function.  One remaining
 problem is that for some functions, Agda cannot automatically prove termination.
-However, as long as a programmer is happy to take responsibility by putting
-the annotation, we can immediately proceed to the next sections.
-
-We demonstrate a way to prove termination of the functions from previous
-sections.
 %
+For these functions we can either add an annotation as above, or
+rewrite the definition to make proving termination easier.
+
 The problem with \AF{rep} is that the recursive call happens on the stack
 that became one element bigger, yet the top element decreased by one.
 Therefore, this argument is not strictly structurally smaller, and there are no other
@@ -454,7 +449,8 @@ module RepTerm where
     rep′ s@(_ # suc m)  refl  =
          let  s′ = s ▹ push 1 ▹ sub ▹ index 1 ▹ exch
          in   subst-stack (+-suc _ _) (rep′ {k = m} s′ refl)
-
+\end{code}
+\begin{code}
     rep : (s : Stack (2 + n)) → Stack ((s ! 0) + n)
     rep s = rep′ s refl
 \end{code}
@@ -592,8 +588,8 @@ module FibNonTermPf where
 \end{code}
 \begin{mathpar}
 \codeblock{\begin{code}
-  fspec : ℕ
-        → ℕ
+  fspec :
+    ℕ → ℕ
   fspec 0 = 1
   fspec 1 = 1
   fspec (suc (suc x)) =
@@ -604,8 +600,8 @@ module FibNonTermPf where
 \codeblock{\begin{code}
   ✔ : (s : Stack n) (x : ℕ)
     → fib (s # x) ≡ s # fspec x
-  ✔ _ 0 = refl
-  ✔ _ 1 = refl
+  ✔ s 0 = refl
+  ✔ s 1 = refl
   ✔ s (suc (suc x)) rewrite
     ✔ (s # suc (suc x)) (suc x) |
     ✔ (s # fspec (suc x)) x = refl
@@ -735,7 +731,7 @@ that no extra arguments are left on the stack.
                        ▹ pop)
         ▹ pop
 \end{code}
-In the implementation of algorithms like this one, it is easy to forget to
-remove or copy an element within for-loops when implementing such
-a code manually.  The strict stack size discipline that we have in Agda
-helps to avoid these errors.
+When implementing algorithms like this one manually, it is easy to
+forget to remove or copy an element in the body of the for-loop.  The
+strict stack size discipline that we have in Agda helps to avoid these
+errors.

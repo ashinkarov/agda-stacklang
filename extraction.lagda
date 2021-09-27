@@ -124,10 +124,10 @@ data PsCmd : Set where
   Rot3 : PsCmd
 \end{code}
 
-We implement a basic pretty-printer for sequences of PostScript
-commands that we omit here.
+We implement a basic pretty-printer \AF{print-ps} : \AD{List}
+\AD{PsCmd} → \AD{String} whose definition we omit here.
 
-\begin{code}
+\begin{code}[hide]
 print-ps : List PsCmd → String
 \end{code}
 
@@ -179,7 +179,7 @@ We make use of a monad for extraction to keep track of the current
 state of functions that still need to be extracted, and for
 propagating errors.  The monad combines the built-in \AD{TC}
 monad, extraction state and a possibility to chose between
-values and errors.  \AD{ExtractM} gives rise to 
+values and errors.  \AD{ExtractM} gives rise to
 \AK{do}-no\-ta\-ti\-on\footnote{
 \hrefu{https://agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}{agda.readthedocs.io/en/v2.6.2/language/syntactic-sugar.html\#do-notation}}.
 The \AF{fail} function aborts the extraction process.
@@ -211,11 +211,12 @@ record ExtractState : Set where
     done     : Names   -- Functions that we have processed.
 \end{code}
 \begin{code}
-record ExtractM (X : Set) : Set; fail : String → ExtractM X
-mark-todo      : Name → ExtractM ⊤
-get-next-todo  : ExtractM (Maybe Name)
-get-normalised-type : Name → ExtractM Type
-get-normalised-def  : Name → ExtractM Definition
+record ExtractM (X : Set) : Set
+fail                 : String → ExtractM X
+mark-todo            : Name → ExtractM ⊤
+get-next-todo        : ExtractM (Maybe Name)
+get-normalised-type  : Name → ExtractM Type
+get-normalised-def   : Name → ExtractM Definition
 \end{code}
 \begin{code}[hide]
 return : X → ExtractM X
@@ -413,7 +414,7 @@ list of PostScript commands. For example, $\AF{add}\ (\AF{push}\ \AN{1}\ \AB{s})
 (in this case \AB{s}) is identical to the input stack. In this way it
 ensures that we do not manipulate the stack in arbitrary ways, but
 only through the primitive stack operations of PostScript.
-
+%
 The implementation of \AF{extract-term} uses a helper function \AF{go}
 to traverse the reflected Agda syntax, collecting the generated
 PostScript commands in an accumulator.  Note that we defined a number
@@ -444,7 +445,7 @@ The cases for basic instructions are as follows:
 \end{code}
 
 For the commands \AF{push} and \AF{index}, the extractor currently
-only allows natural number literals \AN{0}, \AN{1}, \AN{2}, \ldots as
+only allows natural number literals \AN{0}, \AN{1}, \AN{2}, \ldots{} as
 the argument. For any other argument the extraction is aborted by
 calling the \AF{fail} function.
 
@@ -472,7 +473,7 @@ erased during extraction.
 To extract a \AF{for} loop, we first check that the body of the loop
 is a lambda term. If that is the case, we extract the body \AB{b},
 using the stack pattern (\AC{var} \AN{0}) that refers to the stack
-variable bound by the lambda.  After the body of the loop function has
+variable bound by the lambda.  After the body of the loop has
 been extracted, we construct the \AC{For} node and continue extraction
 with the expression for the initial stack $x$.
 \begin{AgdaSuppressSpace}
@@ -522,14 +523,14 @@ If the check succeeds, we return the list of commands collected in
   go v acc = do
     b ← stack-ok stackp v
     if b then (return acc)
-         else (fail ("stack mismatch: "
-                     <> showPattern stackp <> " and " <>ₜ v))
+      else (fail ("stack mismatch: "
+           <> showPattern stackp <> " and " <>ₜ v))
 \end{code}
 
 The function \AF{stack-ok} ensures that when we use the stack (of type
 \AD{Term}), it is identical to the stack that we got as the input tothe function (of type \AD{Pattern}). In addition to the cases below,
 there are a few other cases for dealing with natural number literals
-\AN{0}, \AN{1}, \AN{2}, \ldots (not shown here).
+\AN{0}, \AN{1}, \AN{2}, \ldots{} (not shown here).
 
 
 \begin{AgdaSuppressSpace}
@@ -543,7 +544,6 @@ stack-ok (var x) (var y [])  = return (x ℕ.≡ᵇ y)
 stack-ok `zero     `zero     = return true
 stack-ok (`suc x)  (`suc y)  = stack-ok x y
 \end{code}
-
 \begin{code}[hide]
 stack-ok (`num x) (`num y) = return (x ℕ.≡ᵇ y)
 
@@ -565,11 +565,9 @@ stack-ok (`num x) y = do
     term-to-nat (`suc x)  = suc <$> term-to-nat x
     term-to-nat _         = fail "stack-ok: not a suc/zero term"
 \end{code}
-
 \begin{code}
 stack-ok p t = return false
 \end{code}
-
 \end{AgdaSuppressSpace}
 
 
@@ -589,7 +587,8 @@ extract-type x = go x false 0
   where
   go : Type → (st-arg : Bool) → (idx : ℕ) → ExtractM ℕ
   go (Π[ s ∶ vArg (`Stack n) ] ty) false i = go ty true i
-  go (Π[ s ∶ erasedArg _ ] ty) b i = go ty b (if b then i else 1 + i)
+  go (Π[ s ∶ erasedArg _ ] ty) b i =
+    go ty b (if b then i else 1 + i)
   go (`Stack n) true i = return i
   go t _ _ = fail ("invalid type: " <>ₜ t)
 \end{code}
@@ -619,10 +618,10 @@ pattern matches unconditionally. There are three cases:
 
 \begin{itemize}
 \item A variable pattern \AB{n} matches any input, so \AC{nothing} is returned.
-\item A closed pattern \AC{suc}\ (\AC{suc}\ (\ldots \AC{zero})) only
+\item A closed pattern \AC{suc}\ (\AC{suc}\ (\ldots{} \AC{zero})) only
 matches the single value equal to the number of successors, so we
 return an equality check.
-\item A successor pattern \AC{suc}\ (\AC{suc}\ (\ldots \AB{n}))
+\item A successor pattern \AC{suc}\ (\AC{suc}\ (\ldots{} \AB{n}))
 matches any value greater or equal to the number of successors, so we
 return an inequality check.
 \end{itemize}
@@ -739,7 +738,7 @@ an Agda function, gets its type and definition, and calls
 \AF{extract-type} and \AF{extract-clauses} to translate it to a list
 of PostScript commands.
 
-\begin{wrapfigure}{l}{.6\columnwidth}
+%\begin{wrapfigure}{l}{.6\columnwidth}
 % \vspace{-16pt}
 \begin{code}
 --: Name → ExtractM (List PsCmd)
@@ -752,7 +751,7 @@ extract-def f = do
   return [ FunDef (prettyName f) b ]
 \end{code}
 % \vspace{-23pt}
-\end{wrapfigure}
+%\end{wrapfigure}
 
 \paragraph{Whole program extraction}%
 To run the extractor on a complete Agda program, we need to run it on
@@ -824,13 +823,12 @@ cases for the extractor as equality proofs. These test cases
 are run automatically during type checking, so if a change to the
 extractor causes one of them to fail it will not go unnoticed.
 
-As an example, here is a test that \AF{add-1} is extracted
-correctly. To improve readability, we use the \AF{lines} function to
-split the output of the extractor into individual lines.
+As an example, we test that \AF{add-1} is extracted correctly:
 
 \begin{code}
-test-add-1 : extract add-1 base ≡ "/add-1 {\n  1 add\n} def\n"
-test-add-1 = refl
+test-add1 :  extract add-1 base
+             ≡ "/add-1 {\n  1 add\n} def\n"
+test-add1 = refl
 \end{code}
 
 % \begin{code}
@@ -840,7 +838,7 @@ test-add-1 = refl
 %                                          ∷ [] )
 % test-add-1 = refl
 % \end{code}
- 
+
 We can test the output of the extractor on the other examples from the
 previous section in a similar fashion.
 Finally, we can feed generated programs into PostScript
