@@ -105,7 +105,7 @@ Our criteria of acceptable embeddings are as follows:
 \end{itemize}
 
 
-\subsection{Target syntax}
+\subsection{Target Syntax}
 
 In the end, the extractor outputs the PostScript syntax as a plain
 string. However, it is useful to work with a basic abstract syntax
@@ -173,7 +173,7 @@ print-ps es = intercalate "\n" (reverse (L.map (expr-to-string 0) es))
 \end{code}
 
 
-\subsection{The extraction monad}
+\subsection{The Extraction Monad}
 
 We make use of a monad for extraction to keep track of the current
 state of functions that still need to be extracted, and for
@@ -350,7 +350,7 @@ get-normalised-def f = do
 \end{code}
 
 
-\subsection{The extractor}
+\subsection{The Extractor}
 
 The extractor itself consists of four functions that traverse the
 different parts of the reflected Agda syntax and translate it to
