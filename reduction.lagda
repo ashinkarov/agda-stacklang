@@ -106,7 +106,7 @@ Using the same technique with the \AF{for} for, we can automatically unroll loop
 constant boundaries for free.
 
 \paragraph{Domain-specific optimizations as rewrite rules}%
-A common way to define domain-specific compiler optimizations is through
+One common way to define domain-specific compiler optimizations is through
 the specification of \emph{rewrite rules} that rewrite terms matching
 a given pattern to an equivalent form that is either more efficient
 or reveals further optimization opportunities.
@@ -133,7 +133,7 @@ built-in concept of rewrite rules~\cite{Cockx19}.
 %they are extracted.
 
 As an example, we prove that pushing and then adding two numbers
-in sequence is equivalent to pushing and adding the sum of these
+in sequence is equivalent to pushing and ad\-ding the sum of these
 numbers.
 
 \begin{code}

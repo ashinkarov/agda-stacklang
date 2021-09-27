@@ -165,10 +165,10 @@ to bind \AB{n} explicitly in the type of \AF{tail}:
 % \vspace{-24pt}
 \end{wrapfigure}
 
-\paragraph{Reflected syntax}%
+\paragraph{Reflected syntax}
 The reflection API of
 Agda\footnote{\hrefu{https://agda.readthedocs.io/en/v2.6.2/language/reflection.html}{agda.readthedocs.io/en/v2.6.2/language/reflection.html}}
-provides various datatypes that represent the internal syntax of Agda
+provides various da\-ta\-types that represent the internal syntax of Agda
 programs.
 %
 Expressions (of type \AD{Term}) are represented by a constructor such

@@ -86,7 +86,7 @@ Then we exchange the original argument with the result of the recursive call
 by running \textbf{exch}.  We subtract two, make a recursive call and add results
 of two recursive calls.   Conditionals are expressed with two code blocks
 followed by the \textbf{ifelse} command.
-%
+
 \begin{wrapfigure}{r}{.33\columnwidth}
 \epsfbox[17 10 80 65]{1.ps}
 \caption{\label{fig:fib}Draw \AF{fib}.}
@@ -135,7 +135,8 @@ infixl 5 _#_
 variable s : Stack n
 \end{code}
 \end{wrapfigure}
-Similarly to vectors, the \AD{Stack} type has two constructors: \AC{[]} for stacks of length
+
+Similarly to vec\-tors, the \AD{Stack} type has two con\-struc\-tors: \AC{[]} for stacks of length
 zero and \AC{\_\#\_} for stacks of length $1 + n$.  For example,
 \AC{[]} \AC{\#} \AN{1} \AC{\#} \AN{2} \AC{\#} \AN{3} is a stack of type \AD{Stack} \AN{3}.
 We define \AC{\_\#\_} to be left-associative, therefore we do not need any parenthesis.
@@ -285,7 +286,7 @@ We express all the
 operations in terms of base functions defined above.  We
 start with a trivial function that adds one to the top element of
 the stack.
-%
+
 \begin{wrapfigure}{l}{.6\columnwidth}
 %\vspace{-14pt}
 \begin{code}
@@ -295,7 +296,7 @@ add-1 s = add (push 1 s)
 %\vspace{-24pt}
 \end{wrapfigure}
 
-We are required to define the type, which in turn forces us to specify
+We are re\-quir\-ed to define the type, which in turn forces us to specify
 how does the operation change the length of the stack.  Stack
 operators are regular functions, so the chain of applications would be
 written in reverse, when comparing to the corresponding PostScript
