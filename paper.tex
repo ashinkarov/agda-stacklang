@@ -135,6 +135,23 @@
 %\renewcommand{\paragraph}[1]{\textbf{\textit{#1. }}}
 \setlength{\intextsep}{0pt}
 %\AgdaNoSpaceAroundCode{}
+\renewcommand\paragraph{\noindentparagraph}
+
+% This trick is taken from here:
+% https://tex.stackexchange.com/questions/346444/mathpartir-abovedisplayskip-and-belowdisplayskip-affect-placement-of-side-con
+
+\usepackage{etoolbox}
+
+\newcommand{\zerodisplayskips}{%
+  \setlength{\abovedisplayskip}{2pt}%
+  \setlength{\belowdisplayskip}{2pt}%
+  \setlength{\abovedisplayshortskip}{2pt}%
+  \setlength{\belowdisplayshortskip}{2pt}}
+\appto{\normalsize}{\zerodisplayskips}
+\appto{\small}{\zerodisplayskips}
+\appto{\footnotesize}{\zerodisplayskips}
+
+
 
 
 
@@ -233,7 +250,7 @@ dependently typed host language, which allows us to re-use the typechecker
 of the host language to typecheck the embedded language.
 
 There are two common approaches to language embedding: deep and shallow.
-Shallow embeddings define languages in terms of functions and operators
+Shallow embeddings define lan\-gua\-ges in terms of functions and operators
 of the host language.  Programs in shallowly-embedded languages are programs
 in the host language, so they are immediately run\-nable; types of the embedded
 language are types of the host language, so the host typechecker is used for
@@ -305,9 +322,6 @@ out such generalisations.
 % technical details.  We ensure that many verification patterns found in bigger
 % languages are covered, showing that the proposed approach scales.
 
-This entire paper is a \emph{literate Agda} script\footnote{The sources of the paper
-can be found at \url{https://github.com/ashinkarov/agda-stacklang}.}:
-all code is typechecked while generating the paper.
 
 Our \textit{\textbf{main contributions}} are as follows:
 
@@ -331,9 +345,12 @@ Our \textit{\textbf{main contributions}} are as follows:
 
 \item We show how to our approach provides easy support for partial
   evaluation by making use of normalisation in the host language. This
-  allows us to use functions of the host language as macros, as well
-  as automatically apply optimizations through the use of rewrite
-  rules (\secref{partial-evaluation}).
+  allows us to use functions of the host language as macros,
+  and optimise prorgams via rewrite rules (\secref{partial-evaluation}).
+
+  %as well
+  %as automatically apply optimizations through the use of rewrite
+  %rules (\secref{partial-evaluation}).
 \end{itemize}
 
 When dealing with embedded languages that are ex\-trac\-ted and run
@@ -348,6 +365,9 @@ Enormous research efforts are spent towards addressing this
 problem~\cite{Leroy09,KumarMNO14}, but this is beyond the scope of this paper.
 
 
+This entire paper is a \emph{literate Agda} script\footnote{The sources of the paper
+can be found at \url{https://github.com/ashinkarov/agda-stacklang}.}:
+all code is typechecked while generating the paper.
 
 \begin{comment}
 The rest of this paper is structured as follows. \secref{background}
