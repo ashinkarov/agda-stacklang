@@ -361,11 +361,9 @@
 %
 % The implementation comes from lhs2TeX's polycode.fmt, written by
 % Andres Löh.
-%\newcommand{\Agda@NewlineWithVerticalSpace}[1]{%
-%  {\parskip=0pt\parindent=0pt\par\vskip #1\noindent}}
-% FIXME fiddling here
 \newcommand{\Agda@NewlineWithVerticalSpace}[1]{%
-  {\parskip=0pt\parindent=0pt\par\vskip 3pt\noindent}}
+  {\parskip=0pt\parindent=0pt\par\vskip #1\noindent}}
+
 % Should there be space around code?
 \newboolean{Agda@SpaceAroundCode}
 

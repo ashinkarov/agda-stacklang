@@ -15,7 +15,7 @@ records, modules, do-notation, \etc{}
 We start with a brief overview of key Agda constructions that
 are used in this paper.  We also present relevant parts of the
 reflection API.  For a more in-depth introduction to Agda refer
-to the Agda user manual~\cite{agda}.
+to the Agda user manual~\cite{agda-2-6-2}.
 
 \paragraph{Datatypes} Datatypes are defined as follows:
 \begin{mathpar}

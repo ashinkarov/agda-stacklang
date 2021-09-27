@@ -715,7 +715,8 @@ We implement conditional drawing via the helper function \AF{draw-if}.
               bit-and : Stack (2 + n) → Stack (1 + n)
 
     draw-if : Stack (3 + n) → Stack (2 + n)
-    draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ▹ index 1 ▹ draw-circ-xy
+    draw-if s@(_ # 0)  = s  ▹ pop ▹ index 1 ▹ index 1
+                            ▹ draw-circ-xy
     draw-if s          = s  ▹ pop
 \end{code}
 The main function sets the boundaries for both for-loops, applies
